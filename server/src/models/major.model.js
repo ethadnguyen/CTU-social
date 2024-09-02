@@ -1,26 +1,26 @@
 const mongoose = require('mongoose');
 
 const MajorSchema = new mongoose.Schema({
-    name: {
+    majorName: {
         type: String,
         required: true,
-        unique: true
     },
     faculty: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Faculty',
         required: true
     },
-    academic_year: {
+    academicYear: {
         type: String,
         required: true
     },
 },
     {
-        timestamp: true
+        timestamps: true
     }
 );
 
+MajorSchema.index({ majorName: 1, academicYear: 1 }, { unique: true });
 const Major = mongoose.model('Major', MajorSchema);
 
 module.exports = Major;

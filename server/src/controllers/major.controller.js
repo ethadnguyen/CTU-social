@@ -1,49 +1,74 @@
-const Faculty = require('../models/faculty.model');
 const Major = require('../models/major.model');
-
+const { validationResult } = require('express-validator');
 const getAllMajors = async (req, res) => {
     try {
-        const majors = await Major.find();
-        res.status(200).json(majors);
+        const majors = await Major.find().populate('faculty');
+        res.json(majors);
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        res.status(500).json({ message: 'Lỗi lấy danh sách ngành' });
     }
 };
+
+const getMajorById = async (req, res) => {
+    try {
+        const major = await Major.findById(req.params.id).populate('faculty');
+        if (!major) {
+            return res.status(404).json({ message: 'Ngành không tồn tại' });
+        }
+        res.json(major);
+    } catch (error) {
+        res.status(500).json({ message: 'Lỗi lấy thông tin ngành', error: error.message });
+    }
+}
 
 
 const createMajor = async (req, res) => {
     try {
-        const { name, facultyName, academic_year, description } = req.body;
-
-        const faculty = await Faculty.findOne({ name: facultyName });
-        if (!faculty) {
-            return res.status(404).json({ error: 'Faculty not found' });
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            return res.status(400).json({ errors: errors.array() });
         }
 
-        const existingMajor = await Major.findOne({ name, faculty: faculty._id, academic_year });
-        if (existingMajor) {
-            return res.status(400).json({ error: 'Major already exists for this faculty and academic year' });
-        }
-
-        // Tạo mới Major
-        const newMajor = new Major({
-            name,
-            faculty: faculty._id,
-            academic_year,
-        });
-
-        // Lưu Major vào cơ sở dữ liệu
-        const savedMajor = await newMajor.save();
-
-        // Trả về phản hồi thành công
-        res.status(201).json({ message: 'Major created successfully', major: savedMajor });
+        const newMajor = new Major(req.body);
+        await newMajor.save();
+        res.status(201).json(newMajor);
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ error: 'Internal server error' });
+        res.status(500).json({ message: 'Lỗi tạo ngành', error: error.message });
     }
 };
 
+const updateMajor = async (req, res) => {
+    try {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            return res.status(400).json({ errors: errors.array() });
+        }
+
+        const updatedMajor = await Major.findByIdAndUpdate(req.params.id, req.body, { new: true });
+        if (!updatedMajor) {
+            return res.status(404).json({ message: 'Ngành không tồn tại' });
+        }
+        res.json(updatedMajor);
+    } catch (error) {
+        res.status(500).json({ message: 'Lỗi cập nhật ngành', error: error.message });
+    }
+};
+
+const deleteMajor = async (req, res) => {
+    try {
+        const deletedMajor = await Major.findByIdAndDelete(req.params.id);
+        if (!deletedMajor) {
+            return res.status(404).json({ message: 'Ngành không tồn tại' });
+        }
+        res.json({ message: 'Ngành đã bị xóa' });
+    } catch (error) {
+        res.status(500).json({ message: 'Lỗi xóa ngành', error: error.message });
+    }
+};
 module.exports = {
     getAllMajors,
+    getMajorById,
     createMajor,
+    updateMajor,
+    deleteMajor
 };

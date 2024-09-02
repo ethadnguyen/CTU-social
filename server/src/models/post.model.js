@@ -9,6 +9,10 @@ const PostSchema = new mongoose.Schema({
         type: String,
         required: false
     }],
+    files: [{
+        type: String,
+        required: false
+    }],
     user: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
@@ -20,18 +24,18 @@ const PostSchema = new mongoose.Schema({
             ref: 'Comment',
         }
     ],
-    likes: [
-        {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: 'User',
-        }
-    ],
-    reports: [
-        {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: 'User',
-        }
-    ],
+    likes: { type: Number, default: 0 },
+    likedBy: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+    reports: { type: Number, default: 0 },
+    shares: { type: Number, default: 0 },
+    sharedBy: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+    saves: { type: Number, default: 0 },
+    savedBy: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+    privacy: {
+        type: String,
+        enum: ['public', 'private'],
+        default: 'public'
+    },
 },
     {
         timestamps: true

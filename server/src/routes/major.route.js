@@ -1,21 +1,23 @@
 const express = require('express');
-
+const {
+    getAllMajors,
+    getMajorById,
+    createMajor,
+    updateMajor,
+    deleteMajor
+} = require('../controllers/major.controller');
+const { checkSchema } = require('express-validator');
+const { createMajorSchema } = require('../validateSchema/major');
 const router = express.Router();
-const majorController = require('../controllers/major.controller');
 
-router.get('/', (req, res) => {
+router.get('/', getAllMajors);
 
-    res.send('GET request to retrieve all majors');
-});
+router.get('/:id', getMajorById);
 
-// GET route for retrieving a specific major by ID
-router.get('/:id', (req, res) => {
-    const majorId = req.params.id;
+router.post('/', checkSchema(createMajorSchema), createMajor);
 
-    res.send(`GET request to retrieve major with ID ${majorId}`);
-});
+router.patch('/:id', updateMajor);
 
-// POST route for creating a new major
-router.post('/', majorController.createMajor);
+router.delete('/:id', deleteMajor);
 
 module.exports = router;

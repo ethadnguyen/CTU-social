@@ -1,12 +1,25 @@
 const express = require('express');
-const facultyController = require('../controllers/faculty.controller');
+const {
+    getAllFaculties,
+    getFacultyById,
+    createFaculty,
+    updateFaculty,
+    deleteFaculty
+} = require('../controllers/faculty.controller');
+const { checkSchema } = require('express-validator');
+const { createFacultySchema } = require('../validateSchema/faculty');
 
 const router = express.Router();
 
-// GET route for fetching all faculty
-router.get('/', facultyController.getFaculties);
+router.get('/', getAllFaculties);
 
-// POST route for creating a new faculty
-router.post('/', facultyController.createFaculty);
+router.get('/:id', getFacultyById);
+
+router.post('/', checkSchema(createFacultySchema), createFaculty);
+
+router.patch('/:id', updateFaculty);
+
+router.delete('/:id', deleteFaculty);
+
 
 module.exports = router;
