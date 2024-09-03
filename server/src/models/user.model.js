@@ -55,9 +55,6 @@ const userSchema = mongoose.Schema({
     facebook: {
         type: String,
     },
-    twitter: {
-        type: String,
-    },
     linkedin: {
         type: String,
     },

@@ -17,13 +17,21 @@ const CommentSchema = new mongoose.Schema({
         ref: 'Post',
         required: true
     },
-    likes: [
+    likes: {
+        type: Number,
+        default: 0
+    },
+    likedBy: [
         {
             type: mongoose.Schema.Types.ObjectId,
             ref: 'User',
         }
     ],
-    reports: [
+    reports: {
+        type: Number,
+        default: 0
+    },
+    reportedBy: [
         {
             type: mongoose.Schema.Types.ObjectId,
             ref: 'User',

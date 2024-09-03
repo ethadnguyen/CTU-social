@@ -27,6 +27,7 @@ const PostSchema = new mongoose.Schema({
     likes: { type: Number, default: 0 },
     likedBy: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
     reports: { type: Number, default: 0 },
+    reportedBy: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
     shares: { type: Number, default: 0 },
     sharedBy: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
     saves: { type: Number, default: 0 },
