@@ -1,9 +1,10 @@
 const Faculty = require('../models/faculty.model');
 const { body, validationResult } = require('express-validator');
+const Major = require('../models/major.model');
 
 const getAllFaculties = async (req, res) => {
     try {
-        const faculties = await Faculty.find();
+        const faculties = await Faculty.find().populate('majors');
         res.json(faculties);
     } catch (error) {
         res.status(500).json({ message: 'Lỗi lấy danh sách khoa' });
@@ -54,11 +55,14 @@ const updateFaculty = async (req, res) => {
 
 const deleteFaculty = async (req, res) => {
     try {
-        const deletedFaculty = await Faculty.findByIdAndDelete(req.params.id);
-        if (!deletedFaculty) {
+        const faculty = await Faculty.findById(req.params.id);
+        if (!faculty) {
             return res.status(404).json({ message: 'Khoa không tồn tại' });
         }
-        res.json({ message: 'Khoa đã bị xóa' });
+        await Major.deleteMany({ _id: { $in: faculty.majors } });
+        await Faculty.findByIdAndDelete(req.params.id);
+
+        res.json({ message: 'Khoa và các ngành liên quan đã bị xóa' });
     } catch (error) {
         res.status(500).json({ message: 'Lỗi xóa khoa' });
     }

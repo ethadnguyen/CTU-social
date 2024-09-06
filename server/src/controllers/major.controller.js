@@ -1,3 +1,4 @@
+const Faculty = require('../models/faculty.model');
 const Major = require('../models/major.model');
 const { validationResult } = require('express-validator');
 const getAllMajors = async (req, res) => {
@@ -31,6 +32,11 @@ const createMajor = async (req, res) => {
 
         const newMajor = new Major(req.body);
         await newMajor.save();
+        await Faculty.findByIdAndUpdate(
+            req.body.faculty,
+            { $push: { majors: newMajor } },
+            { new: true }
+        )
         res.status(201).json(newMajor);
     } catch (error) {
         res.status(500).json({ message: 'Lỗi tạo ngành', error: error.message });

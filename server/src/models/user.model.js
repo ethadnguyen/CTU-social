@@ -15,10 +15,12 @@ const userSchema = mongoose.Schema({
     password: {
         type: String,
         required: true,
+        minLength: 6,
     },
     student_id: {
         type: String,
         required: true,
+        unique: true,
     },
     role: {
         type: String,
@@ -81,6 +83,9 @@ const userSchema = mongoose.Schema({
             ref: 'User',
         }
     ],
+    isVerified: {
+        type: Boolean, default: false
+    }
 },
     {
         timestamps: true

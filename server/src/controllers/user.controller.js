@@ -1,111 +1,138 @@
+const Verification = require('../models/emailVerification.model');
 const User = require('../models/user.model');
-const Faculty = require('../models/faculty.model');
-const Major = require('../models/major.model');
-const jwt = require('jsonwebtoken');
-const bcrypt = require('bcrypt');
+const { compareString, hashString } = require('../utils/index');
+const { resetPasswordLink } = require('../utils/sendMail');
+const friendRequest = require('../models/friendRequest.model');
+const PasswordReset = require('../models/PasswordReset.model');
 
-const login = async (req, res) => {
+const verifyEmail = async (req, res) => {
+    const { userId, token } = req.params;
+
     try {
+        const result = await Verification.findOne({ userId });
 
-        const { email, password } = req.body;
+        if (result) {
+            const { expiresAt, token: hashedToken } = result;
 
-        const user = await User.findOne({ email }).populate('faculty').populate('major');
-
-        if (!user) {
-            return res.status(404).json({ message: 'Người dùng không tồn tại' });
-        }
-
-        const isMatch = await bcrypt.compare(password, user.password);
-        if (!isMatch) {
-            return res.status(400).json({ message: 'Mật khẩu không đúng' });
-        }
-
-        const token = jwt.sign(
-            { userId: user._id, role: user.role },
-            process.env.ACCESS_TOKEN_SECRET,
-            { expiresIn: '1d' }
-        );
-        res.status(200).json({
-            message: 'Đăng nhập thành công',
-            token,
-            user: {
-                fullName: user.fullName,
-                email: user.email,
-                student_id: user.student_id,
-                role: user.role,
-                faculty: user.faculty.name,
-                major: user.major.name
+            if (expiresAt < Date.now()) {
+                Verification.findOneAndDelete({ userId })
+                    .then(() => {
+                        User.findOneAndDelete({ _id: userId })
+                            .then(() => {
+                                const message = 'Liên kết xác thực đã hết hạn. Vui lòng đăng ký lại.';
+                                res.redirect(`/users/verified?status=error&message=${message}`);
+                            })
+                            .catch((err) => {
+                                res.redirect(`/users/verified?status=error&message=${err}`);
+                            });
+                    })
+                    .catch((error) => {
+                        console.log(error);
+                        res.redirect(`/users/verified?message=${error}`);
+                    });
+            } else {
+                compareString(token, hashedToken)
+                    .then((isMatch) => {
+                        if (isMatch) {
+                            User.findOneAndUpdate({ _id: userId }, { isVerified: true })
+                                .then(() => {
+                                    Verification.findOneAndDelete({ userId })
+                                        .then(() => {
+                                            const message = 'Xác thực email thành công.';
+                                            res.redirect(`/users/verified?status=success&message=${message}`);
+                                        });
+                                })
+                                .catch((err) => {
+                                    console.log(err);
+                                    const message = 'Xác thực email thất bại.';
+                                    res.redirect(`/users/verified?status=error&message=${message}`);
+                                });
+                        } else {
+                            const message = 'Liên kết xác thực không hợp lệ.';
+                            res.redirect(`/users/verified?status=error&message=${message}`);
+                        }
+                    })
+                    .catch((err) => {
+                        console.log(err);
+                        res.redirect(`/users/verified?message=${err}`);
+                    })
             }
-        });
+        }
+        else {
+            const message = 'Liên kết xác thực không hợp lệ.';
+            res.redirect(`/users/verified?status=error&message=${message}`);
+        }
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Đã xảy ra lỗi' });
+        console.log(error);
+        res.redirect(`/users/verified?status=error&message=${error}`);
     }
 };
 
-const register = async (req, res) => {
+const requestPasswordReset = async (req, res) => {
     try {
-        const {
-            fullName,
-            email,
-            password,
-            student_id,
-            facultyName,
-            majorName,
-            gender,
-            phone,
-            bio,
-            socials,
-            avatar
-        } = req.body;
+        const { email } = req.body;
+        const user = await User.findOne({ email });
 
-        const emailRegex = /^[a-zA-Z0-9._%+-]+@student\.ctu\.edu\.vn$/;
-        if (!emailRegex.test(email)) {
-            return res.status(400).json({ error: 'Chỉ cho phép email @student.ctu.edu.vn' });
+        if (!user) {
+            return res.status(404).json({ status: 'FAILED', message: 'Email không tồn tại' });
         }
 
-        const existingUser = await User.findOne({ email });
-        if (existingUser) {
-            return res.status(400).json({ error: 'Email đã tồn tại' });
+        const existingRequest = await PasswordReset.findOne({ email });
+        if (existingRequest) {
+            if (existingRequest.expiresAt > Date.now()) {
+                return res.status(201).json({
+                    status: 'PENDING',
+                    message: 'Yêu cầu đã được gửi. Vui lòng kiểm tra hộp thư của bạn',
+                });
+            }
+            await PasswordReset.findOneAndDelete({ email });
         }
-
-        const faculty = await Faculty.findOne({ name: facultyName });
-        if (!faculty) {
-            return res.status(400).json({ error: 'Khoa không tồn tại' });
-        }
-        const major = await Major.findOne({ name: majorName, faculty: faculty._id });
-        if (!major) {
-            return res.status(400).json({ error: 'Ngành/Chuyên ngành không tồn tại' });
-        }
-        const newUser = new User({
-            fullName,
-            email,
-            password,
-            student_id,
-            faculty: faculty._id,
-            major: major._id,
-            gender,
-            phone,
-            bio,
-            socials,
-            avatar
-        });
-
-        await newUser.save();
-
-        const token = jwt.sign(
-            { userId: newUser._id, role: newUser.role },
-            process.env.ACCESS_TOKEN_SECRET,
-            { expiresIn: '1d' }
-        );
-        res.status(201).json({ message: 'Đăng ký thành công!', token });
+        await resetPasswordLink(user, res);
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Đã xảy ra lỗi!' });
+        console.log(error);
+        res.status(404).json({ status: 'FAILED', message: error.message });
+    }
+};
+
+const resetPassword = async (req, res) => {
+    const { userId, token } = req.params;
+
+    try {
+        const user = await User.findById(userId);
+
+        if (!user) {
+            const message = 'Liên kết không hợp lệ. Thử lại';
+            res.redirect(`/users/reset-password?status=error&message=${message}`);
+        }
+
+        const resetPassword = await PasswordReset.findOne({ userId });
+
+        if (!resetPassword) {
+            const message = 'Liên kết không hợp lệ. Thử lại';
+            res.redirect(`/users/reset-password?status=error&message=${message}`);
+        }
+
+        const { expiresAt, token: resetToken } = resetPassword;
+
+        if (expiresAt < Date.now()) {
+            const message = 'Liên kết đã hết hạn. Thử lại';
+            res.redirect(`/users/reset-password?status=error&message=${message}`);
+        } else {
+            const isMatch = await compareString(token, resetToken);
+
+            if (!isMatch) {
+                const message = 'Liên kết không hợp lệ. Thử lại';
+                res.redirect(`/users/reset-password?status=error&message=${message}`);
+            } else {
+                res.redirect(`/users/reset-password?type=reset&id=${userId}`);
+            }
+        }
+    } catch (error) {
+        console.log(error);
+        res.status(404).json({ message: error.message });
     }
 };
 
 module.exports = {
-    login,
-    register,
+    verifyEmail
 };

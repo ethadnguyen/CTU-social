@@ -1,23 +1,18 @@
 const express = require('express');
+const path = require('path');
 const UserController = require('../controllers/user.controller');
 const authMiddleware = require('../middlewares/auth.middleware');
 
 const router = express.Router();
 
-// GET /users
-router.get('/', (req, res) => {
-    res.send('Get all users');
+
+router.get('/verify/:userId/:token', UserController.verifyEmail);
+
+
+router.get('/verified', (req, res) => {
+    res.sendFile(path.join(__dirname, '../views/build', 'index.html'));
 });
 
-// GET /users/:id
-router.get('/:id', (req, res) => {
-    const userId = req.params.id;
-    res.send(`Get user with id ${userId}`);
-});
-
-// POST /users
-router.post('/register', UserController.register);
-router.post('/login', UserController.login);
 // PUT /users/:id
 router.put('/:id', (req, res) => {
     const userId = req.params.id;

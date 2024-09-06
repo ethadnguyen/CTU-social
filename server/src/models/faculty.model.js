@@ -6,6 +6,12 @@ const FacultySchema = new mongoose.Schema({
         required: true,
         unique: true
     },
+    majors: [
+        {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Major'
+        }
+    ]
 },
     {
         timestamps: true

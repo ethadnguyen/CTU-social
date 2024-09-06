@@ -13,7 +13,10 @@ const createMajorSchema = {
     faculty: {
         in: ['body'],
         notEmpty: true,
-        errorMessage: 'Khoa không được để trống'
+        errorMessage: 'Khoa không được để trống',
+        isMongoId: {
+            errorMessage: 'Khoa phải là một ObjectId hợp lệ'
+        }
     },
     academicYear: {
         in: ['body'],
