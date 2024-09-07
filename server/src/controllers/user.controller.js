@@ -4,6 +4,7 @@ const { compareString, hashString } = require('../utils/index');
 const { resetPasswordLink } = require('../utils/sendMail');
 const friendRequest = require('../models/friendRequest.model');
 const PasswordReset = require('../models/PasswordReset.model');
+const FriendRequest = require('../models/friendRequest.model');
 
 const verifyEmail = async (req, res) => {
     const { userId, token } = req.params;
@@ -133,6 +134,236 @@ const resetPassword = async (req, res) => {
     }
 };
 
+const changePassword = async (req, res, next) => {
+    try {
+        const { userId, password } = req.body;
+
+        const user = await User.findByIdAndUpdate({ _id: userId, password });
+
+        if (!user) {
+            return res.status(404).json({ status: 'FAILED', message: 'Không tìm thấy người dùng' });
+        }
+
+        res.status(200).json({
+            status: 'SUCCESS',
+            message: 'Mật khẩu đã được thay đổi',
+        });
+    } catch (error) {
+        console.log(error);
+        res.status(404).json({ message: error.message });
+    }
+};
+
+const getUser = async (req, res, next) => {
+    try {
+        const { userId } = req.body.user;
+        const { id } = req.params;
+
+        const user = await User.findById(id ?? userId).populate({
+            path: 'friends',
+            select: '-password',
+        });
+
+        if (!user) {
+            return res.status(404).json({
+                status: 'FAILED',
+                message: 'Không tìm thấy người dùng'
+            });
+        }
+
+        res.status(200).json({
+            status: 'SUCCESS',
+            user: user,
+        });
+
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({
+            message: 'Lỗi xác thực!',
+            status: 'FAILED',
+            error: error.message
+        });
+    }
+};
+
+const updateUser = async (req, res, next) => {
+    try {
+        const { userId } = req.params;
+        const {
+            firstName,
+            lastName,
+            student_id,
+            faculty,
+            major,
+            gender,
+            dateOfBirth,
+            phone,
+            avatar,
+            bio,
+            facebook,
+            linkedin,
+            github } = req.body;
+
+        const updateUser = {
+            _id: userId,
+            firstName,
+            lastName,
+            student_id,
+            faculty,
+            major,
+            gender,
+            dateOfBirth,
+            phone,
+            avatar,
+            bio,
+            facebook,
+            linkedin,
+            github
+        };
+
+        const updatedUser = await User.findByIdAndUpdate(userId, updateUser, { new: true });
+
+        if (!updatedUser) {
+            return res.status(404).json({ status: 'FAILED', message: 'Không tìm thấy người dùng' });
+        }
+
+        res.status(200).json({
+            status: 'SUCCESS',
+            user: updatedUser,
+        });
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({ message: error.message });
+    }
+};
+
+
+const friendRequest = async (req, res, next) => {
+    try {
+        const { userId } = req.body.user;
+        const { requestTo } = req.body;
+
+        const requestExist = await FriendRequest.findOne({
+            requestFrom: userId,
+            requestTo,
+        });
+
+        if (requestExist) {
+            return res.status(400).json({
+                status: 'FAILED',
+                message: 'Yêu cầu đã được gửi'
+            });
+        }
+
+        const accountExist = await FriendRequest.findOne({
+            requestFrom: requestTo,
+            requestTo: userId,
+        });
+
+        if (accountExist) {
+            return res.status(400).json({
+                status: 'FAILED',
+                message: 'Yêu cầu đã được gửi'
+            });
+        }
+
+        const newRequest = new FriendRequest({
+            requestTo,
+            requestFrom: userId,
+        });
+
+        await newRequest.save();
+
+        res.status(201).json({
+            status: 'SUCCESS',
+            message: 'Gửi yêu cầu kết bạn thành công'
+        });
+
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({ message: error.message });
+    }
+};
+
+const getFriendRequest = async (req, res) => {
+    try {
+        const { userId } = req.body.user;
+
+        const request = await FriendRequest.find({
+            requestTo: userId,
+            requestStatus: 'PENDING',
+        })
+            .populate({
+                path: 'requestFrom',
+                select: '-password'
+            })
+            .limit(10)
+            .sort({
+                _id: -1,
+            })
+
+        res.status(200).json({
+            status: 'SUCCESS',
+            request
+        });
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({ message: error.message });
+    }
+}
+
+const acceptRequest = async (req, res, next) => {
+    try {
+        const id = req.body.user.userId;
+
+        const { requestId, status } = req.body;
+
+        const requestExist = await FriendRequest.findById({ requestId });
+
+        if (!requestExist) {
+            return res.status(404).json({
+                status: 'FAILED',
+                message: 'Yêu cầu không tồn tại'
+            });
+        }
+
+        const newRequest = await FriendRequest.findByIdAndUpdate(
+            { _id: requestId },
+            { requestStatus: status },
+        );
+        if (status === 'ACCEPTED') {
+            const user = await User.findById(id);
+
+            user.friends.push(newRequest?.requestFrom);
+
+            await user.save();
+
+            const friend = await User.findById(newRequest?.requestFrom);
+
+            friend.friends.push(newRequest?.requestTo);
+
+            await friend.save();
+        }
+
+        res.status(200).json({
+            status: 'SUCCESS',
+            message: 'Yêu cầu đã được xác nhận'
+        });
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({ message: error.message });
+    }
+}
+
+
 module.exports = {
-    verifyEmail
+    verifyEmail,
+    requestPasswordReset,
+    resetPassword,
+    changePassword,
+    getUser,
+    updateUser,
+    friendRequest,
+    getFriendRequest,
+    acceptRequest
 };

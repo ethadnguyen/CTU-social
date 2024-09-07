@@ -1,27 +1,14 @@
 const mongoose = require('mongoose');
 
 const FriendRequestSchema = new mongoose.Schema({
-    senderId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'User',
-        required: true
-    },
-    receiverId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'User',
-        required: true
-    },
-    message: {
-        type: String
-    },
-    status: {
-        type: String,
-        enum: ['pending', 'approved', 'rejected'],
-        default: 'pending'
+    requestTo: { type: Schema.Types.ObjectId, ref: 'User' },
+    requestFrom: { type: Schema.Types.ObjectId, ref: 'User' },
+    requestStatus: { type: String, default: 'PENDING' }
+},
+    {
+        timestamps: true
     }
-}, {
-    timestamps: true
-});
+);
 
 const FriendRequest = mongoose.model('FriendRequest', FriendRequestSchema);
 
