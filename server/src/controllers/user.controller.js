@@ -2,9 +2,8 @@ const Verification = require('../models/emailVerification.model');
 const User = require('../models/user.model');
 const { compareString, hashString } = require('../utils/index');
 const { resetPasswordLink } = require('../utils/sendMail');
-const friendRequest = require('../models/friendRequest.model');
-const PasswordReset = require('../models/PasswordReset.model');
 const FriendRequest = require('../models/friendRequest.model');
+const PasswordReset = require('../models/PasswordReset.model');
 
 const verifyEmail = async (req, res) => {
     const { userId, token } = req.params;
@@ -318,7 +317,7 @@ const acceptRequest = async (req, res, next) => {
 
         const { requestId, status } = req.body;
 
-        const requestExist = await FriendRequest.findById({ requestId });
+        const requestExist = await FriendRequest.findById(requestId);
 
         if (!requestExist) {
             return res.status(404).json({
@@ -333,16 +332,20 @@ const acceptRequest = async (req, res, next) => {
         );
         if (status === 'ACCEPTED') {
             const user = await User.findById(id);
-
-            user.friends.push(newRequest?.requestFrom);
-
-            await user.save();
-
             const friend = await User.findById(newRequest?.requestFrom);
 
+            user.friends.push(newRequest?.requestFrom);
+            user.following.push(friend);
+            user.followers.push(friend);
+
+            // await user.save();
+
             friend.friends.push(newRequest?.requestTo);
+            friend.following.push(user);
+            friend.followers.push(user);
 
             await friend.save();
+            await user.save();
         }
 
         res.status(200).json({
@@ -353,7 +356,169 @@ const acceptRequest = async (req, res, next) => {
         console.log(error);
         res.status(500).json({ message: error.message });
     }
-}
+};
+
+const rejectRequest = async (req, res, next) => {
+    try {
+        const { requestId } = req.body;
+
+        const requestExist = await FriendRequest.findById(requestId);
+
+        if (!requestExist) {
+            return res.status(404).json({
+                status: 'FAILED',
+                message: 'Yêu cầu không tồn tại'
+            });
+        }
+
+        await FriendRequest.findByIdAndUpdate(
+            { _id: requestId },
+            { requestStatus: 'REJECTED' },
+        );
+
+        res.status(200).json({
+            status: 'SUCCESS',
+            message: 'Yêu cầu đã bị từ chối'
+        });
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({ message: error.message });
+    }
+};
+
+const unFriend = async (req, res) => {
+    try {
+        const { userId, friendId } = req.body;
+
+        const user = await User.findById(userId);
+        const friend = await User.findById(friendId);
+
+        if (!user || !friend) {
+            return res.status(404).json({ status: 'FAILED', message: 'Người dùng không tồn tại' });
+        }
+
+        if (!user.friends.includes(friendId)) {
+            return res.status(400).json({ status: 'FAILED', message: 'Bạn không có người bạn này' });
+        }
+
+        const userIndex = user.friends.indexOf(friendId);
+        const userFollowerIndex = user.followers.indexOf(friendId);
+        const userFollowingIndex = user.following.indexOf(friendId);
+        user.friends.splice(userIndex, 1);
+        user.followers.splice(userFollowerIndex, 1);
+        user.following.splice(userFollowingIndex, 1);
+        await user.save();
+
+        const friendIndex = friend.friends.indexOf(userId);
+        const friendFollowerIndex = friend.followers.indexOf(userId);
+        const friendFollowingIndex = friend.following.indexOf(userId);
+
+        friend.followers.splice(friendFollowerIndex, 1);
+        friend.following.splice(friendFollowingIndex, 1);
+        friend.friends.splice(friendIndex, 1);
+        await friend.save();
+
+        res.status(200).json({ status: 'SUCCESS', message: 'Hủy kết bạn thành công' });
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({ message: error.message });
+    }
+};
+
+const followUser = async (req, res) => {
+    try {
+        const { userId, userToFollowId } = req.body;
+
+        const user = await User.findById(userId);
+        const userToFollow = await User.findById(userToFollowId);
+
+        if (!user || !userToFollow) {
+            return res.status(404).json({ status: 'FAILED', message: 'Người dùng không tồn tại' });
+        }
+
+
+        if (user.following.includes(userToFollowId)) {
+            return res.status(400).json({ status: 'FAILED', message: 'User is already following this user' });
+        }
+
+
+        user.following.push(userToFollowId);
+        await user.save();
+
+
+        userToFollow.followers.push(userId);
+        await userToFollow.save();
+
+        res.status(200).json({ status: 'SUCCESS', message: 'Theo dõi người dùng thành công' });
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({ message: error.message });
+    }
+};
+
+const unfollowUser = async (req, res) => {
+    try {
+        const { userId, userToUnfollowId } = req.body;
+
+        const user = await User.findById(userId);
+        const userToUnfollow = await User.findById(userToUnfollowId);
+
+        if (!user || !userToUnfollow) {
+            return res.status(404).json({ status: 'FAILED', message: 'Người dùng không tồn tại' });
+        }
+
+        if (!user.following.includes(userToUnfollowId)) {
+            return res.status(400).json({ status: 'FAILED', message: 'Bạn không theo dõi người dùng này' });
+        }
+
+        const index = user.following.indexOf(userToUnfollowId);
+        user.following.splice(index, 1);
+        await user.save();
+
+        const followerIndex = userToUnfollow.followers.indexOf(userId);
+        userToUnfollow.followers.splice(followerIndex, 1);
+        await userToUnfollow.save();
+
+        res.status(200).json({ status: 'SUCCESS', message: 'Bỏ theo dõi người dùng thành công' });
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({ message: error.message });
+    }
+};
+
+const getFollowers = async (req, res) => {
+    try {
+        const { userId } = req.params;
+
+        const user = await User.findById(userId).populate('followers', '-password');
+
+        if (!user) {
+            return res.status(404).json({ status: 'FAILED', message: 'Người dùng không tồn tại' });
+        }
+
+        res.status(200).json({ status: 'SUCCESS', followers: user.followers });
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({ message: error.message });
+    }
+};
+
+const getFollowing = async (req, res) => {
+    try {
+        const { userId } = req.params;
+
+        const user = await User.findById(userId).populate('following', '-password');
+
+        if (!user) {
+            return res.status(404).json({ status: 'FAILED', message: 'Người dùng không tồn tại' });
+        }
+
+        res.status(200).json({ status: 'SUCCESS', followers: user.following });
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({ message: error.message });
+    }
+};
 
 
 module.exports = {
@@ -365,5 +530,11 @@ module.exports = {
     updateUser,
     friendRequest,
     getFriendRequest,
-    acceptRequest
+    acceptRequest,
+    rejectRequest,
+    unFriend,
+    followUser,
+    unfollowUser,
+    getFollowers,
+    getFollowing,
 };

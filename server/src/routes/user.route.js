@@ -8,21 +8,29 @@ const router = express.Router();
 
 router.get('/verify/:userId/:token', UserController.verifyEmail);
 
+router.get('/get-user/:id', authMiddleware, UserController.getUser);
+
+router.put('/:userId', authMiddleware, UserController.updateUser);
+
+router.post('/friend-request', authMiddleware, UserController.friendRequest);
+
+router.post('/get-friend-request', authMiddleware, UserController.getFriendRequest);
+
+router.post('/accept-request', authMiddleware, UserController.acceptRequest);
+
+router.post('/unfriend', authMiddleware, UserController.unFriend);
+
+router.post('/follow', authMiddleware, UserController.followUser);
+
+router.post('/unfollow', authMiddleware, UserController.unfollowUser);
+
+router.get('/reset-password', (req, res) => {
+    res.sendFile(path.join(__dirname, '../views/build', 'index.html'));
+});
 
 router.get('/verified', (req, res) => {
     res.sendFile(path.join(__dirname, '../views/build', 'index.html'));
 });
 
-// PUT /users/:id
-router.put('/:id', (req, res) => {
-    const userId = req.params.id;
-    res.send(`Update user with id ${userId}`);
-});
-
-// DELETE /users/:id
-router.delete('/:id', (req, res) => {
-    const userId = req.params.id;
-    res.send(`Delete user with id ${userId}`);
-});
 
 module.exports = router;

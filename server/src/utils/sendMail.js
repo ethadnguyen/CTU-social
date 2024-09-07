@@ -17,7 +17,7 @@ let transporter = nodemailer.createTransport({
 });
 
 
-const sendVerificationEmail = async (user, res) => {
+const sendVerificationEmail = async (user, res, next) => {
     const { _id, email, firstName } = user;
 
     const token = _id + uuidv4();
