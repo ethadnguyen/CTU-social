@@ -4,6 +4,9 @@ const { compareString, hashString } = require('../utils/index');
 const { resetPasswordLink } = require('../utils/sendMail');
 const FriendRequest = require('../models/friendRequest.model');
 const PasswordReset = require('../models/PasswordReset.model');
+const GroupRequest = require('../models/groupRequest.model');
+const { validationResult } = require('express-validator');
+const Fuse = require('fuse.js');
 
 const verifyEmail = async (req, res) => {
     const { userId, token } = req.params;
@@ -102,29 +105,29 @@ const resetPassword = async (req, res) => {
 
         if (!user) {
             const message = 'Liên kết không hợp lệ. Thử lại';
-            res.redirect(`/users/reset-password?status=error&message=${message}`);
+            res.redirect(`/users/resetpassword?status=error&message=${message}`);
         }
 
         const resetPassword = await PasswordReset.findOne({ userId });
 
         if (!resetPassword) {
             const message = 'Liên kết không hợp lệ. Thử lại';
-            res.redirect(`/users/reset-password?status=error&message=${message}`);
+            res.redirect(`/users/resetpassword?status=error&message=${message}`);
         }
 
         const { expiresAt, token: resetToken } = resetPassword;
 
         if (expiresAt < Date.now()) {
             const message = 'Liên kết đã hết hạn. Thử lại';
-            res.redirect(`/users/reset-password?status=error&message=${message}`);
+            res.redirect(`/users/resetpassword?status=error&message=${message}`);
         } else {
             const isMatch = await compareString(token, resetToken);
 
             if (!isMatch) {
                 const message = 'Liên kết không hợp lệ. Thử lại';
-                res.redirect(`/users/reset-password?status=error&message=${message}`);
+                res.redirect(`/users/resetpassword?status=error&message=${message}`);
             } else {
-                res.redirect(`/users/reset-password?type=reset&id=${userId}`);
+                res.redirect(`/users/resetpassword?type=reset&id=${userId}`);
             }
         }
     } catch (error) {
@@ -137,16 +140,18 @@ const changePassword = async (req, res, next) => {
     try {
         const { userId, password } = req.body;
 
-        const user = await User.findByIdAndUpdate({ _id: userId, password });
+        const hashedPassword = await hashString(password);
 
-        if (!user) {
-            return res.status(404).json({ status: 'FAILED', message: 'Không tìm thấy người dùng' });
+        const user = await User.findByIdAndUpdate({ _id: userId }, { password: hashedPassword }, { new: true });
+
+        if (user) {
+            await PasswordReset.findOneAndDelete({ userId });
+
+            res.status(200).json({
+                status: 'SUCCESS',
+                message: 'Mật khẩu đã được thay đổi'
+            });
         }
-
-        res.status(200).json({
-            status: 'SUCCESS',
-            message: 'Mật khẩu đã được thay đổi',
-        });
     } catch (error) {
         console.log(error);
         res.status(404).json({ message: error.message });
@@ -203,24 +208,23 @@ const updateUser = async (req, res, next) => {
             linkedin,
             github } = req.body;
 
-        const updateUser = {
-            _id: userId,
-            firstName,
-            lastName,
-            student_id,
-            faculty,
-            major,
-            gender,
-            dateOfBirth,
-            phone,
-            avatar,
-            bio,
-            facebook,
-            linkedin,
-            github
-        };
+        const updateFields = {};
 
-        const updatedUser = await User.findByIdAndUpdate(userId, updateUser, { new: true });
+        if (firstName) updateFields.firstName = firstName;
+        if (lastName) updateFields.lastName = lastName;
+        if (student_id) updateFields.student_id = student_id;
+        if (faculty) updateFields.faculty = faculty;
+        if (major) updateFields.major = major;
+        if (gender) updateFields.gender = gender;
+        if (dateOfBirth) updateFields.dateOfBirth = dateOfBirth;
+        if (phone) updateFields.phone = phone;
+        if (avatar) updateFields.avatar = avatar;
+        if (bio) updateFields.bio = bio;
+        if (facebook) updateFields.facebook = facebook;
+        if (linkedin) updateFields.linkedin = linkedin;
+        if (github) updateFields.github = github;
+
+        const updatedUser = await User.findByIdAndUpdate(userId, { $set: updateFields }, { new: true });
 
         if (!updatedUser) {
             return res.status(404).json({ status: 'FAILED', message: 'Không tìm thấy người dùng' });
@@ -235,7 +239,6 @@ const updateUser = async (req, res, next) => {
         res.status(500).json({ message: error.message });
     }
 };
-
 
 const friendRequest = async (req, res, next) => {
     try {
@@ -281,6 +284,59 @@ const friendRequest = async (req, res, next) => {
     } catch (error) {
         console.log(error);
         res.status(500).json({ message: error.message });
+    }
+};
+
+const createGroupRequest = async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+    }
+
+    try {
+        const { userId } = req.body.user;
+        const { name, description } = req.body;
+
+        const lastRequest = await GroupRequest.findOne({ userId }).sort({ createdAt: -1 });
+
+        if (lastRequest) {
+            const timeDifference = Date.now() - new Date(lastRequest.createdAt).getTime();
+            const coolDownPeriod = 24 * 60 * 60 * 1000;
+
+            if (timeDifference < coolDownPeriod) {
+                return res.status(400).json({
+                    message: 'Bạn chỉ có thể gửi yêu cầu mở nhóm một lần trong 24 giờ'
+                });
+            }
+        }
+
+        const previousRequests = await GroupRequest.find({ userId });
+
+        const options = {
+            includesScore: true,
+            threshold: 0.3,
+            keys: ['name'],
+        }
+
+        const fuse = new Fuse(previousRequests, options);
+
+        const result = fuse.search({ name });
+
+        if (result.length > 0) {
+            return res.status(400).json({ message: 'Có vẻ bạn đã có một tên nhóm tương tự trước đó. Hãy kiểm tra lại tên nhóm!' })
+        }
+
+        const newGroupRequest = new GroupRequest({ userId, name, description });
+
+        await newGroupRequest.save();
+
+        res.status(201).json({
+            message: 'Yêu cầu mở nhóm đã được gửi thành công',
+            groupRequest: newGroupRequest
+        });
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({ message: 'Lỗi tạo yêu cầu mở nhóm', error: error.message });
     }
 };
 
@@ -529,6 +585,7 @@ module.exports = {
     getUser,
     updateUser,
     friendRequest,
+    createGroupRequest,
     getFriendRequest,
     acceptRequest,
     rejectRequest,

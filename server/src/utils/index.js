@@ -13,14 +13,26 @@ const compareString = async (userPassword, password) => {
     return isMatch;
 };
 
-const createJWT = (id) => {
-    return jwt.sign({ userId: id }, process.env.ACCESS_TOKEN_SECRET, {
+const createJWT = (id, role = 'user') => {
+    return jwt.sign({ userId: id, role }, process.env.ACCESS_TOKEN_SECRET, {
         expiresIn: '1d',
     });
 }
 
+const isAdmin = (req, res, next) => {
+    const user = req.body.user;
+    console.log(user);
+    if (user && user.role === 'admin') {
+        next();
+    } else {
+        res.status(403).json({ message: 'Không đủ quyền truy cập' });
+    }
+};
+
+
 module.exports = {
     hashString,
     compareString,
-    createJWT
+    createJWT,
+    isAdmin
 };

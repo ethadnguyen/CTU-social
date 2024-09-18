@@ -3,6 +3,7 @@ const dotenv = require('dotenv');
 const { hashString } = require('./index.js');
 const uuidv4 = require('uuid').v4;
 const Verification = require('../models/emailVerification.model.js');
+const PasswordReset = require('../models/PasswordReset.model.js');
 
 dotenv.config();
 
@@ -98,10 +99,11 @@ const resetPasswordLink = async (user, res) => {
     };
 
     try {
-        const hashedToken = hashString(token);
+        const hashedToken = await hashString(token);
 
-        const resetEmail = await Verification.create({
+        const resetEmail = await PasswordReset.create({
             userId: _id,
+            email: email,
             token: hashedToken,
             createdAt: Date.now(),
             expiresAt: Date.now() + 600000,
@@ -112,18 +114,18 @@ const resetPasswordLink = async (user, res) => {
                 .sendMail(mailOptions)
                 .then(() => {
                     res.status(201).send({
-                        success: 'PENDING',
-                        message: 'Email đặt lại mật khẩu đã được gửi. Kiểm tra hộp thư của bạn',
+                        success: "PENDING",
+                        message: "Liên kết đặt lại mật khẩu đã được gửi. Kiểm tra hộp thư của bạn",
                     });
                 })
                 .catch((err) => {
                     console.log(err);
-                    res.status(404).json({ message: 'Lỗi gửi email đặt lại mật khẩu', error: err.message });
+                    res.status(404).json({ message: "Lỗi xác thực email", error: err.message });
                 });
         }
     } catch (error) {
         console.log(error);
-        res.status(404).json({ message: 'Lỗi tạo xác thực email', error: error.message });
+        res.status(404).json({ message: "Lỗi xác thực email", error: error.message });
     }
 };
 

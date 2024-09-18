@@ -8,13 +8,19 @@ const GroupSchema = new mongoose.Schema({
     },
     description: {
         type: String,
-        required: true
     },
-    admin: {
+    owner: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
         required: true
     },
+    admin: [
+        {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'User',
+            required: true
+        }
+    ],
     members: [
         {
             type: mongoose.Schema.Types.ObjectId,

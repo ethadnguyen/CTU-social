@@ -5,7 +5,7 @@ const {
     createMajor,
     updateMajor,
     deleteMajor
-} = require('../controllers/major.controller');
+} = require('../controllers/admin.controller');
 const { checkSchema } = require('express-validator');
 const { createMajorSchema } = require('../validateSchema/major');
 const router = express.Router();

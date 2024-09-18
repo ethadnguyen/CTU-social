@@ -5,7 +5,7 @@ const {
     createFaculty,
     updateFaculty,
     deleteFaculty
-} = require('../controllers/faculty.controller');
+} = require('../controllers/admin.controller');
 const { checkSchema } = require('express-validator');
 const { createFacultySchema } = require('../validateSchema/faculty');
 

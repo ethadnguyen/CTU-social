@@ -6,10 +6,11 @@ const bodyParser = require('body-parser');
 const morgan = require('morgan');
 const app = express();
 const connectDB = require('./src/db/db');
+
 const authRoute = require('./src/routes/auth.route');
+const adminRoute = require('./src/routes/admin.route');
 const userRoute = require('./src/routes/user.route');
-const facultyRoute = require('./src/routes/faculty.route');
-const majorRoute = require('./src/routes/major.route');
+const postRoute = require('./src/routes/post.route');
 const errorMiddleware = require('./src/middlewares/error.middleware');
 
 // const __dirname = path.resolve(path.dirname(''));
@@ -31,8 +32,8 @@ app.use(morgan('dev'));
 
 app.use('/auth', authRoute);
 app.use('/users', userRoute);
-app.use('/faculties', facultyRoute);
-app.use('/majors', majorRoute);
+app.use('/admin', adminRoute)
+app.use('/posts', postRoute);
 
 app.use(errorMiddleware);
 
