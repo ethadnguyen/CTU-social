@@ -89,6 +89,12 @@ const userSchema = mongoose.Schema({
             ref: 'Group',
         }
     ],
+    saved: [
+        {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Post',
+        }
+    ],
     isVerified: {
         type: Boolean,
         default: false

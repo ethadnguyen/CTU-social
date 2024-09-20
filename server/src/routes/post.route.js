@@ -14,7 +14,8 @@ const {
     commentPost,
     replyPostComment,
     deletePost,
-    deletePostComment
+    deletePostComment,
+    savePost
 } = require('../controllers/post.controller');
 const { checkSchema } = require('express-validator');
 const createPostValidateSchema = require('../validateSchema/post');
@@ -43,6 +44,7 @@ router.post('/like/:id', authMiddleware, likePost);
 router.post('/like-comment/:id/:rid?', authMiddleware, likePostComment);
 router.post('/report/:id', authMiddleware, reportPost);
 router.post('/report-comment/:id/:rid?', authMiddleware, reportPostComment);
+router.post('/save/:id', authMiddleware, savePost);
 router.post('/comment/:id', authMiddleware, commentPost);
 router.post('/reply-comment/:id', authMiddleware, replyPostComment);
 

@@ -3,6 +3,8 @@ const path = require('path');
 const helmet = require('helmet');
 const cors = require('cors');
 const bodyParser = require('body-parser');
+const http = require('http');
+const socketIO = require('socket.io');
 const morgan = require('morgan');
 const app = express();
 const connectDB = require('./src/db/db');
@@ -12,10 +14,17 @@ const adminRoute = require('./src/routes/admin.route');
 const userRoute = require('./src/routes/user.route');
 const postRoute = require('./src/routes/post.route');
 const errorMiddleware = require('./src/middlewares/error.middleware');
-
+const SocketServer = require('./SocketServer');
 // const __dirname = path.resolve(path.dirname(''));
 
 require('dotenv').config();
+const server = http.createServer(app);
+const io = socketIO(server);
+
+io.on('connection', socket => {
+    SocketServer(socket);
+});
+
 
 app.use(express.static(path.join(__dirname, "src/views/build")));
 const PORT = process.env.PORT || 3000;

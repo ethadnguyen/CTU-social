@@ -8,6 +8,7 @@ const GroupSchema = new mongoose.Schema({
     },
     description: {
         type: String,
+        default: ''
     },
     owner: {
         type: mongoose.Schema.Types.ObjectId,

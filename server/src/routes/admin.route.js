@@ -17,11 +17,17 @@ const {
     getAllAccounts,
     getAccountsByFaculty,
     getAccountsByMajor,
+    getAccount,
     deleteAccount,
     getAllGroupRequests,
     acceptGroupRequest,
     rejectGroupRequest,
     getGroupRequest,
+    getAllGroups,
+    getGroup,
+    deleteGroup,
+    getGroupByOwner,
+    getGroupByUser,
 } = require('../controllers/admin.controller');
 const { checkSchema } = require('express-validator');
 const { isAdmin } = require('../utils');
@@ -54,34 +60,52 @@ router.delete('/delete-faculty/:id', authMiddleware, isAdmin, deleteFaculty);
 
 // route major
 
-router.get('/majors', getAllMajors);
+router.get('/majors', authMiddleware, isAdmin, getAllMajors);
 
-router.get('/major/:id', getMajor);
+router.get('/major/:id', authMiddleware, isAdmin, getMajor);
 
-router.post('/create-major', createMajor);
+router.post('/create-major', authMiddleware, isAdmin, createMajor);
 
-router.put('/update-major/:id', updateMajor);
+router.put('/update-major/:id', authMiddleware, isAdmin, updateMajor);
 
-router.delete('/delete-major/:id', deleteMajor);
+router.delete('/delete-major/:id', authMiddleware, isAdmin, deleteMajor);
 
 // route manage user
 
-router.get('/get-all-users', authMiddleware, isAdmin, getAllAccounts);
+router.get('/accounts', authMiddleware, isAdmin, getAllAccounts);
 
-router.get('/get-users-by-faculty', authMiddleware, isAdmin, getAccountsByFaculty);
+router.get('/accounts-by-faculty', authMiddleware, isAdmin, getAccountsByFaculty);
 
-router.get('/get-users-by-major', authMiddleware, isAdmin, getAccountsByMajor);
+router.get('/accounts-by-major', authMiddleware, isAdmin, getAccountsByMajor);
 
-router.delete('/delete-user/:id', authMiddleware, isAdmin, deleteAccount);
+router.get('/accounts/:id', authMiddleware, isAdmin, getAccount);
+
+router.delete('/delete-account/:id', authMiddleware, isAdmin, deleteAccount);
 
 // manage request
 
-router.get('/get-all-group-requests', authMiddleware, isAdmin, getAllGroupRequests);
+router.get('/group-requests', authMiddleware, isAdmin, getAllGroupRequests);
 
-router.get('/get-group-request/:id', authMiddleware, isAdmin, getGroupRequest);
+router.get('/group-requests/:id', authMiddleware, isAdmin, getGroupRequest);
 
 router.post('/accept-group-request', authMiddleware, isAdmin, acceptGroupRequest);
 
 router.post('/reject-group-request', authMiddleware, isAdmin, rejectGroupRequest);
 
+// manage groups
+router.get('/groups', authMiddleware, isAdmin, getAllGroups);
+
+router.get('/groups/:id', authMiddleware, isAdmin, getGroup);
+
+router.get('/groups/:userId', authMiddleware, isAdmin, getGroupByUser);
+
+router.get('/groups/:ownerId', authMiddleware, isAdmin, getGroupByOwner);
+
+router.delete('/delete-group/:id', authMiddleware, isAdmin, deleteGroup);
+
+
+
 module.exports = router;
+
+
+

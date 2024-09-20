@@ -6,6 +6,7 @@ const { validationResult } = require('express-validator');
 const Post = require('../models/post.model');
 const GroupRequest = require('../models/groupRequest.model');
 const Group = require('../models/group.model');
+const { getAllAccountsQuerySchema } = require('../validateSchema/query');
 
 // Activity controller
 
@@ -153,15 +154,19 @@ const updateFaculty = async (req, res) => {
 };
 
 const deleteFaculty = async (req, res) => {
+    const { id } = req.params;
     try {
-        const faculty = await Faculty.findById(req.params.id);
+        const faculty = await Faculty.findById(id);
         if (!faculty) {
             return res.status(404).json({ message: 'Khoa không tồn tại' });
         }
-        await Major.deleteMany({ _id: { $in: faculty.majors } });
-        await Faculty.findByIdAndDelete(req.params.id);
+        await Faculty.findByIdAndUpdate(id, { isDeleted: true }, { new: true });
+        await Major.updateMany(
+            { faculty: facultyId },
+            { isFacultyDeleted: true }
+        );
 
-        res.json({ message: 'Khoa và các ngành liên quan đã bị xóa' });
+        res.status(200).json({ message: 'Faculty đã được đánh dấu là đã xóa và tất cả các Major liên quan cũng đã được cập nhật' });
     } catch (error) {
         res.status(500).json({ message: 'Lỗi xóa khoa' });
     }
@@ -188,8 +193,7 @@ const getMajor = async (req, res) => {
     } catch (error) {
         res.status(500).json({ message: 'Lỗi lấy thông tin ngành', error: error.message });
     }
-}
-
+};
 
 const createMajor = async (req, res) => {
     try {
@@ -212,11 +216,11 @@ const createMajor = async (req, res) => {
 };
 
 const updateMajor = async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+    }
     try {
-        const errors = validationResult(req);
-        if (!errors.isEmpty()) {
-            return res.status(400).json({ errors: errors.array() });
-        }
 
         const updatedMajor = await Major.findByIdAndUpdate(req.params.id, req.body, { new: true });
         if (!updatedMajor) {
@@ -230,11 +234,14 @@ const updateMajor = async (req, res) => {
 
 const deleteMajor = async (req, res) => {
     try {
-        const deletedMajor = await Major.findByIdAndDelete(req.params.id);
-        if (!deletedMajor) {
+        const major = await Major.findById(req.params.id);
+        if (!major) {
             return res.status(404).json({ message: 'Ngành không tồn tại' });
         }
-        res.json({ message: 'Ngành đã bị xóa' });
+
+        await major.findByIdAndUpdate(req.params.id, { isDeleted: true }, { new: true });
+
+        res.json({ message: 'Ngành đã được đánh dấu là đã xóa', major });
     } catch (error) {
         res.status(500).json({ message: 'Lỗi xóa ngành', error: error.message });
     }
@@ -243,8 +250,36 @@ const deleteMajor = async (req, res) => {
 // Account management
 
 const getAllAccounts = async (req, res) => {
+    const { facultySlug, majorSlug } = req.query;
+
+    const { error } = getAllAccountsQuerySchema.validate({ facultySlug, majorSlug });
+
+    if (error) {
+        return res.status(400).json({ message: 'Tham số không hợp lệ', details: error.details });
+    }
+
     try {
-        const accounts = await User.find();
+        let query = {};
+
+        if (facultySlug) {
+            const faculty = await Faculty.findOne({ slug: facultySlug });
+            if (faculty) {
+                query.faculty = faculty._id;
+            } else {
+                return res.status(404).json({ message: 'Faculty không tồn tại' });
+            }
+        }
+
+        if (majorSlug) {
+            const major = await Major.findOne({ slug: majorSlug });
+            if (major) {
+                query.major = major._id;
+            } else {
+                return res.status(404).json({ message: 'Major không tồn tại' });
+            }
+        }
+
+        const accounts = await User.find(query);
         res.json(accounts);
     } catch (error) {
         res.status(500).json({ message: 'Lỗi lấy danh sách tài khoản' });
@@ -270,6 +305,22 @@ const getAccountsByMajor = async (req, res) => {
     }
     catch (error) {
         res.status(500).json({ message: 'Lỗi lấy danh sách tài khoản' });
+    }
+};
+
+const getAccount = async (req, res) => {
+    const { id } = req.params;
+    try {
+        const account = await User.findById(id).populate({
+            path: 'faculty major',
+            select: 'name majorName academicYear'
+        });
+        if (!account) {
+            return res.status(404).json({ message: 'Tài khoản không tồn tại' });
+        }
+        res.json(account);
+    } catch (error) {
+        res.status(500).json({ message: 'Lỗi lấy thông tin tài khoản' });
     }
 };
 
@@ -303,7 +354,20 @@ const deleteAccount = async (req, res) => {
 
 const getAllGroupRequests = async (req, res) => {
     try {
-        const groupRequests = await GroupRequest.find();
+        const groupRequests = await GroupRequest.find().populate({
+            path: 'userId',
+            select: 'firstName lastName',
+            populate: [
+                {
+                    path: 'faculty',
+                    select: 'name',
+                },
+                {
+                    path: 'major',
+                    select: 'majorName academicYear',
+                }
+            ]
+        });
         res.json(groupRequests);
     } catch (error) {
         res.status(500).json({ message: 'Lỗi lấy danh sách yêu cầu' });
@@ -313,7 +377,10 @@ const getAllGroupRequests = async (req, res) => {
 const getGroupRequest = async (req, res) => {
     const { id } = req.params;
     try {
-        const groupRequest = await GroupRequest.findById(id);
+        const groupRequest = await GroupRequest.findById(id).populate({
+            path: 'userId',
+            select: 'firstName lastName'
+        });
         if (!groupRequest) {
             return res.status(404).json({ message: 'Yêu cầu không tồn tại' });
         }
@@ -329,8 +396,11 @@ const getGroupRequest = async (req, res) => {
 }
 
 const acceptGroupRequest = async (req, res) => {
-
     const { requestId, status } = req.body;
+
+    if (status !== 'APPROVED') {
+        return res.status(400).json({ message: 'Trạng thái không hợp lệ' });
+    }
 
     try {
         const groupRequest = await GroupRequest.findById(requestId);
@@ -349,7 +419,6 @@ const acceptGroupRequest = async (req, res) => {
 
         groupRequest.status = status;
         await groupRequest.save();
-
 
         res.status(201).json({
             message: 'Yêu cầu đã được chấp nhận và nhóm đã được tạo',
@@ -422,9 +491,9 @@ const getGroupByUser = async (req, res) => {
 };
 
 const getGroupByOwner = async (req, res) => {
-    const { userId } = req.params;
+    const { ownerId } = req.params;
     try {
-        const groups = await Group.find({ owner: userId });
+        const groups = await Group.find({ owner: ownerId });
         res.status(200).json({
             message: 'Lấy danh sách nhóm thành công',
             groups
@@ -474,6 +543,7 @@ module.exports = {
     getAllAccounts,
     getAccountsByFaculty,
     getAccountsByMajor,
+    getAccount,
     deleteAccount,
     getAllGroupRequests,
     getGroupRequest,

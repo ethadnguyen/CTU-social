@@ -281,7 +281,7 @@ const likePost = async (req, res) => {
         const updatedPost = await post.save();
 
         res.status(200).json({
-            message: 'Like bài viết thành công',
+            message: `${userLiked ? 'Bỏ ' : ''}thích bài viết thành công`,
             post: updatedPost
         });
     } catch (error) {
@@ -457,7 +457,68 @@ const reportPostComment = async (req, res) => {
         console.log(error);
         res.status(500).json({ message: error.message });
     }
-}
+};
+
+const savePost = async (req, res) => {
+    const { userId } = req.body.user;
+    const { id } = req.params;
+
+    try {
+        const user = await User.findById(userId);
+
+        if (!user) {
+            return res.status(404).json({ message: 'Người dùng không tồn tại' });
+        }
+
+        const post = await Post.findById(id)
+            .populate({
+                path: 'user',
+                select: 'firstName lastName',
+                populate: {
+                    path: 'faculty',
+                    select: 'name'
+                }
+            })
+            .populate({
+                path: 'user',
+                populate: {
+                    path: 'major',
+                    select: 'majorName academicYear'
+                }
+            });
+
+        if (!post) {
+            return res.status(404).json({ message: 'Bài viết không tồn tại' });
+        }
+
+        const isSaved = user.saved.includes(id);
+
+        if (!isSaved) {
+            user.saved.push(id);
+        } else {
+            user.saved = user.saved.filter(postId => postId.toString() !== id);
+        }
+
+        await user.save();
+
+        res.status(200).json({
+            message: isSaved ? 'Bỏ lưu bài viết thành công' : 'Lưu bài viết thành công',
+            savedPosts: user.saved,
+            postOwner: {
+                firstName: post.user.firstName,
+                lastName: post.user.lastName,
+                faculty: post.user.faculty.name,
+                major: {
+                    majorName: post.user.major.majorName,
+                    academicYear: post.user.major.academicYear
+                }
+            }
+        });
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({ message: error.message });
+    }
+};
 
 const commentPost = async (req, res) => {
     try {
@@ -762,6 +823,7 @@ module.exports = {
     getComments,
     likePost,
     reportPost,
+    savePost,
     likePostComment,
     reportPostComment,
     commentPost,
