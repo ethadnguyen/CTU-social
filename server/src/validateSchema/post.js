@@ -1,54 +1,44 @@
-const createPostValidateSchema = {
-    content: {
-        in: ['body'],
-        notEmpty: true,
-        errorMessage: 'Nội dung không được để trống',
-        isLength: {
-            options: { min: 1 },
-            errorMessage: 'Nội dung phải ít nhất 1 ký tự'
-        },
-        isString: {
-            errorMessage: 'Nội dung phải là chuỗi'
-        }
-    },
-    images: {
-        in: ['files'],
-        optional: true,
-        custom: {
-            options: (value) => {
-                if (!Array.isArray(value)) {
-                    return false;
-                }
-                for (let i = 0; i < value.length; i++) {
-                    const fileExtension = value[i].split('.').pop().toLowerCase();
-                    if (fileExtension !== 'jpg' && fileExtension !== 'jpeg' && fileExtension !== 'png' && fileExtension !== 'gif') {
-                        return false;
-                    }
-                }
-                return true;
-            },
-            errorMessage: 'Hình ảnh phải ở định dạng JPG, JPEG, PNG hoặc GIF'
-        }
-    },
-    files: {
-        in: ['files'],
-        optional: true,
-        custom: {
-            options: (value) => {
-                if (!Array.isArray(value)) {
-                    return false;
-                }
-                for (let i = 0; i < value.length; i++) {
-                    const fileExtension = value[i].split('.').pop().toLowerCase();
-                    if (fileExtension !== 'pdf' && fileExtension !== 'doc' && fileExtension !== 'docx' && fileExtension !== 'ppt' && fileExtension !== 'pptx' && fileExtension !== 'xls' && fileExtension !== 'xlsx') {
-                        return false;
-                    }
-                }
-                return true;
-            },
-            errorMessage: 'Tệp phải ở định dạng PDF, DOC, DOCX, PPT, PPTX, XLS hoặc XLSX'
-        }
-    },
-}
+const Joi = require('joi');
 
-module.exports = createPostValidateSchema;
+const createPostValidateSchema = Joi.object({
+    content: Joi.string()
+        .min(1)
+        .required()
+        .messages({
+            'string.empty': 'Nội dung không được để trống',
+            'string.min': 'Nội dung phải ít nhất 1 ký tự',
+            'string.base': 'Nội dung phải là chuỗi',
+        }),
+    images: Joi.array()
+        .optional()
+        .items(Joi.string().custom((value, helpers) => {
+            const fileExtension = value.split('.').pop().toLowerCase();
+            const validExtensions = ['jpg', 'jpeg', 'png', 'gif'];
+            if (!validExtensions.includes(fileExtension)) {
+                return helpers.error('any.invalid');
+            }
+            return value;
+        }))
+        .messages({
+            'array.base': 'Hình ảnh phải là một mảng',
+            'any.invalid': 'Hình ảnh phải ở định dạng JPG, JPEG, PNG hoặc GIF',
+        }),
+    files: Joi.array()
+        .optional()
+        .items(Joi.string().custom((value, helpers) => {
+            const fileExtension = value.split('.').pop().toLowerCase();
+            const validExtensions = ['pdf', 'doc', 'docx', 'ppt', 'pptx', 'xls', 'xlsx'];
+            if (!validExtensions.includes(fileExtension)) {
+                return helpers.error('any.invalid');
+            }
+            return value;
+        }))
+        .messages({
+            'array.base': 'Tệp phải là một mảng',
+            'any.invalid': 'Tệp phải ở định dạng PDF, DOC, DOCX, PPT, PPTX, XLS hoặc XLSX',
+        }),
+});
+
+module.exports = {
+    createPostValidateSchema,
+};

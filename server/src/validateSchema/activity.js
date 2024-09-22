@@ -1,39 +1,32 @@
-const createActivitySchema = {
-    title: {
-        in: ['body'],
-        notEmpty: true,
-        errorMessage: 'Tiêu đề không được để trống',
-        isString: {
-            errorMessage: 'Tiêu đề phải là chuỗi'
-        },
-        isLength: {
-            options: { min: 3 },
-            errorMessage: 'Tiêu đề phải ít nhất 3 ký tự'
-        },
-    },
-    description: {
-        in: ['body'],
-        optional: true,
-        isString: {
-            errorMessage: 'Mô tả phải là chuỗi'
-        },
-    },
-    link: {
-        in: ['body'],
-        optional: true,
-        isString: {
-            errorMessage: 'Link phải là chuỗi'
-        },
-    },
-    faculty: {
-        in: ['body'],
-        notEmpty: true,
-        errorMessage: 'Khoa không được để trống',
-        isMongoId: {
-            errorMessage: 'Khoa phải là ObjectId'
-        },
-    },
-};
+const Joi = require('joi');
+
+const createActivitySchema = Joi.object({
+    title: Joi.string()
+        .min(3)
+        .required()
+        .messages({
+            'string.empty': 'Tiêu đề không được để trống',
+            'string.base': 'Tiêu đề phải là chuỗi',
+            'string.min': 'Tiêu đề phải ít nhất 3 ký tự',
+        }),
+    description: Joi.string()
+        .optional()
+        .messages({
+            'string.base': 'Mô tả phải là chuỗi',
+        }),
+    link: Joi.string()
+        .optional()
+        .messages({
+            'string.base': 'Link phải là chuỗi',
+        }),
+    faculty: Joi.string()
+        .required()
+        .regex(/^[0-9a-fA-F]{24}$/)
+        .messages({
+            'string.empty': 'Khoa không được để trống',
+            'string.pattern.base': 'Khoa phải là ObjectId',
+        }),
+});
 
 module.exports = {
     createActivitySchema

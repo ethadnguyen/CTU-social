@@ -5,7 +5,6 @@ const { resetPasswordLink } = require('../utils/sendMail');
 const FriendRequest = require('../models/friendRequest.model');
 const PasswordReset = require('../models/PasswordReset.model');
 const GroupRequest = require('../models/groupRequest.model');
-const { validationResult } = require('express-validator');
 const Fuse = require('fuse.js');
 
 const verifyEmail = async (req, res) => {
@@ -288,10 +287,6 @@ const friendRequest = async (req, res, next) => {
 };
 
 const createGroupRequest = async (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-        return res.status(400).json({ errors: errors.array() });
-    }
 
     try {
         const { userId } = req.body.user;

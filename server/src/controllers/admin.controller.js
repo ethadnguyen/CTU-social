@@ -2,7 +2,6 @@ const Faculty = require('../models/faculty.model');
 const User = require('../models/user.model');
 const Major = require('../models/major.model');
 const Activity = require('../models/activity.model');
-const { validationResult } = require('express-validator');
 const Post = require('../models/post.model');
 const GroupRequest = require('../models/groupRequest.model');
 const Group = require('../models/group.model');
@@ -125,10 +124,6 @@ const getFacultyById = async (req, res) => {
 
 const createFaculty = async (req, res) => {
     try {
-        const errors = validationResult(req);
-        if (!errors.isEmpty()) {
-            return res.status(400).json({ errors: errors.array() });
-        }
         const newFaculty = new Faculty(req.body);
         await newFaculty.save();
         res.status(201).json(newFaculty);
@@ -139,10 +134,6 @@ const createFaculty = async (req, res) => {
 
 const updateFaculty = async (req, res) => {
     try {
-        const errors = validationResult(req);
-        if (!errors.isEmpty()) {
-            return res.status(400).json({ errors: errors.array() });
-        }
         const updatedFaculty = await Faculty.findByIdAndUpdate(req.params.id, req.body, { new: true });
         if (!updatedFaculty) {
             return res.status(404).json({ message: 'Không tìm thấy khoa' });
@@ -197,11 +188,6 @@ const getMajor = async (req, res) => {
 
 const createMajor = async (req, res) => {
     try {
-        const errors = validationResult(req);
-        if (!errors.isEmpty()) {
-            return res.status(400).json({ errors: errors.array() });
-        }
-
         const newMajor = new Major(req.body);
         await newMajor.save();
         await Faculty.findByIdAndUpdate(
@@ -216,10 +202,6 @@ const createMajor = async (req, res) => {
 };
 
 const updateMajor = async (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-        return res.status(400).json({ errors: errors.array() });
-    }
     try {
 
         const updatedMajor = await Major.findByIdAndUpdate(req.params.id, req.body, { new: true });

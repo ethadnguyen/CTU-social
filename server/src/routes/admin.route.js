@@ -29,11 +29,9 @@ const {
     getGroupByOwner,
     getGroupByUser,
 } = require('../controllers/admin.controller');
-const { checkSchema } = require('express-validator');
 const { isAdmin } = require('../utils');
 const authMiddleware = require('../middlewares/auth.middleware');
-const { createFacultySchema } = require('../validateSchema/faculty');
-const { createActivitySchema } = require('../validateSchema/activity');
+const { validateCreateActivity, validateCreateFaculty, validateCreateMajor } = require('../middlewares/validate.middleware');
 const router = express.Router();
 
 //route activity
@@ -42,9 +40,9 @@ router.get('/activities', authMiddleware, isAdmin, getAllActivities);
 
 router.get('/activity/:id', authMiddleware, isAdmin, getActivity);
 
-router.post('/create-activity', authMiddleware, isAdmin, checkSchema(createActivitySchema), createActivity);
+router.post('/create-activity', authMiddleware, isAdmin, validateCreateActivity, createActivity);
 
-router.put('/update-activity/:id', authMiddleware, isAdmin, checkSchema(createActivitySchema), updateActivity);
+router.put('/update-activity/:id', authMiddleware, isAdmin, validateCreateActivity, updateActivity);
 
 router.delete('/delete-activity/:id', authMiddleware, isAdmin, deleteActivity);
 
@@ -52,9 +50,9 @@ router.delete('/delete-activity/:id', authMiddleware, isAdmin, deleteActivity);
 
 router.get('/faculties', authMiddleware, isAdmin, getAllFaculties);
 
-router.post('/create-faculty', authMiddleware, isAdmin, checkSchema(createFacultySchema), createFaculty);
+router.post('/create-faculty', authMiddleware, isAdmin, validateCreateFaculty, createFaculty);
 
-router.put('/update-faculty/:id', authMiddleware, isAdmin, checkSchema(createFacultySchema), updateFaculty);
+router.put('/update-faculty/:id', authMiddleware, isAdmin, validateCreateFaculty, updateFaculty);
 
 router.delete('/delete-faculty/:id', authMiddleware, isAdmin, deleteFaculty);
 
@@ -64,9 +62,9 @@ router.get('/majors', authMiddleware, isAdmin, getAllMajors);
 
 router.get('/major/:id', authMiddleware, isAdmin, getMajor);
 
-router.post('/create-major', authMiddleware, isAdmin, createMajor);
+router.post('/create-major', authMiddleware, isAdmin, validateCreateMajor, createMajor);
 
-router.put('/update-major/:id', authMiddleware, isAdmin, updateMajor);
+router.put('/update-major/:id', authMiddleware, isAdmin, validateCreateMajor, updateMajor);
 
 router.delete('/delete-major/:id', authMiddleware, isAdmin, deleteMajor);
 

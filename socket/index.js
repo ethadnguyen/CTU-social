@@ -1,8 +1,24 @@
+const http = require('http');
+const { Server } = require('socket.io');
+require('dotenv').config();
+
+
+const port = process.env.PORT || 5000;
+const server = http.createServer();
+const io = new Server(server, {
+    cors: {
+        origin: 'http://localhost:5173', // Địa chỉ frontend 
+        methods: ['GET', 'POST'],
+        credentials: true,
+    }
+});
+
 let users = [];
 let admins = [];
 
-const SocketServer = (socket) => {
-    console.log('new socket connection established');
+io.on('connection', (socket) => {
+    console.log('New socket connection established');
+
     socket.on('joinUser', (user) => {
         const existingUser = users.find((u) => u.id === user._id);
         if (!existingUser) {
@@ -10,7 +26,6 @@ const SocketServer = (socket) => {
         }
 
         const activeFriends = users.filter((u) => user.friends.includes(u.id));
-
         socket.emit('activeFriends', activeFriends.map(friend => friend.id));
     });
 
@@ -20,12 +35,11 @@ const SocketServer = (socket) => {
             admins.push({ id, socketId: socket.id });
         }
         const admin = admins.find((admin) => admin.id === id);
-        let totalActiveAdmins = users.length;
+        let totalActiveAdmins = admins.length;
 
         socket.to(`${admin.socketId}`).emit('activeAdmins', totalActiveAdmins);
     });
 
-    // like
     socket.on('likePost', (newPost) => {
         let ids = [...newPost.user.followers, newPost.user._id];
         const clients = users.filter((u) => ids.includes(u.id));
@@ -36,7 +50,6 @@ const SocketServer = (socket) => {
         }
     });
 
-    // report
     socket.on('reportPost', (reportedPost) => {
         const { id: _id, reportedBy } = reportedPost;
 
@@ -53,7 +66,6 @@ const SocketServer = (socket) => {
         }
     });
 
-    // comment
     socket.on('commentPost', (newPost) => {
         let ids = [...newPost.user.followers, newPost.user._id];
         const clients = users.filter((u) => ids.includes(u.id));
@@ -64,7 +76,6 @@ const SocketServer = (socket) => {
         }
     });
 
-    // follow
     socket.on('follow', (newUser) => {
         const user = users.find((user) => user.id === newUser._id);
         if (user) {
@@ -72,7 +83,6 @@ const SocketServer = (socket) => {
         }
     });
 
-    // notification
     socket.on('createNotify', (msg) => {
         const clients = users.filter((user) => msg.recipients.includes(user.id));
         if (clients.length > 0) {
@@ -106,6 +116,8 @@ const SocketServer = (socket) => {
         users = users.filter((user) => user.socketId !== socket.id);
         admins = admins.filter((admin) => admin.socketId !== socket.id);
     });
-};
+});
 
-module.exports = SocketServer;
+server.listen(port, () => {
+    console.log(`Socket server running on port ${port}`);
+});

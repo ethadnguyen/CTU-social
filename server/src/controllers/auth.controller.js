@@ -1,15 +1,9 @@
 const bcrypt = require('bcrypt');
-const jwt = require('jsonwebtoken');
 const User = require('../models/user.model');
-const { validationResult } = require('express-validator');
 const { sendVerificationEmail } = require('../utils/sendMail');
 const { createJWT } = require('../utils');
 
 const register = async (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-        return res.status(400).json({ errors: errors.array() });
-    }
     const {
         firstName,
         lastName,
@@ -105,10 +99,6 @@ const login = async (req, res) => {
 };
 
 const registerAdmin = async (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-        return res.status(400).json({ errors: errors.array() });
-    }
     const {
         firstName,
         lastName,

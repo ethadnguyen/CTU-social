@@ -2,8 +2,7 @@ const express = require('express');
 const path = require('path');
 const UserController = require('../controllers/user.controller');
 const authMiddleware = require('../middlewares/auth.middleware');
-const { checkSchema } = require('express-validator');
-const createGroupRequestValidateSchema = require('../validateSchema/groupRequest');
+const { validateCreateGroupRequest } = require('../middlewares/validate.middleware');
 const router = express.Router();
 
 
@@ -20,7 +19,7 @@ router.put('/:userId', authMiddleware, UserController.updateUser);
 
 router.post('/friend-request', authMiddleware, UserController.friendRequest);
 
-router.post('/group-request', authMiddleware, checkSchema(createGroupRequestValidateSchema), UserController.createGroupRequest);
+router.post('/group-request', authMiddleware, validateCreateGroupRequest, UserController.createGroupRequest);
 
 router.post('/get-friend-request', authMiddleware, UserController.getFriendRequest);
 

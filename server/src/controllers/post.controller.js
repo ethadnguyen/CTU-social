@@ -522,15 +522,11 @@ const savePost = async (req, res) => {
 
 const commentPost = async (req, res) => {
     try {
-        const { comment, from } = req.body;
+        const { content, from } = req.body;
         const { userId } = req.body.user;
         const { id } = req.params;
 
-        if (!comment) {
-            return res.status(400).json({ message: 'Nội dung bình luận không được để trống' });
-        }
-
-        const newComment = new Comment({ content: comment, from, user: userId, post: id });
+        const newComment = new Comment({ content, from, user: userId, post: id });
 
         await newComment.save();
 
@@ -584,10 +580,6 @@ const replyPostComment = async (req, res) => {
 };
 
 const createPost = async (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-        return res.status(400).json({ errors: errors.array() });
-    }
     try {
         const { userId } = req.body.user;
         const { content } = req.body;
@@ -612,10 +604,6 @@ const createPost = async (req, res) => {
 };
 
 const createGroupPost = async (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-        return res.status(400).json({ errors: errors.array() });
-    }
     try {
         const { userId } = req.body.user;
         const { content, groupId } = req.body;
@@ -658,10 +646,6 @@ const createGroupPost = async (req, res) => {
 };
 
 const updatePost = async (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-        return res.status(400).json({ errors: errors.array() });
-    }
 
     try {
         const id = req.params.id;
@@ -702,11 +686,6 @@ const updatePost = async (req, res) => {
 };
 
 const updateGroupPost = async (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-        return res.status(400).json({ errors: errors.array() });
-    }
-
     try {
         const { groupId, postId } = req.params;
         const userId = req.body.userId;

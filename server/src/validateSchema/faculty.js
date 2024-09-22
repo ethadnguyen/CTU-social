@@ -1,18 +1,16 @@
+const Joi = require('joi');
 
-const createFacultySchema = {
-    name: {
-        in: ['body'],
-        notEmpty: true,
-        isLength: {
-            options: { min: 3 },
-            errorMessage: 'Tên khoa phải ít nhất 3 ký tự'
-        },
-        isString: {
-            errorMessage: 'Tên khoa phải là chuỗi'
-        }
-    }
-}
+const createFacultySchema = Joi.object({
+    name: Joi.string()
+        .min(3)
+        .required()
+        .messages({
+            'string.base': 'Tên khoa phải là chuỗi',
+            'string.empty': 'Tên khoa không được để trống',
+            'string.min': 'Tên khoa phải ít nhất 3 ký tự',
+        })
+});
 
 module.exports = {
     createFacultySchema
-}
+};

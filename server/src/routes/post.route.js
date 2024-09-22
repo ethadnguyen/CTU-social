@@ -17,9 +17,8 @@ const {
     deletePostComment,
     savePost
 } = require('../controllers/post.controller');
-const { checkSchema } = require('express-validator');
-const createPostValidateSchema = require('../validateSchema/post');
 const upload = require('../utils/upload');
+const { validateCreateComment, validateCreatePost } = require('../middlewares/validate.middleware');
 const router = express.Router();
 
 //get post
@@ -28,7 +27,7 @@ router.get('/:id', authMiddleware, getPost);
 router.post('get-user-post/:id', authMiddleware, getUserPost);
 
 //create post
-router.post('/create-post', authMiddleware, checkSchema(createPostValidateSchema), upload.fields([
+router.post('/create-post', authMiddleware, validateCreatePost, upload.fields([
     { name: 'images', maxCount: 5 },
     { name: 'files', maxCount: 5 }
 ]), createPost);
@@ -45,7 +44,7 @@ router.post('/like-comment/:id/:rid?', authMiddleware, likePostComment);
 router.post('/report/:id', authMiddleware, reportPost);
 router.post('/report-comment/:id/:rid?', authMiddleware, reportPostComment);
 router.post('/save/:id', authMiddleware, savePost);
-router.post('/comment/:id', authMiddleware, commentPost);
+router.post('/comment/:id', authMiddleware, validateCreateComment, commentPost);
 router.post('/reply-comment/:id', authMiddleware, replyPostComment);
 
 

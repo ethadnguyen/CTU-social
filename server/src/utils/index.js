@@ -14,7 +14,7 @@ const compareString = async (userPassword, password) => {
 };
 
 const createJWT = (id, role = 'user') => {
-    return jwt.sign({ userId: id, role }, process.env.ACCESS_TOKEN_SECRET, {
+    return jwt.sign({ userId: id, role }, process.env.JWT_SECRET_KEY, {
         expiresIn: '1d',
     });
 }
