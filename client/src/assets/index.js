@@ -1,3 +1,3 @@
-import Logo from './logo.png';
-import BgImage from './bg-image.jpg';
-export { Logo, BgImage };
+import NoProfile from "./userprofile.png";
+import BgImage from "./CTU-Logo.png";
+export { NoProfile, BgImage };

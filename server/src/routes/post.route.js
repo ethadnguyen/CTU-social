@@ -15,15 +15,21 @@ const {
     replyPostComment,
     deletePost,
     deletePostComment,
-    savePost
+    savePost,
+    sharePost,
+    getSharedPosts,
+    getSavedPosts
 } = require('../controllers/post.controller');
 const upload = require('../utils/upload');
 const { validateCreateComment, validateCreatePost } = require('../middlewares/validate.middleware');
 const router = express.Router();
 
+
 //get post
 router.get('/', authMiddleware, getPosts);
 router.get('/:id', authMiddleware, getPost);
+router.get('/shared', authMiddleware, getSharedPosts);
+router.get('/saved', authMiddleware, getSavedPosts);
 router.post('get-user-post/:id', authMiddleware, getUserPost);
 
 //create post
@@ -44,6 +50,7 @@ router.post('/like-comment/:id/:rid?', authMiddleware, likePostComment);
 router.post('/report/:id', authMiddleware, reportPost);
 router.post('/report-comment/:id/:rid?', authMiddleware, reportPostComment);
 router.post('/save/:id', authMiddleware, savePost);
+router.post('/share/:id', authMiddleware, sharePost);
 router.post('/comment/:id', authMiddleware, validateCreateComment, commentPost);
 router.post('/reply-comment/:id', authMiddleware, replyPostComment);
 

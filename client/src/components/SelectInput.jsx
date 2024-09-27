@@ -1,63 +1,39 @@
 import React from "react";
-import PropTypes from "prop-types";
-import {
-    Select,
-    SelectTrigger,
-    SelectContent,
-    SelectItem,
-    SelectValue,
-} from "./ui/select";
-import { Label } from "./ui/label";
 
 const SelectInput = React.forwardRef(
-    ({ name, label, labelStyles, styles, options, register, error, placeholder }, ref) => {
+  ({ label, labelStyles, options, value, onChange, styles, error }, ref) => {
+    return (
+      <div className="w-full flex flex-col mt-2">
+        {label && (
+          <p className={`text-ascent-2 text-sm mb-2 ${labelStyles}`}>
+            {<span className="font-bold">
+              {label}
+            </span>}
+          </p>
+        )}
 
-        return (
-            <div className="flex flex-col w-full mt-2">
-                {label && (
-                    <Label
-                        htmlFor={name}
-                        className={`text-ascent-2 text-sm mb-2 cursor-pointer ${labelStyles}`}
-                    >
-                        {label}
-                    </Label>
-                )}
-
-                <div>
-                    <Select id={name} {...register} ref={ref} name={name} >
-                        <SelectTrigger
-                            className={`bg-secondary rounded border border-[#66666690] outline-none text-sm text-ascent-1 px-4 py-3 ${styles}`}
-                        >
-                            <SelectValue placeholder={placeholder} className={`text-ascent-1 text-sm mb-2 cursor-pointer ${labelStyles}`} />
-                        </SelectTrigger>
-                        <SelectContent className='bg-primary'>
-                            {options.map((option) => (
-                                <SelectItem key={option.value} value={option.value} className="cursor-pointer">
-                                    {option.label}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                </div>
-                {error && (
-                    <span className="text-xs text-[#f64949fe] mt-0.5">{error}</span>
-                )}
-            </div>
-        );
-    }
+        <div>
+          <select
+            ref={ref}
+            value={value}
+            onChange={onChange}
+            className={`bg-secondary rounded border border-[#66666690] mb-2 outline-none text-sm text-ascent-2 px-4 py-3 placeholder:text-[#666] ${styles}`}
+            aria-invalid={error ? "true" : "false"}
+            required
+          >
+            {options.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </div>
+        {error && (
+          <span className="text-xs text-[#f64949fe] mt-0.5 ">{error}</span>
+        )}
+      </div>
+    );
+  }
 );
-
-SelectInput.displayName = "SelectInput";
-
-SelectInput.propTypes = {
-    name: PropTypes.string.isRequired,
-    label: PropTypes.string.isRequired,
-    labelStyles: PropTypes.string.isRequired,
-    styles: PropTypes.string.isRequired,
-    options: PropTypes.array.isRequired,
-    register: PropTypes.func.isRequired,
-    error: PropTypes.string.isRequired,
-    placeholder: PropTypes.string.isRequired,
-};
 
 export default SelectInput;

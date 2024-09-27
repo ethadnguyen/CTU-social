@@ -10,6 +10,7 @@ const createPostValidateSchema = Joi.object({
             'string.base': 'Nội dung phải là chuỗi',
         }),
     images: Joi.array()
+        .default([])
         .optional()
         .items(Joi.string().custom((value, helpers) => {
             const fileExtension = value.split('.').pop().toLowerCase();
@@ -24,6 +25,7 @@ const createPostValidateSchema = Joi.object({
             'any.invalid': 'Hình ảnh phải ở định dạng JPG, JPEG, PNG hoặc GIF',
         }),
     files: Joi.array()
+        .default([])
         .optional()
         .items(Joi.string().custom((value, helpers) => {
             const fileExtension = value.split('.').pop().toLowerCase();

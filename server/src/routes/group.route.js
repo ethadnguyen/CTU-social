@@ -1,27 +1,27 @@
 const express = require('express');
 const authMiddleware = require('../middlewares/auth.middleware');
-const {
-    getPosts,
-    getPost,
-    getUserPost,
-    likePost,
-    reportPost,
-    likePostComment,
-    reportPostComment,
-    getComments,
-    createPost,
-    updatePost,
-    commentPost,
-    replyPostComment,
-    deletePost,
-    deletePostComment
-} = require('../controllers/post.controller');
-const { checkSchema } = require('express-validator');
-const createPostValidateSchema = require('../validateSchema/post');
+const { getGroups, getGroup, getGroupPosts, createGroupPost, updateGroupPost, getGroupPost } = require('../controllers/group.controller');
 const upload = require('../utils/upload');
+const { validateCreateGroupPost } = require('../middlewares/validate.middleware');
 const router = express.Router();
 
 
-router.get('/group/:groupId', authMiddleware, getGroupPosts);
+router.get('/', authMiddleware, getGroups);
+
+router.get('/:groupId', authMiddleware, getGroup);
+
+router.get('/:groupId/posts', authMiddleware, getGroupPosts);
+
+router.get('/:groupId/posts/:postId', authMiddleware, getGroupPost);
+
+router.post('/create-post', authMiddleware, upload.fields([
+    { name: 'images', maxCount: 5 },
+    { name: 'files', maxCount: 5 }
+]), validateCreateGroupPost, createGroupPost);
+
+router.put('/:groupId/:postId', authMiddleware, validateCreateGroupPost, updateGroupPost);
+
+
+module.exports = router;
 
 

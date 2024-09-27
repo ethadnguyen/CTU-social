@@ -6,6 +6,7 @@ const { validateCreateGroupRequest } = require('../middlewares/validate.middlewa
 const router = express.Router();
 
 
+
 router.get('/verify/:userId/:token', UserController.verifyEmail);
 
 // PASSWORD RESET

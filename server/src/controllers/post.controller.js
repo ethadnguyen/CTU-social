@@ -100,102 +100,6 @@ const getPost = async (req, res) => {
     }
 };
 
-const getGroupPosts = async (req, res) => {
-    try {
-        const { groupId } = req.params;
-        const { search } = req.query;
-
-        const group = await Group.findById(groupId).populate('posts');
-
-        if (!group) {
-            return res.status(404).json({ message: 'Group not found' });
-        }
-
-        const postIds = group.posts.map(post => post._id);
-
-        const searchPostQuery = {
-            _id: { $in: postIds },
-            ...(search && {
-                content: { $regex: search, $options: 'i' }
-            })
-        };
-
-        const posts = await Post.find(searchPostQuery)
-            .populate({
-                path: 'user',
-                select: 'firstName lastName avatar -password',
-                populate: {
-                    path: 'faculty',
-                    select: 'name'
-                },
-            })
-            .populate({
-                path: 'user',
-                populate: {
-                    path: 'major',
-                    select: 'majorName academicYear',
-                },
-            })
-            .sort({ _id: -1 });
-
-        res.status(200).json({
-            message: 'Lấy bài viết thành công',
-            posts,
-        });
-    } catch (error) {
-        console.log(error);
-        res.status(500).json({ message: error.message });
-    }
-};
-
-const getGroupPost = async (req, res) => {
-    const { groupId, postId } = req.params;
-    try {
-
-
-        const group = await Group.findById(groupId).populate('posts');
-
-        if (!group) {
-            return res.status(404).json({ message: 'Nhóm không tồn tại' });
-        }
-
-        const post = group.posts.find(post => post._id.toString() === postId);
-
-        if (!post) {
-            return res.status(404).json({ message: 'Bài viết không tồn tại' });
-        }
-
-        const postDetails = await Post.findById(postId)
-            .populate({
-                path: 'user',
-                select: 'firstName lastName avatar -password',
-                populate: {
-                    path: 'faculty',
-                    select: 'name'
-                },
-            })
-            .populate({
-                path: 'user',
-                populate: {
-                    path: 'major',
-                    select: 'majorName academicYear',
-                },
-            });
-
-        res.status(200).json({
-            message: 'Lấy bài viết thành công',
-            post: postDetails,
-        })
-    }
-    catch (error) {
-        console.log(error);
-        res.status(500).json({
-            message: 'Lỗi lấy bài viết',
-            error: error.message
-        });
-    }
-};
-
 const getUserPost = async (req, res) => {
     try {
         const { id } = req.params;
@@ -471,21 +375,21 @@ const savePost = async (req, res) => {
         }
 
         const post = await Post.findById(id)
-            .populate({
-                path: 'user',
-                select: 'firstName lastName',
-                populate: {
-                    path: 'faculty',
-                    select: 'name'
-                }
-            })
-            .populate({
-                path: 'user',
-                populate: {
-                    path: 'major',
-                    select: 'majorName academicYear'
-                }
-            });
+        // .populate({
+        //     path: 'user',
+        //     select: 'firstName lastName',
+        //     populate: {
+        //         path: 'faculty',
+        //         select: 'name'
+        //     }
+        // })
+        // .populate({
+        //     path: 'user',
+        //     populate: {
+        //         path: 'major',
+        //         select: 'majorName academicYear'
+        //     }
+        // });
 
         if (!post) {
             return res.status(404).json({ message: 'Bài viết không tồn tại' });
@@ -504,16 +408,90 @@ const savePost = async (req, res) => {
         res.status(200).json({
             message: isSaved ? 'Bỏ lưu bài viết thành công' : 'Lưu bài viết thành công',
             savedPosts: user.saved,
-            postOwner: {
-                firstName: post.user.firstName,
-                lastName: post.user.lastName,
-                faculty: post.user.faculty.name,
-                major: {
-                    majorName: post.user.major.majorName,
-                    academicYear: post.user.major.academicYear
-                }
-            }
+            // postOwner: {
+            //     firstName: post.user.firstName,
+            //     lastName: post.user.lastName,
+            //     faculty: post.user.faculty.name,
+            //     major: {
+            //         majorName: post.user.major.majorName,
+            //         academicYear: post.user.major.academicYear
+            //     }
+            // }
         });
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({ message: error.message });
+    }
+};
+
+const getSavedPosts = async (req, res) => {
+    const { userId } = req.body.user;
+
+    try {
+        const savedPosts = await Post.find({
+            savedBy: userId
+        })
+            .populate({
+                path: 'user',
+                select: 'firstName lastName',
+                populate: [
+                    { path: 'faculty', select: 'name' },
+                    { path: 'major', select: 'majorName academicYear' }
+                ]
+            })
+
+        if (savedPosts.length === 0) {
+            return res.status(404).json({ message: 'Không có bài viết nào được lưu' });
+        }
+
+        res.status(200).json({ message: 'Lấy bài viết đã lưu thành công', savedPosts });
+
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({ message: error.message });
+    }
+
+}
+
+const sharePost = async (req, res) => {
+    const { userId } = req.body.user;
+    const { id } = req.params;
+    const { visibility } = req.body;
+    try {
+        const post = await Post.findById(id);
+        if (!post) {
+            return res.status(404).json({ message: 'Bài viết không tồn tại' });
+        }
+
+        if (post.sharedBy.includes(userId)) {
+            return res.status(400).json({ message: 'Bài viết đã được chia sẻ' });
+        }
+
+        post.sharedBy.push(userId);
+        post.shares += 1;
+
+        await post.save();
+
+        res.status(201).json({ message: 'Chia sẻ bài viết thành công', post });
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({ message: error.message });
+    }
+
+};
+
+const getSharedPosts = async (req, res) => {
+    const { userId } = req.body.user;
+
+    try {
+        const sharedPosts = await Post.find({
+            $or: [
+                { 'visibility': 'public' },
+                { sharedBy: userId }
+            ]
+        });
+
+        res.status(200).json({ message: 'Lấy bài viết chia sẻ thành công', sharedPosts });
     } catch (error) {
         console.log(error);
         res.status(500).json({ message: error.message });
@@ -584,8 +562,8 @@ const createPost = async (req, res) => {
         const { userId } = req.body.user;
         const { content } = req.body;
 
-        const images = req.files['images'] ? req.files['images'].map(file => file.path) : [];
-        const files = req.files['files'] ? req.files['files'].map(file => file.path) : [];
+        const images = req.files && req.files['images'] ? req.files['images'].map(file => file.path) : [];
+        const files = req.files && req.files['files'] ? req.files['files'].map(file => file.path) : [];
 
         const newPost = new Post({
             user: userId,
@@ -597,48 +575,6 @@ const createPost = async (req, res) => {
         await newPost.save();
 
         res.status(201).json({ message: 'Tạo bài viết thành công', post: newPost });
-    } catch (error) {
-        console.log(error);
-        res.status(500).json({ message: error.message });
-    }
-};
-
-const createGroupPost = async (req, res) => {
-    try {
-        const { userId } = req.body.user;
-        const { content, groupId } = req.body;
-
-        const group = await Group.findById(groupId);
-
-        if (!group) {
-            return res.status(404).json({ message: 'Nhóm không tồn tại' });
-        }
-
-        const isMember = group.members.includes(userId);
-
-        if (!isMember) {
-            return res.status(403).json({ message: 'Bạn không phải là thành viên của nhóm' });
-        }
-
-        const images = req.files['images'] ? req.files['images'].map(file => file.path) : [];
-        const files = req.files['files'] ? req.files['files'].map(file => file.path) : [];
-
-        const newPost = new Post({
-            user: userId,
-            content,
-            images,
-            files
-        });
-
-        await newPost.save();
-
-        group.posts.push(newPost._id);
-        await group.save();
-
-        res.status(201).json({
-            message: 'Tạo bài viết trong nhóm thành công',
-            post: newPost
-        });
     } catch (error) {
         console.log(error);
         res.status(500).json({ message: error.message });
@@ -682,55 +618,6 @@ const updatePost = async (req, res) => {
         res.status(500).json({
             message: error.message
         });
-    }
-};
-
-const updateGroupPost = async (req, res) => {
-    try {
-        const { groupId, postId } = req.params;
-        const userId = req.body.userId;
-        const { content } = req.body;
-
-        const group = await Group.findById(groupId);
-        if (!group) {
-            return res.status(404).json({ message: 'Nhóm không tồn tại' });
-        }
-
-        const isMember = group.members.includes(userId);
-        if (!isMember) {
-            return res.status(403).json({ message: 'Bạn không có quyền cập nhật bài viết này' });
-        }
-
-        const post = await Post.findById(postId);
-        if (!post) {
-            return res.status(404).json({ message: 'Bài viết không tồn tại' });
-        }
-
-        if (req.files['images']) {
-            const imageUploadPromises = req.files['images'].map(file =>
-                upload(file.path, 'CTU-social/images')
-            );
-            const uploadedImages = await Promise.all(imageUploadPromises);
-            const newImageUrls = uploadedImages.map(result => result.secure_url);
-            post.images = [...post.images, ...newImageUrls];
-        }
-
-        if (req.files['files']) {
-            const fileUploadPromises = req.files['files'].map(file =>
-                upload(file.path, 'CTU-social/files')
-            );
-            const uploadedFiles = await Promise.all(fileUploadPromises);
-            const newFileUrls = uploadedFiles.map(result => result.secure_url);
-            post.files = [...post.files, ...newFileUrls];
-        }
-
-        post.content = content || post.content;
-
-        await post.save();
-        res.status(200).json({ message: 'Cập nhật bài viết trong nhóm thành công', post });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: error.message });
     }
 };
 
@@ -796,21 +683,20 @@ const deletePostComment = async (req, res) => {
 module.exports = {
     getPosts,
     getPost,
-    getGroupPosts,
-    getGroupPost,
     getUserPost,
     getComments,
     likePost,
     reportPost,
     savePost,
+    getSavedPosts,
     likePostComment,
     reportPostComment,
+    sharePost,
+    getSharedPosts,
     commentPost,
     replyPostComment,
     createPost,
-    createGroupPost,
     updatePost,
-    updateGroupPost,
     deletePost,
     deletePostComment
 };

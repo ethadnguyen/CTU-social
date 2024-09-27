@@ -5,6 +5,7 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
+    "swagger": "node ./src/swagger.js",
     "start:dev": "nodemon server.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -29,10 +30,13 @@
     "nodemailer": "^6.9.15",
     "slugify": "^1.6.6",
     "socket.io": "^4.7.5",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.1",
     "uuid": "^10.0.0"
   },
   "devDependencies": {
     "mongodb": "^6.8.0",
-    "nodemon": "^3.1.4"
+    "nodemon": "^3.1.4",
+    "swagger-autogen": "^2.23.7"
   }
 }

@@ -34,6 +34,7 @@ const authMiddleware = require('../middlewares/auth.middleware');
 const { validateCreateActivity, validateCreateFaculty, validateCreateMajor } = require('../middlewares/validate.middleware');
 const router = express.Router();
 
+
 //route activity
 
 router.get('/activities', authMiddleware, isAdmin, getAllActivities);
