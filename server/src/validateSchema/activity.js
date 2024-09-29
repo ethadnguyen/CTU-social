@@ -14,6 +14,11 @@ const createActivitySchema = Joi.object({
         .messages({
             'string.base': 'Mô tả phải là chuỗi',
         }),
+    image: Joi.string()
+        .optional()
+        .messages({
+            'string.base': 'Ảnh phải là chuỗi',
+        }),
     link: Joi.string()
         .optional()
         .messages({

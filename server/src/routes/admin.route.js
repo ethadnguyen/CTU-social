@@ -32,6 +32,7 @@ const {
 const { isAdmin } = require('../utils');
 const authMiddleware = require('../middlewares/auth.middleware');
 const { validateCreateActivity, validateCreateFaculty, validateCreateMajor } = require('../middlewares/validate.middleware');
+const upload = require('../utils/upload');
 const router = express.Router();
 
 
@@ -41,7 +42,7 @@ router.get('/activities', authMiddleware, isAdmin, getAllActivities);
 
 router.get('/activity/:id', authMiddleware, isAdmin, getActivity);
 
-router.post('/create-activity', authMiddleware, isAdmin, validateCreateActivity, createActivity);
+router.post('/create-activity', authMiddleware, isAdmin, validateCreateActivity, upload.single('images'), createActivity);
 
 router.put('/update-activity/:id', authMiddleware, isAdmin, validateCreateActivity, updateActivity);
 

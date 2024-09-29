@@ -4,8 +4,6 @@ const Post = require('../models/post.model');
 const User = require('../models/user.model');
 const upload = require('../utils/upload');
 
-
-
 const getGroups = async (req, res) => {
     try {
         const groups = await Group.find().select('name description posts');

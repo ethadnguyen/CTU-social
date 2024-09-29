@@ -7,6 +7,11 @@ const GroupRequest = require('../models/groupRequest.model');
 const Group = require('../models/group.model');
 const { getAllAccountsQuerySchema } = require('../validateSchema/query');
 
+const fs = require('fs');
+const util = require('util');
+const upload = require('../utils/upload');
+const unlinkFile = util.promisify(fs.unlink);
+
 // Activity controller
 
 const getAllActivities = async (req, res) => {
@@ -35,9 +40,13 @@ const createActivity = async (req, res) => {
     const { title, description, link, faculty } = req.body;
 
     try {
+
+        const image = req.file ? req.file.path : '';
+
         const newActivity = new Activity({
             title,
             description,
+            image,
             link,
             faculty
         });
@@ -57,6 +66,7 @@ const createActivity = async (req, res) => {
 const updateActivity = async (req, res) => {
     const { activityId } = req.params;
     const { title, description, link, faculty } = req.body;
+
     try {
         const activity = await Activity.findById(activityId);
 
@@ -64,11 +74,20 @@ const updateActivity = async (req, res) => {
             return res.status(404).json({ message: 'Hoạt động không tồn tại' });
         }
 
+
+        if (req.file) {
+            const result = await upload(req.file.path, 'CTU-social/images');
+            await unlinkFile(req.file.path); // Xóa file tạm sau khi upload
+
+
+            activity.image = result.secure_url;
+        }
+
+
         if (title !== undefined && title !== null) activity.title = title;
         if (description !== undefined && description !== null) activity.description = description;
         if (link !== undefined && link !== null) activity.link = link;
         if (faculty !== undefined && faculty !== null) activity.faculty = faculty;
-
 
         const updatedActivity = await activity.save();
 
@@ -78,7 +97,7 @@ const updateActivity = async (req, res) => {
         });
 
     } catch (error) {
-        console.log(error);
+        console.error(error);
         res.status(500).json({ message: 'Lỗi cập nhật hoạt động', error: error.message });
     }
 };
