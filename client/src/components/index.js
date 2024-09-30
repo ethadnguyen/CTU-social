@@ -10,6 +10,8 @@ import * as FacultiesSelector from "./FacultiesSelector"
 import SelectInput from "./SelectInput";
 import Menu from "./Menu";
 import ImageDetail from "./ImageDetail";
+import ImageUpload from './ImageUpload';
+import FileUpload from './FileUpload';
 
 
 export {
@@ -24,5 +26,7 @@ export {
   FacultiesSelector,
   SelectInput,
   Menu,
-  ImageDetail
+  ImageDetail,
+  ImageUpload,
+  FileUpload,
 };

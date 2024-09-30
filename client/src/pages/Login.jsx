@@ -15,35 +15,35 @@ const Login = () => {
     mode: "onChange",
   });
 
-  const onSubmit = async (data) => {};
+  const onSubmit = async (data) => { };
 
   const [errMsg, setErrMsg] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const dispatch = useDispatch();
 
   return (
-    <div style={{ 
+    <div style={{
       backgroundImage: `url(${backgroundImage})`,
       backgroundSize: 'cover',
       backgroundPosition: 'center',
       backgroundRepeat: 'repeat'
     }}>
       <div className='w-full h-[100vh] flex items-center justify-center p-6'>
-        <div className='w-full md:w-2/6 h-fit lg:h-full 2xl:h-5/6 py-8 lg:py-0 flex bg-primary rounded-xl overflow-hidden shadow-xl'>
-          <div className='w-full lg:w h-full p-10 2xl:px-20 flex flex-col justify-center '>
-            <div className='w-full flex gap-2 items-center justify-center mb-6'>
-              <img src= {BgImage} className='w-14 h-14' />
+        <div className='flex w-full py-8 overflow-hidden shadow-xl md:w-2/6 h-fit lg:h-full 2xl:h-5/6 lg:py-0 bg-primary rounded-xl'>
+          <div className='flex flex-col justify-center w-full h-full p-10 lg:w 2xl:px-20 '>
+            <div className='flex items-center justify-center w-full gap-2 mb-6'>
+              <img src={BgImage} className='w-14 h-14' />
               <span className='text-2xl text-[#065ad8] font-semibold'>
                 CTU Social
               </span>
             </div>
 
-            <p className='text-ascent-1 text-base font-semibold mx-auto'>
+            <p className='mx-auto text-base font-semibold text-ascent-1'>
               Đăng nhập vào tài khoản của bạn
             </p>
 
             <form
-              className='py-8 flex flex-col gap-5 overflow-y-auto'
+              className='flex flex-col gap-5 py-8 overflow-y-auto'
               onSubmit={handleSubmit(onSubmit)}
             >
               <TextInput
@@ -78,18 +78,17 @@ const Login = () => {
 
               <Link
                 to='/reset-password'
-                className='text-sm text-right text-blue font-semibold py-3'
+                className='py-3 text-sm font-semibold text-right text-blue'
               >
                 Quên mật khẩu?
               </Link>
 
               {errMsg?.message && (
                 <span
-                  className={`text-sm ${
-                    errMsg?.status == "failed"
-                      ? "text-[#f64949fe]"
-                      : "text-[#2ba150fe]"
-                  } mt-0.5`}
+                  className={`text-sm ${errMsg?.status == "failed"
+                    ? "text-[#f64949fe]"
+                    : "text-[#2ba150fe]"
+                    } mt-0.5`}
                 >
                   {errMsg?.message}
                 </span>
@@ -106,7 +105,7 @@ const Login = () => {
               )}
             </form>
 
-            <p className='text-ascent-2 text-sm text-center'>
+            <p className='text-sm text-center text-ascent-2'>
               Chưa có tài khoản?
               <Link
                 to='/register'
