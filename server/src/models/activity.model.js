@@ -9,6 +9,10 @@ const ActivitySchema = new mongoose.Schema({
         type: String,
         default: ''
     },
+    image: {
+        type: String,
+        default: ''
+    },
     link: {
         type: String,
         default: ''

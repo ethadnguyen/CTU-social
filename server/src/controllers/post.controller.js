@@ -4,6 +4,10 @@ const Post = require('../models/post.model');
 const User = require('../models/user.model');
 const upload = require('../utils/upload');
 
+const fs = require('fs');
+const util = require('util');
+const unlinkFile = util.promisify(fs.unlink);
+
 const getPosts = async (req, res) => {
     try {
         const { userId } = req.body.user;
@@ -582,7 +586,6 @@ const createPost = async (req, res) => {
 };
 
 const updatePost = async (req, res) => {
-
     try {
         const id = req.params.id;
         const { content } = req.body;
@@ -593,31 +596,36 @@ const updatePost = async (req, res) => {
             return res.status(404).json({ message: 'Bài viết không tồn tại' });
         }
 
-        if (req.files['images']) {
-            const imageUploadPromises = req.files['images'].map(file => upload(file.path, 'CTU-social/images'));
-            const uploadedImages = await Promise.all(imageUploadPromises);
-            const newImageUrls = uploadedImages.map(result => result.secure_url);
-
+        if (req.files && req.files['images']) {
+            const imageUploadPromises = req.files['images'].map(async (file) => {
+                const result = await upload(file.path, 'CTU-social/images');
+                await unlinkFile(file.path);  // Xóa file tạm sau khi upload
+                return result.secure_url;
+            });
+            const newImageUrls = await Promise.all(imageUploadPromises);
             post.images = [...post.images, ...newImageUrls];
         }
 
-        if (req.files['files']) {
-            const fileUploadPromises = req.files['files'].map(file => upload(file.path, 'CTU-social/files'));
-            const uploadedFiles = await Promise.all(fileUploadPromises);
-            const newFileUrls = uploadedFiles.map(result => result.secure_url);
-
+        if (req.files && req.files['files']) {
+            const fileUploadPromises = req.files['files'].map(async (file) => {
+                const result = await upload(file.path, 'CTU-social/files');
+                await unlinkFile(file.path);  // Xóa file tạm sau khi upload
+                return result.secure_url;
+            });
+            const newFileUrls = await Promise.all(fileUploadPromises);
             post.files = [...post.files, ...newFileUrls];
         }
 
-        post.content = content || post.content;
+        // Chỉ cập nhật content nếu nó không phải là undefined
+        if (content !== undefined) {
+            post.content = content;
+        }
 
         await post.save();
         res.status(200).json({ message: 'Cập nhật bài viết thành công', post });
     } catch (error) {
-        console.log(error);
-        res.status(500).json({
-            message: error.message
-        });
+        console.error(error);
+        res.status(500).json({ message: error.message });
     }
 };
 

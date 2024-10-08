@@ -34,7 +34,7 @@ const Home = () => {
     formState: { errors },
   } = useForm();
 
-  const handlePostSubmit = async (data) => {};
+  const handlePostSubmit = async (data) => { };
 
   const [selectedScope, setSelectedScope] = useState("Private");
   const handleScopeChange = (event) => {
@@ -50,7 +50,7 @@ const Home = () => {
       setSelectedFaculty('');
     }
   }, [user]);
-  
+
 
   return (
     <>
@@ -89,11 +89,10 @@ const Home = () => {
               {errMsg?.message && (
                 <span
                   role='alert'
-                  className={`text-sm ${
-                    errMsg?.status === "failed"
-                      ? "text-[#f64949fe]"
-                      : "text-[#2ba150fe]"
-                  } mt-0.5`}
+                  className={`text-sm ${errMsg?.status === "failed"
+                    ? "text-[#f64949fe]"
+                    : "text-[#2ba150fe]"
+                    } mt-0.5`}
                 >
                   {errMsg?.message}
                 </span>
@@ -167,8 +166,8 @@ const Home = () => {
                   key={post?._id}
                   post={post}
                   user={user}
-                  deletePost={() => {}}
-                  likePost={() => {}}
+                  deletePost={() => { }}
+                  likePost={() => { }}
                 />
               ))
             ) : (
@@ -178,7 +177,7 @@ const Home = () => {
             )}
           </div>
 
-          {/* RIGJT */}
+          {/* RIGHT */}
           <div className='hidden w-1/4 h-[100%] lg:flex flex-col gap-3 overflow-y-auto'>
             {/* Activities */}
             <div className='flex-1 bg-primary shadow-sm rounded-lg px-5 py-5 mb-1 overflow-y-auto' style={{ maxHeight: '300px' }}>
@@ -198,7 +197,7 @@ const Home = () => {
                   </select>
                 </label>
               </div>
-              
+
               <div className='w-full flex flex-col gap-4 pt-4'>
                 {faculties
                   .find((faculty) => faculty.id === selectedFaculty) // Tìm khoa được chọn
@@ -294,7 +293,7 @@ const Home = () => {
                     <div className='flex gap-1'>
                       <button
                         className='bg-[#0444a430] text-sm text-white p-1 rounded'
-                        onClick={() => {}}
+                        onClick={() => { }}
                       >
                         <BsPersonFillAdd size={20} className='text-[#0f52b6]' />
                       </button>

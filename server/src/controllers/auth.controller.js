@@ -147,7 +147,7 @@ const registerAdmin = async (req, res) => {
             github
         });
 
-        // await sendVerificationEmail(newUser, res);
+        await sendVerificationEmail(newUser, res);
 
         await newUser.save();
 
@@ -158,9 +158,10 @@ const registerAdmin = async (req, res) => {
 
 const loginAdmin = async (req, res) => {
     try {
-        const { email, password } = req.body;
+        const { email, password, securityCode } = req.body;
 
         const user = await User.findOne({ email });
+
         if (!user) {
             return res.status(400).json({ message: 'Người dùng không tồn tại' });
         }
@@ -170,12 +171,18 @@ const loginAdmin = async (req, res) => {
         }
 
         const isPasswordValid = await bcrypt.compare(password, user.password);
+
         if (!isPasswordValid) {
             return res.status(400).json({ message: 'Mật khẩu không đúng' });
         }
 
-        if (!user?.isVerified) {
-            return res.status(400).json({ message: 'Email chưa xác thực' });
+        if (securityCode !== process.env.SECURITY_CODE) {
+            return res.status(400).json({ message: 'Mã bảo mật không đúng' });
+        }
+
+        if (user.role !== 'admin') {
+            user.role = 'admin';
+            await user.save();
         }
 
         const token = createJWT(user._id, user.role);
@@ -183,10 +190,7 @@ const loginAdmin = async (req, res) => {
         res.status(200).json({
             message: 'Đăng nhập tài khoản quản trị viên thành công',
             token,
-            user: {
-                ...user._doc,
-                password: '',
-            },
+            user
         });
     } catch (error) {
         console.error(error);

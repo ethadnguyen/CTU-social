@@ -36,4 +36,6 @@ const SelectInput = React.forwardRef(
   }
 );
 
+SelectInput.displayName = "SelectInput";
+
 export default SelectInput;

@@ -5,7 +5,7 @@ const { resetPasswordLink } = require('../utils/sendMail');
 const FriendRequest = require('../models/friendRequest.model');
 const PasswordReset = require('../models/PasswordReset.model');
 const GroupRequest = require('../models/groupRequest.model');
-const Fuse = require('fuse.js');
+// const Fuse = require('fuse.js');
 
 const verifyEmail = async (req, res) => {
     const { userId, token } = req.params;
@@ -287,7 +287,6 @@ const friendRequest = async (req, res, next) => {
 };
 
 const createGroupRequest = async (req, res) => {
-
     try {
         const { userId } = req.body.user;
         const { name, description } = req.body;
@@ -305,22 +304,6 @@ const createGroupRequest = async (req, res) => {
             }
         }
 
-        const previousRequests = await GroupRequest.find({ userId });
-
-        const options = {
-            includesScore: true,
-            threshold: 0.3,
-            keys: ['name'],
-        }
-
-        const fuse = new Fuse(previousRequests, options);
-
-        const result = fuse.search({ name });
-
-        if (result.length > 0) {
-            return res.status(400).json({ message: 'Có vẻ bạn đã có một tên nhóm tương tự trước đó. Hãy kiểm tra lại tên nhóm!' })
-        }
-
         const newGroupRequest = new GroupRequest({ userId, name, description });
 
         await newGroupRequest.save();
@@ -334,6 +317,7 @@ const createGroupRequest = async (req, res) => {
         res.status(500).json({ message: 'Lỗi tạo yêu cầu mở nhóm', error: error.message });
     }
 };
+
 
 const getFriendRequest = async (req, res) => {
     try {
