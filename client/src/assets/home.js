@@ -1,6 +1,8 @@
 export const posts = [
     {
       _id: "64e2fe620d7868ecff1a6a86",
+      groupId: "4",
+      groupName: "Hội thánh đức chúa trời",
       userId: {
         _id: "64df39704180b81adfe41d0b",
         firstName: "Lực",
@@ -36,6 +38,8 @@ export const posts = [
     },
     {
       _id: "64e1cdd64baffca670364c8c",
+      groupId: "1",
+      groupName: "Hội kín",
       userId: {
         _id: "64df39704180b81adfe41d0b",
         firstName: "Neal",

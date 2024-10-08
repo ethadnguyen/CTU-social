@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { useParams } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
 import {
+  CustomButton,
   FriendsCard,
   Loading,
   PostCard,
@@ -9,6 +10,9 @@ import {
   TopBar,
 } from "../components";
 import { posts } from "../assets/home";
+import { profile } from "../assets/profile";
+import { ChevronDownIcon, ChevronUpIcon } from "@heroicons/react/24/outline";
+import { MdOutlineFileUpload } from "react-icons/md";
 
 const Profile = () => {
   const { id } = useParams();
@@ -17,9 +21,15 @@ const Profile = () => {
   // const { posts } = useSelector((state) => state.posts);
   const [userInfo, setUserInfo] = useState(user);
   const [loading, setLoading] = useState(false);
+  const [expandedTags, setExpandedTags] = useState({});
+
 
   const handleDelete = () => {};
   const handleLikePost = () => {};
+
+  const toggleTag = (tagId) => {
+    setExpandedTags((prev) => ({ ...prev, [tagId]: !prev[tagId] }));
+  };
 
   return (
     <>
@@ -70,8 +80,71 @@ const Profile = () => {
           </div>
 
           {/* RIGHT */}
-          <div className='hidden w-1/4 h-full lg:flex flex-col gap-8 overflow-y-auto'>
-            
+          <div className='hidden w-1/4 h-full lg:flex flex-col gap-3 overflow-y-auto'>
+            <div className="flex-1 bg-primary shadow-sm rounded-lg px-5 py-5 mb-1 overflow-y-auto">
+              <div className='flex items-center justify-between text-xl text-ascent-1 pb-2 border-b border-[#66666645]'>
+                <span>Files</span>
+                {user._id === id && <CustomButton
+
+                  title='Thêm thẻ'
+                  containerStyles='text-sm text-ascent-1 px-4 md:px-6 py-1 md:py-2 border border-[#666] rounded-full'
+                />}
+              </div>
+
+              {profile.tags.map((tag) => (
+                <div key={tag.id}>
+                  <div 
+                    className="flex items-center justify-between cursor-pointer"
+                  >
+                    <div
+                       onClick={() => toggleTag(tag.id)}
+                       className="flex items-center cursor-pointer text-ascent-1"
+                    >
+                      <h4>{tag.name}</h4> 
+                      {expandedTags[tag.id] ? (
+                        <ChevronUpIcon className="h-5 w-5" />
+                      ) : (
+                        <ChevronDownIcon className="h-5 w-5" />
+                      )}
+                    </div>
+                    {user._id === id && <MdOutlineFileUpload className="ml-2 text-ascent-1" />}
+                  </div>
+                  {expandedTags[tag.id] && (
+                    <ul>
+                      {tag.files.map((file) => (
+                        <li key={file.id}>
+                          <a href={file.url} target="_blank" rel="noopener noreferrer" className="text-sky hover:underline">
+                            {file.url.split('/').pop()}
+                          </a>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            <div className="flex-1 bg-primary shadow-sm rounded-lg px-5 py-5 mb-1 overflow-y-auto">
+              <div className='flex items-center justify-between text-xl text-ascent-1 pb-2 border-b border-[#66666645]'>
+                  <span>Nhóm</span>
+                  {user._id === id && <CustomButton
+
+                  title='Tạo nhóm'
+                  containerStyles='text-sm text-ascent-1 px-4 md:px-6 py-1 md:py-2 border border-[#666] rounded-full'
+                  />}
+              </div>
+
+              <ul className="gap-2">
+                {profile.user.groups.map((group) => (
+                  <li key={group.id} className="text-ascent-1">
+                    <span className="mr-2">-</span>
+                    <Link to={`/groups/${group.id}`} className="text-ascent-1 hover:underline">
+                      {group.name}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
           </div>
         </div>
       </div>

@@ -20,15 +20,19 @@ export const profile = {
         groups: [
           {
             id: "1",
-            name: "Group 1",
+            name: "Hội Kín",
           },
           {
             id: "2",
-            name: "Group 2",
+            name: "Illuminati",
           },
           {
             id: "3",
-            name: "Group 3",
+            name: "Hội bàn tròn",
+          },
+          {
+            id: "4",
+            name: "Hội thánh đức chúa trời"
           }
         ],
         friends: [
@@ -143,7 +147,7 @@ export const profile = {
         },
       ],
 
-      folders: [
+      tags: [
           {
             id: "1",
             name: "Niên luận ngành",
@@ -173,7 +177,7 @@ export const profile = {
 
           {
             id: "2",
-            name: "Niên luận ngành",
+            name: "Kiểm chứng mô hình",
             files: [
                 {
                     id: "5",

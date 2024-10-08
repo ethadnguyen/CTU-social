@@ -4,7 +4,7 @@ import moment from "moment";
 import { NoProfile } from "../assets";
 import { BiComment, BiLike, BiSolidLike } from "react-icons/bi";
 import { CiShare2, CiMenuKebab } from "react-icons/ci";
-import { MdOutlineReportProblem } from "react-icons/md";
+import { MdOutlineReportProblem, MdGroups } from "react-icons/md";
 import { useForm } from "react-hook-form";
 import TextInput from "./TextInput";
 import Loading from "./Loading";
@@ -155,6 +155,16 @@ const PostCard = ({ post, user, deletePost, likePost }) => {
           onClose={() => setShowImageModal(false)} 
         />
       )}
+
+      {post?.groupId && (
+        <div className="mb-4">
+        <Link to={`/groups/${post.groupId}`} className="flex items-center">
+          <MdGroups size={30} className="text-ascent-1" />
+          <span className="text-ascent-1 ml-2">{post.groupName}</span>
+        </Link>
+      </div>
+      )}
+
       <div className='flex gap-3 items-center mb-2'>
         <Link to={"/profile/" + post?.userId?._id}>
           <img

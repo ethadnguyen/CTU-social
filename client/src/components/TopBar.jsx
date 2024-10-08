@@ -13,7 +13,7 @@ import { BgImage } from "../assets";
 import { FaRegMessage, FaMessage } from "react-icons/fa6";
 import { IoIosMenu } from "react-icons/io";
 
-const TopBar = () => {
+const TopBar = (friends) => {
   const { theme } = useSelector((state) => state.theme);
   const { user } = useSelector((state) => state.user);
   const [showMenu, setShowMenu] = React.useState(false);
@@ -57,7 +57,7 @@ const TopBar = () => {
 
       {/* Mobile Menu Dropdown */}
       {showMenu && (
-        <Menu user={user} />
+        <Menu user={user} friends={user?.friends} />
       )}
 
       <form

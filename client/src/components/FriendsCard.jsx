@@ -25,7 +25,7 @@ const FriendsCard = ({ friends }) => {
               />
               <div className='flex-1'>
                 <p className='text-base font-medium text-ascent-1'>
-                  {friend?.firstName} {friend?.lastName}
+                {friend?.lastName} {friend?.firstName}
                 </p>
               </div>
             </Link>
