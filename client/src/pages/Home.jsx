@@ -41,7 +41,7 @@ const Home = () => {
     setSelectedScope(event.target.value);
   };
 
-  const [selectedFaculty, setSelectedFaculty] = useState('')
+  const [selectedFaculty, setSelectedFaculty] = useState('');
 
   useEffect(() => {
     if (user && user.facultyId) {
@@ -54,27 +54,27 @@ const Home = () => {
 
   return (
     <>
-      <div className='w-full px-0 lg:px-10 pb-20 2xl:px-40 bg-bgColor lg:rounded-lg h-screen overflow-hidden'>
+      <div className='w-full h-screen px-0 pb-20 overflow-hidden lg:px-10 2xl:px-40 bg-bgColor lg:rounded-lg'>
         <TopBar friends={user?.friends} />
 
-        <div className='w-full flex gap-2 lg:gap-4 pt-5 pb-10 h-full'>
+        <div className='flex w-full h-full gap-2 pt-5 pb-10 lg:gap-4'>
           {/* LEFT */}
-          <div className='hidden w-1/3 lg:w-1/4 h-full md:flex flex-col gap-3 overflow-y-auto'>
+          <div className='flex-col hidden w-1/3 h-full gap-3 overflow-y-auto lg:w-1/4 md:flex'>
             <ProfileCard user={user} />
             <FriendsCard friends={user?.friends} />
           </div>
 
           {/* CENTER */}
-          <div className='flex-1 h-full px-4 flex flex-col gap-6 overflow-y-auto rounded-lg'>
+          <div className='flex flex-col flex-1 h-full gap-6 px-4 overflow-y-auto rounded-lg'>
             <form
               onSubmit={handleSubmit(handlePostSubmit)}
-              className='bg-primary px-4 rounded-lg'
+              className='px-4 rounded-lg bg-primary'
             >
               <div className='w-full flex items-center gap-2 py-4 border-b border-[#66666645]'>
                 <img
                   src={user?.profileUrl ?? NoProfile}
                   alt='User Image'
-                  className='w-14 h-14 rounded-full object-cover'
+                  className='object-cover rounded-full w-14 h-14'
                 />
                 <TextInput
                   styles='w-full rounded-full py-5'
@@ -101,7 +101,7 @@ const Home = () => {
               <div className='flex items-center justify-between py-4'>
                 <label
                   htmlFor='imgUpload'
-                  className='flex items-center gap-1 text-base text-ascent-2 hover:text-ascent-1 cursor-pointer'
+                  className='flex items-center gap-1 text-base cursor-pointer text-ascent-2 hover:text-ascent-1'
                 >
                   <input
                     type='file'
@@ -116,7 +116,7 @@ const Home = () => {
                 </label>
 
                 <label
-                  className='flex items-center gap-1 text-base text-ascent-2 hover:text-ascent-1 cursor-pointer'
+                  className='flex items-center gap-1 text-base cursor-pointer text-ascent-2 hover:text-ascent-1'
                   htmlFor='videoUpload'
                 >
                   <input
@@ -171,7 +171,7 @@ const Home = () => {
                 />
               ))
             ) : (
-              <div className='flex w-full h-full items-center justify-center'>
+              <div className='flex items-center justify-center w-full h-full'>
                 <p className='text-lg text-ascent-2'>No Post Available</p>
               </div>
             )}
@@ -180,7 +180,7 @@ const Home = () => {
           {/* RIGHT */}
           <div className='hidden w-1/4 h-[100%] lg:flex flex-col gap-3 overflow-y-auto'>
             {/* Activities */}
-            <div className='flex-1 bg-primary shadow-sm rounded-lg px-5 py-5 mb-1 overflow-y-auto' style={{ maxHeight: '300px' }}>
+            <div className='flex-1 px-5 py-5 mb-1 overflow-y-auto rounded-lg shadow-sm bg-primary' style={{ maxHeight: '300px' }}>
               <div className='flex items-center justify-between text-lg text-ascent-1 border-b border-[#66666645]'>
                 <span>Hoạt Động</span>
                 <label>
@@ -198,7 +198,7 @@ const Home = () => {
                 </label>
               </div>
 
-              <div className='w-full flex flex-col gap-4 pt-4'>
+              <div className='flex flex-col w-full gap-4 pt-4'>
                 {faculties
                   .find((faculty) => faculty.id === selectedFaculty) // Tìm khoa được chọn
                   ?.activities.map((activity) => ( // Hiển thị activities của khoa được chọn
@@ -214,7 +214,7 @@ const Home = () => {
                       <img
                         src={activity.image}
                         alt={activity.title}
-                        className='w-full h-48 object-cover rounded-md'
+                        className='object-cover w-full h-48 rounded-md'
                       />
                     </div>
                   ))}
@@ -222,23 +222,23 @@ const Home = () => {
             </div>
 
             {/* FRIEND REQUEST */}
-            <div className='flex-1 bg-primary shadow-sm rounded-lg px-5 py-5 overflow-y-auto' style={{ maxHeight: '300px' }}>
+            <div className='flex-1 px-5 py-5 overflow-y-auto rounded-lg shadow-sm bg-primary' style={{ maxHeight: '300px' }}>
               <div className='flex items-center justify-between text-xl text-ascent-1 pb-2 border-b border-[#66666645]'>
                 <span>Yêu Cầu Kết Bạn</span>
                 <span>{friendRequest?.length}</span>
               </div>
 
-              <div className='w-full flex flex-col gap-4 pt-4'>
+              <div className='flex flex-col w-full gap-4 pt-4'>
                 {friendRequest?.map(({ _id, requestFrom: from }) => (
                   <div key={_id} className='flex items-center justify-between'>
                     <Link
                       to={"/profile/" + from._id}
-                      className='w-full flex gap-4 items-center cursor-pointer'
+                      className='flex items-center w-full gap-4 cursor-pointer'
                     >
                       <img
                         src={from?.profileUrl ?? NoProfile}
                         alt={from?.firstName}
-                        className='w-10 h-10 object-cover rounded-full'
+                        className='object-cover w-10 h-10 rounded-full'
                       />
                       <div className='flex-1'>
                         <p className='text-base font-medium text-ascent-1'>
@@ -263,11 +263,11 @@ const Home = () => {
             </div>
 
             {/* SUGGESTED FRIENDS */}
-            <div className='flex-1 bg-primary shadow-sm rounded-lg px-5 py-5 overflow-y-auto' style={{ maxHeight: '300px' }}>
+            <div className='flex-1 px-5 py-5 overflow-y-auto rounded-lg shadow-sm bg-primary' style={{ maxHeight: '300px' }}>
               <div className='flex items-center justify-between text-lg text-ascent-1 border-b border-[#66666645]'>
                 <span>Gợi Ý Kết Bạn</span>
               </div>
-              <div className='w-full flex flex-col gap-4 pt-4'>
+              <div className='flex flex-col w-full gap-4 pt-4'>
                 {suggestedFriends?.map((friend) => (
                   <div
                     className='flex items-center justify-between'
@@ -276,12 +276,12 @@ const Home = () => {
                     <Link
                       to={"/profile/" + friend?._id}
                       key={friend?._id}
-                      className='w-full flex gap-4 items-center cursor-pointer'
+                      className='flex items-center w-full gap-4 cursor-pointer'
                     >
                       <img
                         src={friend?.profileUrl ?? NoProfile}
                         alt={friend?.firstName}
-                        className='w-10 h-10 object-cover rounded-full'
+                        className='object-cover w-10 h-10 rounded-full'
                       />
                       <div className='flex-1 '>
                         <p className='text-base font-medium text-ascent-1'>
