@@ -25,7 +25,7 @@ const Register = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [selectedFaculty, setSelectedFaculty] = useState("");
   const [availableMajors, setAvailableMajors] = useState([]);
-  const [selectedCourse, setSelectedCourse] = useState([]);
+  const [selectedCourse, setSelectedCourse] = useState("");
   const [selectedMajor, setSelectedMajor] = useState("");
 
   useEffect(() => {
@@ -33,7 +33,9 @@ const Register = () => {
     setAvailableMajors(majors);
   }, [selectedFaculty]);
 
-  const onSubmit = async (data) => {};
+  const onSubmit = async (data) => {
+    console.log("is submitted")
+  };
 
   const [errMsg, setErrMsg] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -212,21 +214,21 @@ const Register = () => {
   const handleNextStep = async () => {
     const fieldsToValidate = currentStep === 1
       ? ["firstName", "lastName", "mssv", "birthdate"]
-      : ["faculty", "major", "course", "email", "password", "cPassword"];
+      : ["email", "password", "cPassword"];
 
     const isValid = await trigger(fieldsToValidate);
 
     if (isValid) {
       setCurrentStep((prevStep) => prevStep + 1);
 
-      if (currentStep === 1) {
-        setError("faculty", { type: 'manual', message: '' });
-        setError("major", { type: 'manual', message: '' });
-        setError("course", { type: 'manual', message: '' });
-        setError("email", { type: 'manual', message: '' });
-        setError("password", { type: 'manual', message: '' });
-        setError("cPassword", { type: 'manual', message: '' });
-      }
+      // if (currentStep === 1) {
+      //   setError("faculty", { type: 'manual', message: '' });
+      //   setError("major", { type: 'manual', message: '' });
+      //   setError("course", { type: 'manual', message: '' });
+      //   setError("email", { type: 'manual', message: '' });
+      //   setError("password", { type: 'manual', message: '' });
+      //   setError("cPassword", { type: 'manual', message: '' });
+      // }
     }
   };
 
@@ -269,18 +271,18 @@ const Register = () => {
               {/* Nút điều hướng */}
               <div className="flex justify-between items-center">
                 {currentStep >= steps.length ? (
-                  <button onClick={handlePreviousStep} disabled={currentStep === 1} className={`${theme === 'dark' ? 'text-white' : ''} `}>
+                  <button onClick={handlePreviousStep} type="button" disabled={currentStep === 1} className={`${theme === 'dark' ? 'text-white' : ''} `}>
                     <FontAwesomeIcon icon={faChevronLeft} className={`${theme === 'dark' ? 'text-white' : ''}`} /> Quay lại
                   </button>
                 ) : null}
 
                 {currentStep < steps.length ? (
-                  <button className="bg-transparent">
+                  <button type="button" className="bg-transparent">
                   </button>
                 ) : null}
 
                 {currentStep < steps.length ? (
-                  <button className={`${theme === 'dark' ? 'text-white' : ''} `} onClick={handleNextStep}>
+                  <button type="button" className={`${theme === 'dark' ? 'text-white' : ''} `} onClick={handleNextStep}>
                     Tiếp tục <FontAwesomeIcon icon={faChevronRight} className={`${theme === 'dark' ? 'text-white' : ''}`} />
                   </button>
                 ) : null}
@@ -288,11 +290,15 @@ const Register = () => {
 
               {currentStep === steps.length && (
                 <div className="text-center mt-5">
-                  <CustomButton
-                    type='submit'
-                    containerStyles={`inline-flex justify-center rounded-md bg-blue hover:bg-sky px-8 py-3 text-sm font-medium text-white outline-none`}
-                    title='Tạo Tài Khoản'
-                  />
+                  {isSubmitting ? (
+                    <Loading />
+                  ) : (
+                    <CustomButton
+                      type='submit'
+                      containerStyles={`inline-flex justify-center rounded-md bg-blue hover:bg-sky px-8 py-3 text-sm font-medium text-white outline-none`}
+                      title='Tạo Tài Khoản'
+                    />
+                  )}
                 </div>
               )}
             </form>

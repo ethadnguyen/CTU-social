@@ -9,7 +9,7 @@ import {
   ProfileCard,
   TopBar,
 } from "../components";
-import { posts } from "../assets/home";
+import { posts, savedPosts } from "../assets/home";
 import { profile } from "../assets/profile";
 import { ChevronDownIcon, ChevronUpIcon } from "@heroicons/react/24/outline";
 import { MdOutlineFileUpload } from "react-icons/md";
@@ -23,6 +23,7 @@ const Profile = () => {
   const [loading, setLoading] = useState(false);
   const [expandedTags, setExpandedTags] = useState({});
 
+  const [showSavedPosts, setShowSavedPosts] = useState(false); 
 
   const handleDelete = () => {};
   const handleLikePost = () => {};
@@ -47,37 +48,67 @@ const Profile = () => {
           </div>
 
           {/* CENTER */}
-          <div className=' flex-1 h-full bg-orimary px-4 flex flex-col gap-6 overflow-y-auto'>
-            {loading ? (
-              <Loading />
-            ) : (
-              <>
-                <div className='lg:hidden flex flex-col gap-6'>
-                  <ProfileCard user={userInfo} />
 
-                  {/* <div className='block lg:hidden'>
-                    <FriendsCard friends={userInfo?.friends} />
-                  </div> */}
-                </div>
+            <div className=' flex-1 h-full bg-orimary px-4 flex flex-col gap-6 overflow-y-auto'>
+              {loading ? (
+                <Loading />
+              ) : (
+                <>
+                  <div className='lg:hidden flex flex-col gap-6'>
+                    <ProfileCard user={userInfo} />
 
-                {posts?.length > 0 ? (
-                  posts?.map((post) => (
-                    <PostCard
-                      post={post}
-                      key={post?._id}
-                      user={user}
-                      deletePost={handleDelete}
-                      likePost={handleLikePost}
-                    />
-                  ))
-                ) : (
-                  <div className='flex w-full h-full items-center justify-center'>
-                    <p className='text-lg text-ascent-2'>No Post Available</p>
+                    {/* <div className='block lg:hidden'>
+                      <FriendsCard friends={userInfo?.friends} />
+                    </div> */}
                   </div>
-                )}
-              </>
-          )}
-          </div>
+
+                  <div className="">
+                    {user?._id === id && (
+                      <div className="bg-primary shadow-sm rounded-xl px-6 py-4 flex justify-between text-ascent-1 mb-1">
+                        <div className="w-1/2 border-r flex justify-center mb-2">
+                          <button className="w-full" onClick={() => setShowSavedPosts(false)}>Bài đăng</button>
+                        </div>
+                        <div className="w-1/2 flex justify-center mb-2">
+                          <button className="w-full" onClick={() => setShowSavedPosts(true)}>Bài đăng đã lưu</button>
+                        </div>
+                      </div>
+                    )}
+
+                    {posts?.length > 0 && !showSavedPosts ? (
+                      posts?.map((post) => (
+                        <PostCard
+                          post={post}
+                          key={post?._id}
+                          user={user}
+                          deletePost={handleDelete}
+                          likePost={handleLikePost}
+                        />
+                      ))
+                    ) : showSavedPosts && savedPosts?.length > 0 ? (
+                      savedPosts.map((savedPost) => (
+                        <PostCard
+                        post={savedPost}
+                        key={savedPost?._id}
+                        user={user}
+                        deletePost={handleDelete}
+                        likePost={handleLikePost}
+                        />
+                      ))
+                    ) : showSavedPosts ? (
+                      <div className='flex w-full h-full items-center justify-center'>
+                        <p className='text-lg text-ascent-2'>No Saved Post Available</p>
+                      </div>
+                    ) : (
+                      <div className='flex w-full h-full items-center justify-center'>
+                        <p className='text-lg text-ascent-2'>No Post Available</p>
+                      </div>
+                    )}
+
+                  </div>
+                </>
+            )}
+            </div>
+            
 
           {/* RIGHT */}
           <div className='hidden w-1/4 h-full lg:flex flex-col gap-3 overflow-y-auto'>
