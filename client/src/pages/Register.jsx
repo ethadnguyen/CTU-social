@@ -85,28 +85,6 @@ const Register = () => {
                 />
             </div>
 
-            <div className='w-full flex flex-col lg:flex-row gap-1 md:gap-2'>
-              <TextInput 
-                name='birthdate'
-                label={<span className="font-bold">Ngày sinh</span>}
-                type='date' 
-                styles='w-full'
-                register={register("birthdate", {
-                  required: "Ngày sinh không được để trống!"
-                })}
-                error={errors.birthdate ? errors.birthdate.message : ""}
-              />
-            </div>
-
-          </div>
-        ),
-    },
-
-    {
-      title: "Thông tin đăng nhập",
-      content: (
-        <div className='w-full flex-content flex-col lg:flex-row gap-1 md:gap-2'> 
-            
             <div className='w-full my-1 lg:flex-row gap-1 md:gap-2'>
               <SelectInput
                 label='Khoa'
@@ -151,6 +129,28 @@ const Register = () => {
                   styles='w-full'
                 />
               </div>
+            </div>
+
+          </div>
+        ),
+    },
+
+    {
+      title: "Thông tin đăng nhập",
+      content: (
+        <div className='w-full flex-content flex-col lg:flex-row gap-1 md:gap-2'> 
+            
+            <div className='w-full flex flex-col lg:flex-row gap-1 md:gap-2'>
+              <TextInput 
+                name='birthdate'
+                label={<span className="font-bold">Ngày sinh</span>}
+                type='date' 
+                styles='w-full'
+                register={register("birthdate", {
+                  required: "Ngày sinh không được để trống!"
+                })}
+                error={errors.birthdate ? errors.birthdate.message : ""}
+              />
             </div>
 
             <div className='w-full my-1 flex flex-col lg:flex-row gap-1 md:gap-2'>
@@ -213,23 +213,32 @@ const Register = () => {
 
   const handleNextStep = async () => {
     const fieldsToValidate = currentStep === 1
-      ? ["firstName", "lastName", "mssv", "birthdate"]
-      : ["email", "password", "cPassword"];
+      ? ["firstName", "lastName", "mssv", "faculty", "major", "course"]
+      : ["email", "birthdate", "password", "cPassword"];
 
     const isValid = await trigger(fieldsToValidate);
+    //Alert null values
+    if (!selectedFaculty) {
+      alert("Vui lòng chọn Khoa!");
+    }
+    if (!selectedMajor) {
+      alert("Vui lòng chọn Ngành!");
+    }
+    if (!selectedCourse) {
+      alert("Vui lòng chọn Khóa!");
+    }
+
+    console.log(selectedFaculty, selectedMajor, selectedCourse)
+
+    if(!selectedFaculty || !selectedMajor || !selectedCourse)
+      isValid=false;
+
 
     if (isValid) {
       setCurrentStep((prevStep) => prevStep + 1);
-
-      // if (currentStep === 1) {
-      //   setError("faculty", { type: 'manual', message: '' });
-      //   setError("major", { type: 'manual', message: '' });
-      //   setError("course", { type: 'manual', message: '' });
-      //   setError("email", { type: 'manual', message: '' });
-      //   setError("password", { type: 'manual', message: '' });
-      //   setError("cPassword", { type: 'manual', message: '' });
-      // }
     }
+
+
   };
 
   const handlePreviousStep = () => {
@@ -244,8 +253,8 @@ const Register = () => {
       backgroundRepeat: 'no-repeat'
     }}>
       <div className='w-full h-[100vh] flex items-center justify-center p-6'>
-        <div className='w-full md:w-1/3 h-fit lg:h-full 2xl:h-5/7 py-8 lg:py-0 flex flex-row-reverse bg-primary rounded-xl overflow-hidden shadow-xl'>
-          <div className='w-full h-full p-10 2xl:px-20 flex flex-col justify-center '>
+        <div className='w-full md:w-1/3 h-fit lg:h-[83%] 2xl:h-5/7 py-8 lg:py-0 flex flex-row-reverse justify-center bg-primary rounded-xl overflow-hidden shadow-xl'>
+          <div className='w-full h-full mb-10 mt-10 p-10 2xl:px-20 flex flex-col overflow-y-auto'>
             <div className='w-full flex gap-2 items-center mb-6 justify-center'>
               <img src= {BgImage} className='w-14 h-14' />
               <span className='text-2xl text-[#065ad8] font-semibold' >
