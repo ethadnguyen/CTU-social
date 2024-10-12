@@ -97,17 +97,5 @@ z-index: 49;
     /* //16 176 255; */
     --color-white: 255 255 255;
   }
-
-  @media (min-height: 1080px) {
-    .h-fulls { 
-      height: 75%;
-    }
-  }
-
-  @media (min-height: 720px) {
-    .h-fulls {
-      height: 90%;
-    }
-  }
 }
 
