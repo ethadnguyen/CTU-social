@@ -27,6 +27,9 @@ const Register = () => {
   const [availableMajors, setAvailableMajors] = useState([]);
   const [selectedCourse, setSelectedCourse] = useState("");
   const [selectedMajor, setSelectedMajor] = useState("");
+  const [showFacultyError, setShowFacultyError] = useState(false);
+  const [showMajorError, setShowMajorError] = useState(false);
+  const [showCourseError, setShowCourseError] = useState(false);
 
   useEffect(() => {
     const majors = FacultiesSelector.getMajorsByFacultyId(selectedFaculty);
@@ -89,7 +92,10 @@ const Register = () => {
               <SelectInput
                 label='Khoa'
                 value={selectedFaculty}
-                onChange={(e) => setSelectedFaculty(parseInt(e.target.value, 10))}
+                onChange={(e) => {
+                  setSelectedFaculty(parseInt(e.target.value, 10));
+                  setShowFacultyError(false); // Ẩn thông báo lỗi khi người dùng chọn lại
+                }}
                 options={[
                   { value: "", label: "Chọn khoa" },
                   ...FacultiesSelector.getFaculties().map((faculty) => ({
@@ -100,37 +106,68 @@ const Register = () => {
                 styles='w-full'
               />
 
+              {showFacultyError && (
+                <div className="text-red text-sm">Vui lòng chọn Khoa!</div>
+              )}
+
               <div className="w-full flex gap-1">
-                <SelectInput
-                  label='Ngành'
-                  value={selectedMajor}
-                  onChange={(e) => setSelectedMajor(parseInt(e.target.value, 10))}
-                  options={[
-                    { value: "", label: "Chọn ngành" },
-                    ...availableMajors.map((major) => ({
-                      value: major.id,
-                      label: major.name,
-                    })),
-                  ]}
-                  styles='w-full'
-                />
+                <div className="flex flex-col w-full">
+                  <SelectInput
+                    label='Ngành'
+                    value={selectedMajor}
+                    onChange={(e) => {
+                      setSelectedMajor(parseInt(e.target.value, 10));
+                      setShowMajorError(false); // Ẩn thông báo lỗi khi người dùng chọn lại
+                    }}
+                    options={[
+                      { value: "", label: "Chọn ngành" },
+                      ...availableMajors.map((major) => ({
+                        value: major.id,
+                        label: major.name,
+                      })),
+                    ]}
+                    styles='w-full'
+                  />
+                  {showMajorError && (
+                    <div className="text-red text-sm">Vui lòng chọn Ngành!</div>
+                  )}
+                </div>
 
-                <SelectInput
-                  label='Khóa'
-                  value={selectedCourse}
-                  onChange={(e) => setSelectedCourse(parseInt(e.target.value, 10))}
-                  options={[
-                    { value: "", label: "Chọn khóa" },
-                    ...(selectedMajor && availableMajors.find(major => major.id === selectedMajor)?.courses || []).map((course) => ({
-                      value: course.id,
-                      label: course.name,
-                    })),
-                  ]}
-                  styles='w-full'
-                />
+                <div className="flex flex-col w-full">
+                  <SelectInput
+                    label='Khóa'
+                    value={selectedCourse}
+                    onChange={(e) => {
+                      setSelectedCourse(parseInt(e.target.value, 10));
+                      setShowCourseError(false); // Ẩn thông báo lỗi khi người dùng chọn lại
+                    }}
+                    options={[
+                      { value: "", label: "Chọn khóa" },
+                      ...(selectedMajor && availableMajors.find(major => major.id === selectedMajor)?.courses || []).map((course) => ({
+                        value: course.id,
+                        label: course.name,
+                      })),
+                    ]}
+                    styles='w-full'
+                  />
+                  {showCourseError && (
+                    <div className="text-red text-sm">Vui lòng chọn Khóa!</div>
+                  )}
+                </div>
               </div>
-            </div>
 
+
+
+              {/* <div className="w-full flex flex-col relative">
+                {showMajorError && (
+                  <div className="flex justify-start text-red text-sm">Vui lòng chọn Ngành!</div>
+                )}
+                {showCourseError && (
+                  <div className="flex justify-end text-red text-sm">Vui lòng chọn Khóa!</div>
+                )}
+              </div> */}
+
+            </div>
           </div>
         ),
     },
@@ -216,29 +253,26 @@ const Register = () => {
       ? ["firstName", "lastName", "mssv", "faculty", "major", "course"]
       : ["email", "birthdate", "password", "cPassword"];
 
-    const isValid = await trigger(fieldsToValidate);
-    //Alert null values
+    let isValid = await trigger(fieldsToValidate);
+    //validate
     if (!selectedFaculty) {
-      alert("Vui lòng chọn Khoa!");
+      setShowFacultyError(true);
+      isValid = false;
     }
     if (!selectedMajor) {
-      alert("Vui lòng chọn Ngành!");
+      setShowMajorError(true);
+      isValid = false;
     }
     if (!selectedCourse) {
-      alert("Vui lòng chọn Khóa!");
+      setShowCourseError(true);
+      isValid = false;
     }
 
     console.log(selectedFaculty, selectedMajor, selectedCourse)
 
-    if(!selectedFaculty || !selectedMajor || !selectedCourse)
-      isValid=false;
-
-
     if (isValid) {
       setCurrentStep((prevStep) => prevStep + 1);
     }
-
-
   };
 
   const handlePreviousStep = () => {
@@ -253,7 +287,7 @@ const Register = () => {
       backgroundRepeat: 'no-repeat'
     }}>
       <div className='w-full h-[100vh] flex items-center justify-center p-6'>
-        <div className='w-full md:w-1/3 h-fit lg:h-[83%] 2xl:h-5/7 py-8 lg:py-0 flex flex-row-reverse justify-center bg-primary rounded-xl overflow-hidden shadow-xl'>
+        <div className='w-full md:w-1/3 h-fit lg:h-fix 2xl:h-5/7 py-8 lg:py-0 flex flex-row-reverse justify-center bg-primary rounded-xl overflow-hidden shadow-xl'>
           <div className='w-full h-full mb-10 mt-10 p-10 2xl:px-20 flex flex-col overflow-y-auto'>
             <div className='w-full flex gap-2 items-center mb-6 justify-center'>
               <img src= {BgImage} className='w-14 h-14' />

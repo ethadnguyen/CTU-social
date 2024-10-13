@@ -11,11 +11,8 @@ export const user = {
   facebook: "https://www.facebook.com",
   linkedin: "https://www.linkedin.com/",
   github: "https://github.com/Neal005",
-  messages: [
-    "64df39704180b81adfe41d0b",
-    "64df39704180b81adfe41d0b",
-    "64df39704180b81adfe41d0b"
-  ],
+  messages: "3",
+  notifications: "2",
   groups: [
     {
       id: "1",
