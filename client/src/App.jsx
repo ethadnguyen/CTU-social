@@ -1,6 +1,6 @@
 import { Outlet, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { useSelector } from "react-redux";
-import { Home, Login, Profile, Register, ResetPassword, Group, Messages } from "./pages";
+import { Home, Login, Profile, Register, ResetPassword, Group, Messages, Notifications } from "./pages";
 
 function Layout() {
   // const { user } = useSelector((state) => state.user);
@@ -24,7 +24,8 @@ function App() {
           <Route path='/' element={<Home />} />
           <Route path='/profile/:id?' element={<Profile />} />
           <Route path='/groups/:id?' element={<Group />} />
-        <Route path='/messages/:id?' element={<Messages />} />
+          <Route path='/messages/:id?' element={<Messages />} />
+          <Route path='/notifications/:id?' element={<Notifications />} />
         </Route>
 
         <Route path='/register' element={<Register />} />

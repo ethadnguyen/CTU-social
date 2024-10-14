@@ -27,6 +27,9 @@ const Register = () => {
   const [availableMajors, setAvailableMajors] = useState([]);
   const [selectedCourse, setSelectedCourse] = useState("");
   const [selectedMajor, setSelectedMajor] = useState("");
+  const [showFacultyError, setShowFacultyError] = useState(false);
+  const [showMajorError, setShowMajorError] = useState(false);
+  const [showCourseError, setShowCourseError] = useState(false);
 
   useEffect(() => {
     const majors = FacultiesSelector.getMajorsByFacultyId(selectedFaculty);
@@ -219,13 +222,16 @@ const Register = () => {
     let isValid = await trigger(fieldsToValidate);
     //Alert null values
     if (!selectedFaculty) {
-      alert("Vui lòng chọn Khoa!");
+      setShowFacultyError(true);
+      isValid = false;
     }
     if (!selectedMajor) {
-      alert("Vui lòng chọn Ngành!");
+      setShowMajorError(true);
+      isValid = false;
     }
     if (!selectedCourse) {
-      alert("Vui lòng chọn Khóa!");
+      setShowCourseError(true);
+      isValid = false;
     }
 
     console.log(selectedFaculty, selectedMajor, selectedCourse)
@@ -237,8 +243,6 @@ const Register = () => {
     if (isValid) {
       setCurrentStep((prevStep) => prevStep + 1);
     }
-
-
   };
 
   const handlePreviousStep = () => {
