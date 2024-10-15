@@ -2,12 +2,15 @@ import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { useForm } from "react-hook-form";
-import { CustomButton, Loading, TextInput, FacultiesSelector, SelectInput } from "../components";
+import { CustomButton, Loading, TextInput, SelectInput } from "../components";
 import { BgImage } from "../assets";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faChevronLeft, faChevronRight } from '@fortawesome/free-solid-svg-icons';
 import { useSelector } from "react-redux";
 import backgroundImage from '../assets/CTU.jpg';
+
+//Thêm dữ liệu khoa từ data
+import { faculties } from "../assets/register";
 
 const Register = () => {
   const { theme } = useSelector((state) => state.theme);
@@ -31,8 +34,38 @@ const Register = () => {
   const [showMajorError, setShowMajorError] = useState(false);
   const [showCourseError, setShowCourseError] = useState(false);
 
+  //Hàm truy xuất các khoa, ngành, khóa
+  const getFaculties = () => {
+    return faculties;
+  };
+  
+  const getMajors = () => {
+    return faculties.flatMap((faculty) => faculty.majors);
+  };
+  
+  const getMajorsByFacultyId = (facultyId) => {
+    const faculty = faculties.find((f) => f.id === facultyId);
+    return faculty ? faculty.majors : [];
+  };
+  
+  const getCoursesByMajorId = (majorId) => {
+    for (const faculty of faculties) {
+      const major = faculty.majors.find((m) => m.id === majorId);
+      if (major) {
+        return major.courses;
+      }
+    }
+    return [];
+  };
+  //
+  
+  const getCoursesByFacultyId = (facultyId) => {
+    const faculty = faculties.find((f) => f.id === facultyId);
+    return faculty ? faculty.majors.flatMap((major) => major.courses) : [];
+  };
+
   useEffect(() => {
-    const majors = FacultiesSelector.getMajorsByFacultyId(selectedFaculty);
+    const majors = getMajorsByFacultyId(selectedFaculty);
     setAvailableMajors(majors);
   }, [selectedFaculty]);
 
@@ -98,7 +131,7 @@ const Register = () => {
                 }}
                 options={[
                   { value: "", label: "Chọn khoa" },
-                  ...FacultiesSelector.getFaculties().map((faculty) => ({
+                  ...getFaculties().map((faculty) => ({
                     value: faculty.id,
                     label: faculty.name,
                   })),
