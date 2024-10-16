@@ -13,6 +13,7 @@ const authRoute = require('./src/routes/auth.route');
 const adminRoute = require('./src/routes/admin.route');
 const userRoute = require('./src/routes/user.route');
 const postRoute = require('./src/routes/post.route');
+const facultyRoute = require('./src/routes/faculty.route');
 const groupRoute = require('./src/routes/group.route');
 const errorMiddleware = require('./src/middlewares/error.middleware');
 // const __dirname = path.resolve(path.dirname(''));
@@ -72,6 +73,7 @@ app.use('/auth', authRoute);
 app.use('/users', userRoute);
 app.use('/admin', adminRoute)
 app.use('/posts', postRoute);
+app.use('/faculties', facultyRoute);
 app.use('/group', groupRoute);
 
 app.use(errorMiddleware);

@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const slugify = require('slugify');
+
 const MajorSchema = new mongoose.Schema({
     majorName: {
         type: String,
@@ -10,10 +11,12 @@ const MajorSchema = new mongoose.Schema({
         ref: 'Faculty',
         required: true
     },
-    academicYear: {
-        type: String,
-        required: true
-    },
+    academicYear: [
+        {
+            type: String,
+            required: true
+        }
+    ],
     slug: {
         type: String,
         unique: true
@@ -33,16 +36,14 @@ const MajorSchema = new mongoose.Schema({
 );
 
 MajorSchema.pre('save', function (next) {
-    if (this.isModified('majorName') || this.isModified('academicYear')) {
-        this.slug = slugify(`${this.majorName} ${this.academicYear}`, { lower: true, strict: true });
+    if (this.isModified('majorName')) {
+        this.slug = slugify(this.majorName, { lower: true, strict: true });
     }
     next();
 });
 
-
-MajorSchema.index({ majorName: 1, academicYear: 1 }, { unique: true });
-
-MajorSchema.index({ slug: 1, majorName: 1, academicYear: 1 }, { unique: true });
+// Remove academicYear from index
+MajorSchema.index({ slug: 1, majorName: 1 }, { unique: true });
 
 const Major = mongoose.model('Major', MajorSchema);
 

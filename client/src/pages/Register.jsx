@@ -2,21 +2,24 @@ import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { useForm } from "react-hook-form";
-import { CustomButton, Loading, TextInput, FacultiesSelector, SelectInput } from "../components";
+import { CustomButton, Loading, TextInput, SelectInput } from "../components";
 import { BgImage } from "../assets";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faChevronLeft, faChevronRight } from '@fortawesome/free-solid-svg-icons';
 import { useSelector } from "react-redux";
 import backgroundImage from '../assets/CTU.jpg';
 
+// import { faculties } from "../assets/register";
+import { fetchFaculties, fetchMajors } from './../redux/facultySlice';
+
 const Register = () => {
   const { theme } = useSelector((state) => state.theme);
+  const { faculties, majors } = useSelector((state) => state.faculty);
   const {
     register,
     handleSubmit,
     getValues,
     trigger,
-    setError,
     formState: { errors },
   } = useForm({
     mode: "onChange",
@@ -24,32 +27,41 @@ const Register = () => {
 
   const [currentStep, setCurrentStep] = useState(1);
   const [selectedFaculty, setSelectedFaculty] = useState("");
-  const [availableMajors, setAvailableMajors] = useState([]);
+  // const [availableMajors, setAvailableMajors] = useState([]);
   const [selectedCourse, setSelectedCourse] = useState("");
   const [selectedMajor, setSelectedMajor] = useState("");
   const [showFacultyError, setShowFacultyError] = useState(false);
   const [showMajorError, setShowMajorError] = useState(false);
   const [showCourseError, setShowCourseError] = useState(false);
 
-  useEffect(() => {
-    const majors = FacultiesSelector.getMajorsByFacultyId(selectedFaculty);
-    setAvailableMajors(majors);
-  }, [selectedFaculty]);
-
-  const onSubmit = async (data) => {
-    console.log("is submitted")
-  };
-
   const [errMsg, setErrMsg] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const dispatch = useDispatch();
+
+
+  useEffect(() => {
+    dispatch(fetchFaculties());
+  }, [dispatch]);
+
+  useEffect(() => {
+    if (selectedFaculty) {
+      dispatch(fetchMajors(selectedFaculty));
+    }
+  }, [selectedFaculty, dispatch]);
+
+  const onSubmit = async (data) => {
+    console.log("is submitted");
+  };
+
+  console.log(selectedFaculty);
+
 
   const steps = [
     {
       title: "Thông tin cá nhân",
       content: (
-        <div className='flex-col w-full gap-1 flex-content lg:flex-row md:gap-2'>
-          <div className='flex flex-col w-full gap-1 lg:flex-row md:gap-2'>
+        <div className='w-full flex-content flex-col lg:flex-row gap-1 md:gap-2'>
+          <div className='w-full flex flex-col lg:flex-row gap-1 md:gap-2'>
             <TextInput
               name='firstName'
               label={<span className="font-bold">Tên</span>}
@@ -74,7 +86,7 @@ const Register = () => {
             />
           </div>
 
-          <div className='flex flex-col w-full gap-1 lg:flex-row md:gap-2'>
+          <div className='w-full flex flex-col lg:flex-row gap-1 md:gap-2'>
             <TextInput
               name='mssv'
               label={<span className="font-bold">Mã số sinh viên</span>}
@@ -88,52 +100,87 @@ const Register = () => {
             />
           </div>
 
-          <div className='w-full gap-1 my-1 lg:flex-row md:gap-2'>
+          <div className='w-full my-1 lg:flex-row gap-1 md:gap-2'>
             <SelectInput
               label='Khoa'
               value={selectedFaculty}
-              onChange={(e) => setSelectedFaculty(parseInt(e.target.value, 10))}
+              onChange={(e) => {
+                setSelectedFaculty(e.target.value);
+                setShowFacultyError(false);
+              }}
               options={[
                 { value: "", label: "Chọn khoa" },
-                ...FacultiesSelector.getFaculties().map((faculty) => ({
-                  value: faculty.id,
+                ...faculties.map((faculty) => ({
+                  value: faculty._id,
                   label: faculty.name,
                 })),
               ]}
               styles='w-full'
             />
 
-            <div className="flex w-full gap-1">
-              <SelectInput
-                label='Ngành'
-                value={selectedMajor}
-                onChange={(e) => setSelectedMajor(parseInt(e.target.value, 10))}
-                options={[
-                  { value: "", label: "Chọn ngành" },
-                  ...availableMajors.map((major) => ({
-                    value: major.id,
-                    label: major.name,
-                  })),
-                ]}
-                styles='w-full'
-              />
+            {showFacultyError && (
+              <div className="text-red text-sm">Vui lòng chọn Khoa!</div>
+            )}
 
-              <SelectInput
-                label='Khóa'
-                value={selectedCourse}
-                onChange={(e) => setSelectedCourse(parseInt(e.target.value, 10))}
-                options={[
-                  { value: "", label: "Chọn khóa" },
-                  ...(selectedMajor && availableMajors.find(major => major.id === selectedMajor)?.courses || []).map((course) => ({
-                    value: course.id,
-                    label: course.name,
-                  })),
-                ]}
-                styles='w-full'
-              />
+            <div className="w-full flex gap-1">
+              <div className="flex flex-col w-full">
+                <SelectInput
+                  label='Ngành'
+                  value={selectedMajor}
+                  onChange={(e) => {
+                    setSelectedMajor(e.target.value);
+                    console.log(e.target.value);
+                    setShowMajorError(false); // Ẩn thông báo lỗi khi người dùng chọn lại
+                  }}
+                  options={[
+                    { value: "", label: "Chọn ngành" },
+                    ...majors.map((major) => ({
+                      value: major._id,
+                      label: major.majorName,
+                    })),
+                  ]}
+                  styles='w-full'
+                />
+                {showMajorError && (
+                  <div className="text-red text-sm">Vui lòng chọn Ngành!</div>
+                )}
+              </div>
+
+              <div className="flex flex-col w-full">
+                <SelectInput
+                  label='Khóa'
+                  value={selectedCourse}
+                  onChange={(e) => {
+                    setSelectedCourse(e.target.value);
+                    setShowCourseError(false); // Ẩn thông báo lỗi khi người dùng chọn lại
+                  }}
+                  options={[
+                    { value: "", label: "Chọn khóa" },
+                    ...(selectedMajor && majors.find(major => major._id === selectedMajor)?.academicYear || []).map((course) => ({
+                      value: course,
+                      label: course,
+                    })),
+                  ]}
+                  styles='w-full'
+                />
+                {showCourseError && (
+                  <div className="text-red text-sm">Vui lòng chọn Khóa!</div>
+                )}
+              </div>
             </div>
-          </div>
 
+
+
+            {/* <div className="w-full flex flex-col relative">
+                {showMajorError && (
+                  <div className="flex justify-start text-red text-sm">Vui lòng chọn Ngành!</div>
+                )}
+                {showCourseError && (
+                  <div className="flex justify-end text-red text-sm">Vui lòng chọn Khóa!</div>
+                )}
+              </div> */}
+
+          </div>
         </div>
       ),
     },
@@ -141,9 +188,9 @@ const Register = () => {
     {
       title: "Thông tin đăng nhập",
       content: (
-        <div className='flex-col w-full gap-1 flex-content lg:flex-row md:gap-2'>
+        <div className='w-full flex-content flex-col lg:flex-row gap-1 md:gap-2'>
 
-          <div className='flex flex-col w-full gap-1 lg:flex-row md:gap-2'>
+          <div className='w-full flex flex-col lg:flex-row gap-1 md:gap-2'>
             <TextInput
               name='birthdate'
               label={<span className="font-bold">Ngày sinh</span>}
@@ -156,7 +203,7 @@ const Register = () => {
             />
           </div>
 
-          <div className='flex flex-col w-full gap-1 my-1 lg:flex-row md:gap-2'>
+          <div className='w-full my-1 flex flex-col lg:flex-row gap-1 md:gap-2'>
             <TextInput
               name='email'
               placeholder='B1234567@ctu.edu.vn'
@@ -174,7 +221,7 @@ const Register = () => {
             />
           </div>
 
-          <div className='flex flex-col w-full gap-1 my-1 lg:flex-row md:gap-2'>
+          <div className='w-full my-1 flex flex-col lg:flex-row gap-1 md:gap-2'>
             <TextInput
               name='password'
               label={<span className="font-bold">Mật khẩu</span>}
@@ -220,7 +267,7 @@ const Register = () => {
       : ["email", "birthdate", "password", "cPassword"];
 
     let isValid = await trigger(fieldsToValidate);
-    //Alert null values
+    //validate
     if (!selectedFaculty) {
       setShowFacultyError(true);
       isValid = false;
@@ -235,10 +282,6 @@ const Register = () => {
     }
 
     console.log(selectedFaculty, selectedMajor, selectedCourse)
-
-    if (!selectedFaculty || !selectedMajor || !selectedCourse)
-      isValid = false;
-
 
     if (isValid) {
       setCurrentStep((prevStep) => prevStep + 1);
@@ -257,21 +300,21 @@ const Register = () => {
       backgroundRepeat: 'no-repeat'
     }}>
       <div className='w-full h-[100vh] flex items-center justify-center p-6'>
-        <div className='w-full md:w-1/3 h-fit lg:h-[83%] 2xl:h-5/7 py-8 lg:py-0 flex flex-row-reverse justify-center bg-primary rounded-xl overflow-hidden shadow-xl'>
-          <div className='flex flex-col w-full h-full p-10 mt-10 mb-10 overflow-y-auto 2xl:px-20'>
-            <div className='flex items-center justify-center w-full gap-2 mb-6'>
+        <div className='w-full md:w-1/3 h-fit lg:h-fix 2xl:h-5/7 py-8 lg:py-0 flex flex-row-reverse justify-center bg-primary rounded-xl overflow-hidden shadow-xl'>
+          <div className='w-full h-full mb-10 mt-10 p-10 2xl:px-20 flex flex-col overflow-y-auto'>
+            <div className='w-full flex gap-2 items-center mb-6 justify-center'>
               <img src={BgImage} className='w-14 h-14' />
               <span className='text-2xl text-[#065ad8] font-semibold' >
                 CTU Social
               </span>
             </div>
 
-            <p className='mx-auto text-base font-semibold text-ascent-1'>
+            <p className='text-ascent-1 text-base font-semibold mx-auto'>
               Tạo tài khoản của bạn
             </p>
 
             <form
-              className='flex flex-col gap-5 py-8'
+              className='py-8 flex flex-col gap-5'
               onSubmit={handleSubmit(onSubmit)}
             >
               <div className={`${currentStep === 1 ? '' : 'hidden'}`}>
@@ -282,7 +325,7 @@ const Register = () => {
               </div>
 
               {/* Nút điều hướng */}
-              <div className="flex items-center justify-between">
+              <div className="flex justify-between items-center">
                 {currentStep >= steps.length ? (
                   <button onClick={handlePreviousStep} type="button" disabled={currentStep === 1} className={`${theme === 'dark' ? 'text-white' : ''} `}>
                     <FontAwesomeIcon icon={faChevronLeft} className={`${theme === 'dark' ? 'text-white' : ''}`} /> Quay lại
@@ -302,7 +345,7 @@ const Register = () => {
               </div>
 
               {currentStep === steps.length && (
-                <div className="mt-5 text-center">
+                <div className="text-center mt-5">
                   {isSubmitting ? (
                     <Loading />
                   ) : (
@@ -315,7 +358,7 @@ const Register = () => {
                 </div>
               )}
             </form>
-            <p className='mb-5 text-sm text-center text-ascent-2'>
+            <p className='text-ascent-2 text-sm text-center'>
               Đã có tài khoản?{" "}
               <Link
                 to='/login'
