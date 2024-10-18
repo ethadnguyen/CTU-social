@@ -1,16 +1,15 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useDispatch } from "react-redux";
-import { useForm } from "react-hook-form";
+import { set, useForm } from "react-hook-form";
 import { CustomButton, Loading, TextInput, SelectInput } from "../components";
 import { BgImage } from "../assets";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faChevronLeft, faChevronRight } from '@fortawesome/free-solid-svg-icons';
 import { useSelector } from "react-redux";
 import backgroundImage from '../assets/CTU.jpg';
-
-// import { faculties } from "../assets/register";
 import { fetchFaculties, fetchMajors } from './../redux/facultySlice';
+import axiosInstance from '../api/axiosConfig';
 
 const Register = () => {
   const { theme } = useSelector((state) => state.theme);
@@ -27,7 +26,6 @@ const Register = () => {
 
   const [currentStep, setCurrentStep] = useState(1);
   const [selectedFaculty, setSelectedFaculty] = useState("");
-  // const [availableMajors, setAvailableMajors] = useState([]);
   const [selectedCourse, setSelectedCourse] = useState("");
   const [selectedMajor, setSelectedMajor] = useState("");
   const [showFacultyError, setShowFacultyError] = useState(false);
@@ -50,11 +48,23 @@ const Register = () => {
   }, [selectedFaculty, dispatch]);
 
   const onSubmit = async (data) => {
-    console.log("is submitted");
+    const { cPassword, ...filteredData } = data;
+    console.log(data);
+    try {
+      setIsSubmitting(true);
+      const res = await axiosInstance.post('/auth/register', {
+        ...filteredData,
+        faculty: selectedFaculty,
+        major: selectedMajor,
+        academicYear: selectedCourse,
+      });
+      setIsSubmitting(false);
+    } catch (error) {
+      setIsSubmitting(false);
+      console.log(error);
+      setErrMsg(error.response.data.message);
+    }
   };
-
-  console.log(selectedFaculty);
-
 
   const steps = [
     {
@@ -88,15 +98,15 @@ const Register = () => {
 
           <div className='w-full flex flex-col lg:flex-row gap-1 md:gap-2'>
             <TextInput
-              name='mssv'
+              name='student_id'
               label={<span className="font-bold">Mã số sinh viên</span>}
               placeholder='B1234567'
               type='text'
               styles='w-full'
-              register={register("mssv", {
+              register={register("student_id", {
                 required: "Mã số sinh viên không được để trống!",
               })}
-              error={errors.mssv ? errors.mssv?.message : ""}
+              error={errors.student_id ? errors.student_id?.message : ""}
             />
           </div>
 
@@ -168,18 +178,6 @@ const Register = () => {
                 )}
               </div>
             </div>
-
-
-
-            {/* <div className="w-full flex flex-col relative">
-                {showMajorError && (
-                  <div className="flex justify-start text-red text-sm">Vui lòng chọn Ngành!</div>
-                )}
-                {showCourseError && (
-                  <div className="flex justify-end text-red text-sm">Vui lòng chọn Khóa!</div>
-                )}
-              </div> */}
-
           </div>
         </div>
       ),
@@ -192,14 +190,14 @@ const Register = () => {
 
           <div className='w-full flex flex-col lg:flex-row gap-1 md:gap-2'>
             <TextInput
-              name='birthdate'
+              name='dateOfBirth'
               label={<span className="font-bold">Ngày sinh</span>}
               type='date'
               styles='w-full'
-              register={register("birthdate", {
+              register={register("dateOfBirth", {
                 required: "Ngày sinh không được để trống!"
               })}
-              error={errors.birthdate ? errors.birthdate.message : ""}
+              error={errors.dateOfBirth ? errors.dateOfBirth.message : ""}
             />
           </div>
 
@@ -263,8 +261,8 @@ const Register = () => {
 
   const handleNextStep = async () => {
     const fieldsToValidate = currentStep === 1
-      ? ["firstName", "lastName", "mssv", "faculty", "major", "course"]
-      : ["email", "birthdate", "password", "cPassword"];
+      ? ["firstName", "lastName", "student_id", "faculty", "major", "course"]
+      : ["email", "dateOfBirth", "password", "cPassword"];
 
     let isValid = await trigger(fieldsToValidate);
     //validate
@@ -323,6 +321,12 @@ const Register = () => {
               <div className={`${currentStep === 2 ? '' : 'hidden'}`}>
                 {steps[1].content}
               </div>
+
+              {errMsg && (
+                <div className="text-red text-center">
+                  {errMsg}
+                </div>
+              )}
 
               {/* Nút điều hướng */}
               <div className="flex justify-between items-center">

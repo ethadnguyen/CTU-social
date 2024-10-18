@@ -1,6 +1,7 @@
 export const conversation = [
     {
-        id:"1",
+        id: "1",
+        // recipients: [],
         avatar: "/pictures/Neal.jpg",
         name: "Nguyễn Lê Hoàng Lực",
         messages: [

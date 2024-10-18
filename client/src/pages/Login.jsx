@@ -32,7 +32,7 @@ const Login = () => {
     } catch (error) {
       console.log(error)
     }
-   };
+  };
 
 
   return (
@@ -97,14 +97,14 @@ const Login = () => {
                 Quên mật khẩu?
               </Link>
 
-              {errMsg?.message && (
+              {errMsg && (
                 <span
                   className={`text-sm ${errMsg?.status == "failed"
                     ? "text-[#f64949fe]"
                     : "text-[#2ba150fe]"
                     } mt-0.5`}
                 >
-                  {errMsg?.message}
+                  {errMsg}
                 </span>
               )}
 
