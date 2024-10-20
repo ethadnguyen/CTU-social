@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import {
   CustomButton,
   EditProfile,
@@ -18,25 +18,75 @@ import { BsPersonFillAdd } from "react-icons/bs";
 import { BiImages } from "react-icons/bi";
 import { useForm } from "react-hook-form";
 import { CiFileOn } from "react-icons/ci";
+import axiosInstance from '../api/axiosConfig';
+import { getPosts } from '../redux/postSlice';
+import { FaFile } from 'react-icons/fa6';
+import io from 'socket.io-client';
 
 const Home = () => {
   const { user, edit } = useSelector((state) => state.user);
   const [friendRequest, setFriendRequest] = useState(requests);
   const [suggestedFriends, setSuggestedFriends] = useState(suggest);
   const [errMsg, setErrMsg] = useState("");
-  const [file, setFile] = useState(null);
+  const [files, setFiles] = useState([]);
+  const [images, setImages] = useState([]);
   const [posting, setPosting] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  const posts = useSelector((state) => state.posts.posts);
+
+  const dispatch = useDispatch();
 
   const {
     register,
     handleSubmit,
+    reset,
     formState: { errors },
   } = useForm();
 
-  const handlePostSubmit = async (data) => { };
+  useEffect(() => {
+    dispatch(getPosts());
+  }, [dispatch]);
 
-  const [selectedScope, setSelectedScope] = useState("Private");
+  useEffect(() => {
+    //joinUser socket
+    const socket = io('http://localhost:5000');
+    socket.emit('joinUser', user);
+  }, [user]);
+
+  const handlePostSubmit = async (data) => {
+    const formData = new FormData();
+
+    formData.append('userId', user._id);
+    formData.append('content', data.content);
+    formData.append('privacy', selectedScope.toLowerCase());
+
+    images.forEach((image) => {
+      formData.append('images', image);
+    });
+
+    files.forEach((file) => {
+      formData.append('files', file);
+    });
+
+    try {
+      setPosting(true);
+      const post = await axiosInstance.post('/posts/create-post', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        },
+      });
+      reset();
+      setPosting(false);
+      dispatch(getPosts());
+    } catch (error) {
+      reset();
+      setPosting(false);
+      console.error('Error creating post:', error);
+    }
+  };
+
+  const [selectedScope, setSelectedScope] = useState("Public");
   const handleScopeChange = (event) => {
     setSelectedScope(event.target.value);
   };
@@ -44,12 +94,35 @@ const Home = () => {
   const [selectedFaculty, setSelectedFaculty] = useState('');
 
   useEffect(() => {
-    if (user && user.facultyId) {
-      setSelectedFaculty(user.facultyId);
+    if (user && user.faculty) {
+      setSelectedFaculty(user.faculty);
     } else {
       setSelectedFaculty('');
     }
   }, [user]);
+
+  const handleDeletePost = async (postId) => {
+    try {
+      await axiosInstance.delete(`/posts/${postId}`);
+      dispatch(getPosts());
+    } catch (error) {
+      console.error('Error deleting post:', error);
+    }
+  }
+
+  const handleLikePost = async (post) => {
+    const postId = post._id;
+    const userId = user._id;
+    const socket = io('http://localhost:5000');
+
+    try {
+      await axiosInstance.post(`/posts/like/${postId}`, { userId });
+      dispatch(getPosts());
+      socket.emit('likePost', { userId, post });
+    } catch (error) {
+      console.error('Error liking post:', error);
+    }
+  }
 
 
   return (
@@ -72,20 +145,62 @@ const Home = () => {
             >
               <div className='w-full flex items-center gap-2 py-4 border-b border-[#66666645]'>
                 <img
-                  src={user?.profileUrl ?? NoProfile}
+                  src={user?.avatar ?? NoProfile}
                   alt='User Image'
                   className='object-cover rounded-full w-14 h-14'
                 />
                 <TextInput
                   styles='w-full rounded-full py-5'
                   placeholder="Bạn đang suy nghĩ điều gì...."
-                  name='description'
-                  register={register("description", {
-                    required: "Write something about post",
+                  name='content'
+                  register={register("content", {
+                    required: "Hãy nhập nội dung bài viết",
                   })}
-                  error={errors.description ? errors.description.message : ""}
+                  error={errors.content ? errors.content.message : ""}
                 />
               </div>
+
+              {images.length > 0 && (
+                <div className='flex gap-2 py-4'>
+                  {images.map((image, index) => (
+                    <div key={index} className='relative'>
+                      <img
+                        src={URL.createObjectURL(image)}
+                        alt={`Preview ${index}`}
+                        className='object-cover w-24 h-24 rounded-lg'
+                      />
+                      <button
+                        className='absolute top-0 right-0 p-1 bg-red-500 rounded-full text-red font-bold'
+                        onClick={() => {
+                          setImages((prevImages) => prevImages.filter((_, i) => i !== index));
+                        }}
+                      >
+                        X
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {files.length > 0 && (
+                <div className='flex gap-2 py-4'>
+                  {files.map((file, index) => (
+                    <div key={index} className='relative flex items-center bg-gray-100 p-2 rounded-lg'>
+                      <FaFile className='text-white mr-2' />
+                      <span className='flex-1 overflow-hidden text-blue'>{file.name}</span>
+                      <button
+                        className='absolute top-0 right-0 p-1 bg-red-500 rounded-full text-white font-bold'
+                        onClick={() => {
+                          setFiles((prevFiles) => prevFiles.filter((_, i) => i !== index));
+                        }}
+                      >
+                        X
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
               {errMsg?.message && (
                 <span
                   role='alert'
@@ -105,7 +220,12 @@ const Home = () => {
                 >
                   <input
                     type='file'
-                    onChange={(e) => setFile(e.target.files[0])}
+                    multiple
+                    name='images'
+                    onChange={(e) => {
+                      const files = Array.from(e.target.files);
+                      setImages((prevImages) => [...prevImages, ...files]);
+                    }}
                     className='hidden'
                     id='imgUpload'
                     data-max-size='5120'
@@ -121,8 +241,13 @@ const Home = () => {
                 >
                   <input
                     type='file'
+                    multiple
+                    name='files'
                     data-max-size='5120'
-                    onChange={(e) => setFile(e.target.files[0])}
+                    onChange={(e) => {
+                      const files = Array.from(e.target.files);
+                      setFiles((prevFiles) => [...prevFiles, ...files]);
+                    }}
                     className='hidden'
                     id='videoUpload'
                     accept='*'
@@ -166,8 +291,8 @@ const Home = () => {
                   key={post?._id}
                   post={post}
                   user={user}
-                  deletePost={() => { }}
-                  likePost={() => { }}
+                  deletePost={handleDeletePost}
+                  likePost={handleLikePost}
                 />
               ))
             ) : (
@@ -190,7 +315,7 @@ const Home = () => {
                     className={`bg-secondary border-[#66666690] mb-2 outline-none text-sm text-ascent-2 placeholder:text-[#666] w-full border rounded-md py-2 px-3 mt-1`}
                   >
                     {faculties.map((faculty) => (
-                      <option key={faculty.id} value={faculty.id}>
+                      <option key={faculty._id} value={faculty._id}>
                         {faculty.name}
                       </option>
                     ))}

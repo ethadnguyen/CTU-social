@@ -17,18 +17,18 @@ const ReplyCard = ({ reply, user, handleLike }) => {
   return (
     <div className='w-full py-3'>
       <div className='flex gap-3 items-center mb-1'>
-        <Link to={"/profile/" + reply?.userId?._id}>
+        <Link to={"/profile/" + reply?.user?._id}>
           <img
-            src={reply?.userId?.profileUrl ?? NoProfile}
-            alt={reply?.userId?.firstName}
+            src={reply?.user?.avatar ?? NoProfile}
+            alt={reply?.user?.firstName}
             className='w-10 h-10 rounded-full object-cover'
           />
         </Link>
 
         <div>
-          <Link to={"/profile/" + reply?.userId?._id}>
+          <Link to={"/profile/" + reply?.user?._id}>
             <p className='font-medium text-base text-ascent-1'>
-              {reply?.userId?.firstName} {reply?.userId?.lastName}
+              {reply?.user?.firstName} {reply?.user?.lastName}
             </p>
           </Link>
           <span className='text-ascent-2 text-sm'>
@@ -69,7 +69,7 @@ const CommentForm = ({ user, id, replyAt, getComments }) => {
     mode: "onChange",
   });
 
-  const onSubmit = async (data) => {};
+  const onSubmit = async (data) => { };
 
   return (
     <form
@@ -78,7 +78,7 @@ const CommentForm = ({ user, id, replyAt, getComments }) => {
     >
       <div className='w-full flex items-center gap-2 py-4'>
         <img
-          src={user?.profileUrl ?? NoProfile}
+          src={user?.avatar ?? NoProfile}
           alt='User Image'
           className='w-10 h-10 rounded-full object-cover'
         />
@@ -96,11 +96,10 @@ const CommentForm = ({ user, id, replyAt, getComments }) => {
       {errMsg?.message && (
         <span
           role='alert'
-          className={`text-sm ${
-            errMsg?.status === "failed"
-              ? "text-[#f64949fe]"
-              : "text-[#2ba150fe]"
-          } mt-0.5`}
+          className={`text-sm ${errMsg?.status === "failed"
+            ? "text-[#f64949fe]"
+            : "text-[#2ba150fe]"
+            } mt-0.5`}
         >
           {errMsg?.message}
         </span>
@@ -136,7 +135,9 @@ const PostCard = ({ post, user, deletePost, likePost }) => {
     setComments(postComments);
     setLoading(false);
   };
-  const handleLike = async () => {};
+  const handleLike = async () => {
+    // likePost(post._id);
+  };
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -151,55 +152,55 @@ const PostCard = ({ post, user, deletePost, likePost }) => {
     <div className='mb-2 bg-primary p-4 rounded-xl'>
       {showImageModal && (
         <ImageDetail
-          images={post.image} 
-          onClose={() => setShowImageModal(false)} 
+          images={post.images}
+          onClose={() => setShowImageModal(false)}
         />
       )}
 
       {post?.groupId && (
         <div className="mb-4">
-        <Link to={`/groups/${post.groupId}`} className="flex items-center">
-          <MdGroups size={30} className="text-ascent-1" />
-          <span className="text-ascent-1 ml-2">{post.groupName}</span>
-        </Link>
-      </div>
+          <Link to={`/groups/${post.groupId}`} className="flex items-center">
+            <MdGroups size={30} className="text-ascent-1" />
+            <span className="text-ascent-1 ml-2">{post.groupName}</span>
+          </Link>
+        </div>
       )}
 
       <div className='flex gap-3 items-center mb-2'>
-        <Link to={"/profile/" + post?.userId?._id}>
+        <Link to={"/profile/" + post?.user?._id}>
           <img
-            src={post?.userId?.profileUrl ?? NoProfile}
-            alt={post?.userId?.firstName}
+            src={post?.user?.avatar ?? NoProfile}
+            alt={post?.user?.firstName}
             className='w-16 h-13 object-cover rounded-full'
           />
         </Link>
 
         <div className='w-full flex justify-between'>
           <div className=''>
-            <Link to={"/profile/" + post?.userId?._id}>
+            <Link to={"/profile/" + post?.user?._id}>
               <p className='font-medium text-lg text-ascent-1'>
-                {post?.userId?.lastName} {post?.userId?.firstName}
+                {post?.user?.lastName} {post?.user?.firstName}
               </p>
             </Link>
             <span className='text-ascent-2'>
-              {post?.userId?.major ? (
-                <>{post?.userId?.faculty}, {post?.userId?.major}</>
-                ) : (
-                <>{post?.userId?.faculty || post?.userId?.major}</>
+              {post?.user?.major ? (
+                <>{post?.user?.faculty?.name}, {post?.user?.major?.majorName}</>
+              ) : (
+                <>{post?.user?.faculty?.name || post?.user?.major?.majorName}</>
               )}
-      </span>
+            </span>
           </div>
 
           <span className='flex item-centers gap-4 text-ascent-2'>
-            {moment(post?.createdAt ?? "2023-05-25").fromNow()}
+            {moment(post?.createdAt ?? "2024-05-25").fromNow()}
             <div className='relative'>
-              <CiMenuKebab className='text-ascent-1 h-full text-lg' onClick={() => setShowMenu(!showMenu)} />
+              <CiMenuKebab className='text-ascent-1 h-full text-lg cursor-pointer' onClick={() => setShowMenu(!showMenu)} />
               {showMenu && (
                 <div className="absolute top-0 end-5 bg-primary border border-gray-300 rounded-md z-50">
-                  <ul className="py-1 text-ascent-1 itemscenters px-2">
+                  <ul className="py-1 text-ascent-1 itemscenters px-2 cursor-pointer">
                     <li className='py-1'>Lưu</li>
                     <li className='py-1'><span>Chia&nbsp;sẻ</span></li>
-                    {user?._id === post?.userId?._id && (
+                    {user?._id === post?.user?._id && (
                       <li className='py-1' onClick={() => deletePost(post._id)}>Xóa</li>
                     )}
                   </ul>
@@ -213,10 +214,10 @@ const PostCard = ({ post, user, deletePost, likePost }) => {
       <div>
         <p className='text-ascent-2'>
           {showAll === post?._id
-            ? post?.description
-            : post?.description.slice(0, 300)}
+            ? post?.content
+            : post?.content.slice(0, 300)}
 
-          {post?.description?.length > 301 &&
+          {post?.content?.length > 301 &&
             (showAll === post?._id ? (
               <span
                 className='text-blue ml-2 font-mediu cursor-pointer'
@@ -234,23 +235,22 @@ const PostCard = ({ post, user, deletePost, likePost }) => {
             ))}
         </p>
 
-        {post?.image && (
+        {post?.images && (
           <div className='relative'>
-            <div className={`grid ${
-              post?.image.length > 1
-                ? (
-                  post?.image.length === 3 ? 'grid-cols-2 grid-rows-2' :
-                  post?.image.length > 4 ? 'grid-cols-2' :
-                  (post?.image.length % 2 === 0 ? 'grid-cols-2' : '')
-                )
-                : ''} gap-2`} >
+            <div className={`grid ${post?.images.length > 1
+              ? (
+                post?.images.length === 3 ? 'grid-cols-2 grid-rows-2' :
+                  post?.images.length > 4 ? 'grid-cols-2' :
+                    (post?.images.length % 2 === 0 ? 'grid-cols-2' : '')
+              )
+              : ''} gap-2`} >
 
-              {post?.image.slice(0, 4).map((img, index) => (
+              {post?.images.slice(0, 4).map((img, index) => (
                 <div key={index}
                   className={`
-                    ${post?.image.length > 4 ? 'relative' : 'flex'}
+                    ${post?.images.length > 4 ? 'relative' : 'flex'}
                     overflow-hidden bg-cover bg-no-repeat
-                    ${post?.image.length === 3 && index === 2 ? 'col-span-2' : ''} 
+                    ${post?.images.length === 3 && index === 2 ? 'col-span-2' : ''} 
                   `}
                 >
                   <img
@@ -258,27 +258,27 @@ const PostCard = ({ post, user, deletePost, likePost }) => {
                     alt={`post image ${index}`}
                     className={`
                       w-full mt-2 rounded-lg transition duration-300 ease-in-out hover:scale-110 
-                      ${post?.image.length > 4 && index > 2 ? 'hidden' : ''}
+                      ${post?.images.length > 4 && index > 2 ? 'hidden' : ''}
                       `}
-                    style={{ opacity: index === post?.image.slice(0, 4).length - 1 && post?.image.length > 4 ? '0.5' : '1' }}
+                    style={{ opacity: index === post?.images.slice(0, 4).length - 1 && post?.images.length > 4 ? '0.5' : '1' }}
                     onClick={handleImageClick}
                   />
 
-                  {post?.image.length > 4 && index === post?.image.slice(0, 4).length - 1 && (
+                  {post?.images.length > 4 && index === post?.images.slice(0, 4).length - 1 && (
                     <div
                       className='relative inset-0 bg-black bg-opacity-50 flex items-center justify-center rounded-lg transition duration-300 ease-in-out hover:scale-110'
-                      onClick={() => handleImageClick(post.image)}
+                      onClick={() => handleImageClick(post.images)}
                     >
                       <img
                         src={img}
                         alt={`post image ${index}`}
                         className='w-full mt-2 opacity-50 rounded-lg transition duration-300 ease-in-out hover:scale-110'
                       />
-                      <span 
-                      className={`
+                      <span
+                        className={`
                           font-bold text-lg absolute inset-0 flex items-center justify-center ${theme === 'dark' ? 'text-white' : ''}
                         `}>
-                        +{post?.image.length - 4}
+                        +{post?.images.length - 4}
                       </span>
                     </div>
                   )}
@@ -295,13 +295,13 @@ const PostCard = ({ post, user, deletePost, likePost }) => {
         className='mt-4 flex justify-between items-center px-3 py-2 text-ascent-2
       text-base border-t border-[#66666645]'
       >
-        <p className='flex gap-2 items-center text-base cursor-pointer'>
-          {post?.likes?.includes(user?._id) ? (
+        <p className='flex gap-2 items-center text-base cursor-pointer' onClick={() => likePost(post)}>
+          {post?.likedBy?.includes(user?._id) ? (
             <BiSolidLike size={20} color='#065ad8' />
           ) : (
             <BiLike size={20} />
           )}
-          {post?.likes?.length}
+          {post?.likes}
         </p>
 
 
@@ -320,17 +320,17 @@ const PostCard = ({ post, user, deletePost, likePost }) => {
           <CiShare2 size={20} />
           {post?.share?.length}
         </p> */}
-        
+
         <p className='flex gap-2 items-center text-base cursor-pointer'>
-          {post?.report?.length > 0 ? (
+          {post?.reports?.length > 0 ? (
             <MdOutlineReportProblem size={20} color='red' />
           ) : (
             <MdOutlineReportProblem size={20} />
           )}
-          {post?.report?.length}
+          {post?.reports?.length}
         </p>
 
-        {/* {user?._id === post?.userId?._id && (
+        {/* {user?._id === post?.user?._id && (
           <div
             className='flex gap-1 items-center text-base text-ascent-1 cursor-pointer'
             onClick={() => deletePost(post?._id)}
@@ -356,17 +356,17 @@ const PostCard = ({ post, user, deletePost, likePost }) => {
             comments?.map((comment) => (
               <div className='w-full py-2' key={comment?._id}>
                 <div className='flex gap-3 items-center mb-1'>
-                  <Link to={"/profile/" + comment?.userId?._id}>
+                  <Link to={"/profile/" + comment?.user?._id}>
                     <img
-                      src={comment?.userId?.profileUrl ?? NoProfile}
-                      alt={comment?.userId?.firstName}
+                      src={comment?.user?.avatar ?? NoProfile}
+                      alt={comment?.user?.firstName}
                       className='w-10 h-10 rounded-full object-cover'
                     />
                   </Link>
                   <div>
-                    <Link to={"/profile/" + comment?.userId?._id}>
+                    <Link to={"/profile/" + comment?.user?._id}>
                       <p className='font-medium text-base text-ascent-1'>
-                        {comment?.userId?.firstName} {comment?.userId?.lastName}
+                        {comment?.user?.firstName} {comment?.user?.lastName}
                       </p>
                     </Link>
                     <span className='text-ascent-2 text-sm'>
@@ -432,9 +432,9 @@ const PostCard = ({ post, user, deletePost, likePost }) => {
                         handleLike={() =>
                           handleLike(
                             "/posts/like-comment/" +
-                              comment?._id +
-                              "/" +
-                              reply?._id
+                            comment?._id +
+                            "/" +
+                            reply?._id
                           )
                         }
                       />

@@ -33,13 +33,16 @@ router.get('/saved', authMiddleware, getSavedPosts);
 router.post('get-user-post/:id', authMiddleware, getUserPost);
 
 //create post
-router.post('/create-post', authMiddleware, validateCreatePost, upload.fields([
+router.post('/create-post', authMiddleware, upload.fields([
     { name: 'images', maxCount: 5 },
     { name: 'files', maxCount: 5 }
-]), createPost);
+]), validateCreatePost, createPost);
 
 // update post
-router.put('/:id', authMiddleware, updatePost);
+router.put('/:id', authMiddleware, upload.fields([
+    { name: 'images', maxCount: 5 },
+    { name: 'files', maxCount: 5 }
+]), validateCreatePost, updatePost);
 
 // get comments
 router.get('/comments/:postId', authMiddleware, getComments);

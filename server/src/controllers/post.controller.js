@@ -2,12 +2,6 @@ const Comment = require('../models/comment.model');
 const Group = require('../models/group.model');
 const Post = require('../models/post.model');
 const User = require('../models/user.model');
-const upload = require('../utils/upload');
-
-const fs = require('fs');
-const util = require('util');
-const unlinkFile = util.promisify(fs.unlink);
-
 const getPosts = async (req, res) => {
     try {
         const { userId } = req.body.user;
@@ -563,8 +557,11 @@ const replyPostComment = async (req, res) => {
 
 const createPost = async (req, res) => {
     try {
-        const { userId } = req.body.user;
-        const { content } = req.body;
+        const { userId, content, privacy } = req.body;
+
+        if (!userId) {
+            return res.status(400).json({ message: 'userId là bắt buộc!' });
+        }
 
         const images = req.files && req.files['images'] ? req.files['images'].map(file => file.path) : [];
         const files = req.files && req.files['files'] ? req.files['files'].map(file => file.path) : [];
@@ -573,7 +570,8 @@ const createPost = async (req, res) => {
             user: userId,
             content,
             images,
-            files
+            files,
+            privacy
         });
 
         await newPost.save();
@@ -581,6 +579,7 @@ const createPost = async (req, res) => {
         res.status(201).json({ message: 'Tạo bài viết thành công', post: newPost });
     } catch (error) {
         console.log(error);
+        console.log('Uploaded files:', req.files);
         res.status(500).json({ message: error.message });
     }
 };
@@ -588,7 +587,7 @@ const createPost = async (req, res) => {
 const updatePost = async (req, res) => {
     try {
         const id = req.params.id;
-        const { content } = req.body;
+        const { userId, content, privacy, removeImages, removeFiles } = req.body;
 
         const post = await Post.findById(id);
 
@@ -596,35 +595,39 @@ const updatePost = async (req, res) => {
             return res.status(404).json({ message: 'Bài viết không tồn tại' });
         }
 
+        if (post.user.toString() !== userId) {
+            return res.status(403).json({ message: 'Bạn không có quyền chỉnh sửa bài viết này' });
+        }
+
+        if (removeImages && Array.isArray(removeImages)) {
+            post.images = post.images.filter(image => !removeImages.includes(image));
+        }
+
+        if (removeFiles && Array.isArray(removeFiles)) {
+            post.files = post.files.filter(file => !removeFiles.includes(file));
+        }
+
         if (req.files && req.files['images']) {
-            const imageUploadPromises = req.files['images'].map(async (file) => {
-                const result = await upload(file.path, 'CTU-social/images');
-                await unlinkFile(file.path);  // Xóa file tạm sau khi upload
-                return result.secure_url;
-            });
-            const newImageUrls = await Promise.all(imageUploadPromises);
-            post.images = [...post.images, ...newImageUrls];
+            const newImagePaths = req.files['images'].map(file => file.path);
+            post.images = [...post.images, ...newImagePaths];
         }
 
         if (req.files && req.files['files']) {
-            const fileUploadPromises = req.files['files'].map(async (file) => {
-                const result = await upload(file.path, 'CTU-social/files');
-                await unlinkFile(file.path);  // Xóa file tạm sau khi upload
-                return result.secure_url;
-            });
-            const newFileUrls = await Promise.all(fileUploadPromises);
-            post.files = [...post.files, ...newFileUrls];
+            const newFilePaths = req.files['files'].map(file => file.path);
+            post.files = [...post.files, ...newFilePaths];
         }
 
-        // Chỉ cập nhật content nếu nó không phải là undefined
         if (content !== undefined) {
             post.content = content;
+        }
+        if (privacy !== undefined) {
+            post.privacy = privacy;
         }
 
         await post.save();
         res.status(200).json({ message: 'Cập nhật bài viết thành công', post });
     } catch (error) {
-        console.error(error);
+        console.log(error);
         res.status(500).json({ message: error.message });
     }
 };
@@ -638,7 +641,7 @@ const deletePost = async (req, res) => {
             return res.status(404).json({ message: 'Bài viết không tồn tại' });
         }
 
-        await post.remove();
+        await Post.deleteOne({ _id: id });
 
         res.status(200).json({ message: 'Xóa bài viết thành công' });
     } catch (error) {

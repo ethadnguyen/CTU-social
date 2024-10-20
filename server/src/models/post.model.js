@@ -9,6 +9,12 @@ const PostSchema = new mongoose.Schema({
         type: String,
         required: false
     }],
+    files: [
+        {
+            type: String,
+            required: false
+        }
+    ],
     user: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
