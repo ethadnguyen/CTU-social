@@ -27,7 +27,7 @@ const ProfileCard = ({ user }) => {
         <div className='w-full flex items-center justify-between border-b pb-5 border-[#66666645]'>
           <Link to={"/profile/" + user?._id} className='flex gap-2'>
             <img
-              src={user?.profileUrl ?? NoProfile}
+              src={user?.avatar ?? NoProfile}
               alt={user?.email}
               className='object-cover rounded-full w-14 h-14'
             />
@@ -96,7 +96,7 @@ const ProfileCard = ({ user }) => {
         </div>
 
         <div className='flex flex-col w-full gap-4 py-4 pb-6'>
-          <p className='text-lg font-semibold text-ascent-1'>Social Profile</p>
+          <p className='text-lg font-semibold text-ascent-1'>Mạng xã hội khác</p>
 
           <div className='flex items-center gap-2 text-ascent-2'>
             <BsFacebook className='text-xl text-ascent-1' />

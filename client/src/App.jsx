@@ -1,6 +1,9 @@
 import { Outlet, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { Home, Login, Profile, Register, ResetPassword, Group, Messages, Notifications } from "./pages";
+import Modal from 'react-modal';
+
+Modal.setAppElement('#root');
 
 function Layout() {
   // const { user } = useSelector((state) => state.user);

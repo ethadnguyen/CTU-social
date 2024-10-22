@@ -23,7 +23,7 @@ io.on('connection', (socket) => {
         console.log('User joined:');
         const existingUser = users.find((u) => u.id === user._id);
         if (!existingUser) {
-            users.push({ id: user._id, socketId: socket.id, friends: user.friends });
+            users.push({ id: user._id, socketId: socket.id, friends: user.friends, followers: user.followers });
         }
         const activeFriends = users.filter((u) => user.friends.includes(u.id));
         socket.emit('activeFriends', activeFriends.map(friend => friend.id));
@@ -43,24 +43,27 @@ io.on('connection', (socket) => {
 
     // Xử lý thích bài viết
     socket.on('likePost', (data) => {
-        const { userId, post } = data;
+        const { userId, postId } = data;
         const user = users.find((u) => u.id === userId);
+        if (user) {
+            // Cập nhật thuộc tính "likes" của bài viết trên server (bạn cần có API hoặc DB cho việc này)
 
-        if (user && user.followers.length > 0) {
             const followers = users.filter((u) => user.followers.includes(u.id));
             followers.forEach((follower) => {
-                socket.to(`${follower.socketId}`).emit('likeToClient', post);
+                socket.to(`${follower.socketId}`).emit('likeToClient', { postId, userId });
             });
+
+            console.log(`User ${userId} đã thích bài viết ${postId}`);
         }
     });
 
     // Xử lý báo cáo bài viết
     socket.on('reportPost', (reportedPost) => {
-        const { id: _id, reportedBy } = reportedPost;
+        const { id, reportedBy } = reportedPost;
 
         const notification = {
-            message: `Một bài viết với ID: ${_id} đã bị báo cáo bởi người dùng: ${reportedBy}`,
-            id: _id,
+            message: `Một bài viết với ID: ${id} đã bị báo cáo bởi người dùng: ${reportedBy}`,
+            id,
             reportedBy,
         };
 

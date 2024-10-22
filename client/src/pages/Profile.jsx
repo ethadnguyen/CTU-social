@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useParams, Link } from "react-router-dom";
 import {
@@ -9,24 +9,66 @@ import {
   ProfileCard,
   TopBar,
 } from "../components";
-import { posts, savedPosts } from "../assets/home";
+import { savedPosts } from "../assets/home";
 import { profile } from "../assets/profile";
 import { ChevronDownIcon, ChevronUpIcon } from "@heroicons/react/24/outline";
 import { MdOutlineFileUpload } from "react-icons/md";
+import { getUserPosts, likePost, reportPost } from './../redux/postSlice';
+import io from 'socket.io-client';
+import axiosInstance from '../api/axiosConfig';
+import { toast } from 'react-toastify';
 
 const Profile = () => {
   const { id } = useParams();
-  const dispatch = useDispatch();
   const { user } = useSelector((state) => state.user);
-  // const { posts } = useSelector((state) => state.posts);
+  const { userPosts } = useSelector((state) => state.posts);
   const [userInfo, setUserInfo] = useState(user);
   const [loading, setLoading] = useState(false);
   const [expandedTags, setExpandedTags] = useState({});
+  const dispatch = useDispatch();
 
   const [showSavedPosts, setShowSavedPosts] = useState(false);
 
-  const handleDelete = () => { };
-  const handleLikePost = () => { };
+  useEffect(() => {
+    dispatch(getUserPosts(user._id));
+  }, [dispatch, user]);
+
+
+  const handleDeletePost = async (postId) => {
+    try {
+      await axiosInstance.delete(`/posts/${postId}`);
+      dispatch(getUserPosts(user._id));
+      toast.success('Xóa bài viết thành công!');
+    } catch (error) {
+      console.error('Error deleting post:', error);
+    }
+  };
+
+  const handleLikePost = async (post) => {
+    const postId = post._id;
+    const userId = user._id;
+    const socket = io('http://localhost:5000');
+
+    try {
+      await dispatch(likePost(postId));
+      await dispatch(getUserPosts(user._id));
+      socket.emit('likePost', { userId, postId });
+    } catch (error) {
+      console.error('Error liking post:', error);
+    }
+  };
+
+  const handleReportPost = async (post) => {
+    const socket = io('http://localhost:5000');
+    const postId = post._id;
+    try {
+      await dispatch(reportPost(postId));
+      await dispatch(getUserPosts(user._id));
+      socket.emit('reportPost', { id: postId, reportedBy: user._id });
+    } catch (error) {
+      console.error('Error reporting post:', error);
+    }
+  };
 
   const toggleTag = (tagId) => {
     setExpandedTags((prev) => ({ ...prev, [tagId]: !prev[tagId] }));
@@ -74,14 +116,15 @@ const Profile = () => {
                     </div>
                   )}
 
-                  {posts?.length > 0 && !showSavedPosts ? (
-                    posts?.map((post) => (
+                  {userPosts?.length > 0 && !showSavedPosts ? (
+                    userPosts?.map((post) => (
                       <PostCard
                         post={post}
                         key={post?._id}
                         user={user}
-                        deletePost={handleDelete}
+                        deletePost={handleDeletePost}
                         likePost={handleLikePost}
+                        reportPost={handleReportPost}
                       />
                     ))
                   ) : showSavedPosts && savedPosts?.length > 0 ? (
@@ -90,7 +133,7 @@ const Profile = () => {
                         post={savedPost}
                         key={savedPost?._id}
                         user={user}
-                        deletePost={handleDelete}
+                        deletePost={handleDeletePost}
                         likePost={handleLikePost}
                       />
                     ))

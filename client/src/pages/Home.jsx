@@ -19,9 +19,10 @@ import { BiImages } from "react-icons/bi";
 import { useForm } from "react-hook-form";
 import { CiFileOn } from "react-icons/ci";
 import axiosInstance from '../api/axiosConfig';
-import { getPosts } from '../redux/postSlice';
+import { getPosts, likePost, reportPost } from '../redux/postSlice';
 import { FaFile } from 'react-icons/fa6';
 import io from 'socket.io-client';
+import { toast } from 'react-toastify';
 
 const Home = () => {
   const { user, edit } = useSelector((state) => state.user);
@@ -105,10 +106,11 @@ const Home = () => {
     try {
       await axiosInstance.delete(`/posts/${postId}`);
       dispatch(getPosts());
+      toast.success('Đã xóa bài viết thành công!');
     } catch (error) {
       console.error('Error deleting post:', error);
     }
-  }
+  };
 
   const handleLikePost = async (post) => {
     const postId = post._id;
@@ -116,13 +118,26 @@ const Home = () => {
     const socket = io('http://localhost:5000');
 
     try {
-      await axiosInstance.post(`/posts/like/${postId}`, { userId });
-      dispatch(getPosts());
-      socket.emit('likePost', { userId, post });
+      await dispatch(likePost(postId));
+      await dispatch(getPosts());
+      socket.emit('likePost', { userId, postId });
+
     } catch (error) {
       console.error('Error liking post:', error);
     }
-  }
+  };
+
+  const handleReportPost = async (post) => {
+    const socket = io('http://localhost:5000');
+    const postId = post._id;
+    try {
+      await dispatch(reportPost(postId));
+      await dispatch(getPosts());
+      socket.emit('reportPost', { id: postId, reportedBy: user._id });
+    } catch (error) {
+      console.error('Error reporting post:', error);
+    }
+  };
 
 
   return (
@@ -170,7 +185,7 @@ const Home = () => {
                         className='object-cover w-24 h-24 rounded-lg'
                       />
                       <button
-                        className='absolute top-0 right-0 p-1 bg-red-500 rounded-full text-red font-bold'
+                        className='absolute top-0 right-0 p-1 font-bold bg-red-500 rounded-full text-red'
                         onClick={() => {
                           setImages((prevImages) => prevImages.filter((_, i) => i !== index));
                         }}
@@ -185,11 +200,11 @@ const Home = () => {
               {files.length > 0 && (
                 <div className='flex gap-2 py-4'>
                   {files.map((file, index) => (
-                    <div key={index} className='relative flex items-center bg-gray-100 p-2 rounded-lg'>
-                      <FaFile className='text-white mr-2' />
+                    <div key={index} className='relative flex items-center p-2 bg-gray-100 rounded-lg'>
+                      <FaFile className='mr-2 text-white' />
                       <span className='flex-1 overflow-hidden text-blue'>{file.name}</span>
                       <button
-                        className='absolute top-0 right-0 p-1 bg-red-500 rounded-full text-white font-bold'
+                        className='absolute top-0 right-0 p-1 font-bold text-white bg-red-500 rounded-full'
                         onClick={() => {
                           setFiles((prevFiles) => prevFiles.filter((_, i) => i !== index));
                         }}
@@ -293,6 +308,7 @@ const Home = () => {
                   user={user}
                   deletePost={handleDeletePost}
                   likePost={handleLikePost}
+                  reportPost={handleReportPost}
                 />
               ))
             ) : (
@@ -325,7 +341,7 @@ const Home = () => {
 
               <div className='flex flex-col w-full gap-4 pt-4'>
                 {faculties
-                  .find((faculty) => faculty.id === selectedFaculty) // Tìm khoa được chọn
+                  .find((faculty) => faculty._id === selectedFaculty) // Tìm khoa được chọn
                   ?.activities.map((activity) => ( // Hiển thị activities của khoa được chọn
                     <div key={activity.id} className='flex flex-col'>
                       <a
@@ -361,7 +377,7 @@ const Home = () => {
                       className='flex items-center w-full gap-4 cursor-pointer'
                     >
                       <img
-                        src={from?.profileUrl ?? NoProfile}
+                        src={from?.avatar ?? NoProfile}
                         alt={from?.firstName}
                         className='object-cover w-10 h-10 rounded-full'
                       />

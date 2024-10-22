@@ -6,6 +6,11 @@ export const getPosts = createAsyncThunk('post/getPosts', async () => {
   return response.data.posts;
 });
 
+export const getUserPosts = createAsyncThunk('post/getUserPosts', async (userId) => {
+  const response = await axiosInstance.get(`/posts/${userId}`);
+  return response.data.posts;
+})
+
 export const likePost = createAsyncThunk('post/likePost', async (postId) => {
   const response = await axiosInstance.post(`/posts/like/${postId}`);
   return { postId, data: response.data };
@@ -23,11 +28,12 @@ export const sharePost = createAsyncThunk('post/sharePost', async (postId) => {
 
 export const reportPost = createAsyncThunk('post/reportPost', async (postId) => {
   const response = await axiosInstance.post(`/posts/report/${postId}`);
-  return response.data;
+  return { postId, data: response.data };
 });
 
 const initialState = {
   posts: [],
+  userPosts: [],
   status: 'idle',
   error: null
 };
@@ -45,6 +51,18 @@ const postSlice = createSlice({
         state.status = 'succeeded';
       })
       .addCase(getPosts.rejected, (state, action) => {
+        state.status = 'failed';
+        state.error = action.error.message;
+      })
+      // get user posts
+      .addCase(getUserPosts.pending, (state) => {
+        state.status = 'loading';
+      })
+      .addCase(getUserPosts.fulfilled, (state, action) => {
+        state.status = 'succeeded';
+        state.userPosts = action.payload;
+      })
+      .addCase(getUserPosts.rejected, (state, action) => {
         state.status = 'failed';
         state.error = action.error.message;
       })

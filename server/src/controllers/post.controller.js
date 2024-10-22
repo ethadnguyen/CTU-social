@@ -2,19 +2,77 @@ const Comment = require('../models/comment.model');
 const Group = require('../models/group.model');
 const Post = require('../models/post.model');
 const User = require('../models/user.model');
+
+// const getPosts = async (req, res) => {
+//     try {
+//         const { userId } = req.body.user;
+//         const { search } = req.query;
+
+
+//         const user = await User.findById(userId)
+//             .populate('faculty', 'name')
+//             .populate('major', 'majorName academicYear');
+
+//         const friends = user?.friends?.toString().split(',') ?? [];
+//         friends.push(userId);
+
+//         const searchPostQuery = {
+//             $or: [
+//                 {
+//                     content: { $regex: search, $options: 'i' },
+//                 },
+//             ],
+//         };
+
+//         const posts = await Post.find(search ? searchPostQuery : {})
+//             .populate({
+//                 path: 'user',
+//                 select: 'firstName lastName avatar -password',
+//                 populate: {
+//                     'path': 'faculty',
+//                     select: 'name'
+//                 },
+//             })
+//             .populate({
+//                 path: 'user',
+//                 populate: {
+//                     path: 'major',
+//                     select: 'majorName academicYear',
+//                 },
+//             })
+//             .sort({ _id: -1 });
+
+//         const friendsPosts = posts?.filter((post) => {
+//             return friends.includes(post?.user?._id.toString());
+//         });
+
+//         const otherPosts = posts.filter((post) => {
+//             !friends.includes(post?.user?._id.toString());
+//         });
+
+//         let postsRes = null;
+
+//         if (friendsPosts.length > 0) {
+//             postsRes = search ? friendsPosts : [...friendsPosts, ...otherPosts];
+//         } else {
+//             postsRes = posts;
+//         }
+
+//         res.status(200).json({
+//             message: 'Lấy bài viết thành công',
+//             posts: postsRes,
+//         });
+//     } catch (error) {
+//         console.log(error);
+//         res.status(500).json({ message: error.message });
+//     }
+// };
+
 const getPosts = async (req, res) => {
     try {
-        const { userId } = req.body.user;
         const { search } = req.query;
 
-
-        const user = await User.findById(userId)
-            .populate('faculty', 'name')
-            .populate('major', 'majorName academicYear');
-
-        const friends = user?.friends?.toString().split(',') ?? [];
-        friends.push(userId);
-
+        // Tạo điều kiện tìm kiếm dựa trên nội dung bài viết nếu có từ khóa tìm kiếm
         const searchPostQuery = {
             $or: [
                 {
@@ -23,13 +81,14 @@ const getPosts = async (req, res) => {
             ],
         };
 
+        // Lấy tất cả các bài viết từ CSDL, có thể có hoặc không có từ khóa tìm kiếm
         const posts = await Post.find(search ? searchPostQuery : {})
             .populate({
                 path: 'user',
                 select: 'firstName lastName avatar -password',
                 populate: {
-                    'path': 'faculty',
-                    select: 'name'
+                    path: 'faculty',
+                    select: 'name',
                 },
             })
             .populate({
@@ -39,27 +98,47 @@ const getPosts = async (req, res) => {
                     select: 'majorName academicYear',
                 },
             })
+            .sort({ _id: -1 }); // Sắp xếp bài viết theo thứ tự mới nhất
+
+        // Render tất cả các bài viết
+        res.status(200).json({
+            message: 'Lấy bài viết thành công',
+            posts: posts,
+        });
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({ message: error.message });
+    }
+};
+
+const getUserPosts = async (req, res) => {
+    const { userId } = req.params;
+    try {
+        const posts = await Post.find({ user: userId })
+            .populate({
+                path: 'user',
+                select: 'firstName lastName avatar -password',
+                populate: {
+                    path: 'faculty',
+                    select: 'name'
+                }
+            })
+            .populate({
+                path: 'user',
+                populate: {
+                    path: 'major',
+                    select: 'majorName academicYear'
+                }
+            })
             .sort({ _id: -1 });
 
-        const friendsPosts = posts?.filter((post) => {
-            return friends.includes(post?.user?._id.toString());
-        });
-
-        const otherPosts = posts.filter((post) => {
-            !friends.includes(post?.user?._id.toString());
-        });
-
-        let postsRes = null;
-
-        if (friendsPosts.length > 0) {
-            postsRes = search ? friendsPosts : [...friendsPosts, ...otherPosts];
-        } else {
-            postsRes = posts;
+        if (!posts.length) {
+            return res.status(404).json({ message: 'Không có bài viết nào' });
         }
 
         res.status(200).json({
-            message: 'Lấy bài viết thành công',
-            posts: postsRes,
+            message: 'Lấy bài viết của người dùng thành công',
+            posts
         });
     } catch (error) {
         console.log(error);
@@ -212,7 +291,7 @@ const reportPost = async (req, res) => {
         const updatedPost = await post.save();
 
         res.status(200).json({
-            message: 'Báo cáo bài viết thành công',
+            message: `${userReported ? 'Bỏ ' : ''}báo cáo bài viết thành công`,
             post: updatedPost
         });
     } catch (error) {
@@ -694,6 +773,7 @@ const deletePostComment = async (req, res) => {
 module.exports = {
     getPosts,
     getPost,
+    getUserPosts,
     getUserPost,
     getComments,
     likePost,

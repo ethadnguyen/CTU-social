@@ -2,19 +2,17 @@
 @tailwind components;
 @tailwind utilities;
 
-
 ::-webkit-scrollbar {
   display: none;
-   -ms-overflow-style: none;  /* IE and Edge */
+  -ms-overflow-style: none; /* IE and Edge */
   scrollbar-width: none;
 }
 
-.topbar{
-position: sticky;
-top: 0px;
-z-index: 49;
+.topbar {
+  position: sticky;
+  top: 0px;
+  z-index: 49;
 }
-
 
 .dots-container {
   display: flex;
@@ -50,6 +48,38 @@ z-index: 49;
   animation-delay: 0.1s;
 }
 
+.modal-base {
+  width: 400px;
+  max-width: 90%;
+  margin: 0 auto;
+  padding: 20px;
+  border-radius: 8px;
+  outline: none;
+  transition: all 0.3s ease-in-out;
+}
+
+.modal-dark {
+  background-color: #1f2937;
+  color: white;
+}
+
+.modal-light {
+  background-color: white;
+  color: black;
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 @keyframes pulse {
   0% {
     transform: scale(0.8);
@@ -74,7 +104,7 @@ z-index: 49;
   :root {
     --color-bg: 227 227 227;
     --color-primary: 255 255 255;
-    --color-secondary:255 255 255;
+    --color-secondary: 255 255 255;
     --color-ascent1: 0 0 0;
     --color-ascent2: 89 91 100;
     --color-blue: 6 90 216;
@@ -82,11 +112,12 @@ z-index: 49;
     --color-red: 239 68 68;
     --color-sky: 59 130 246;
     --color-gray: 164 161 162;
+    --color-green: 16 176 75;
   }
   /* //15 23 42  21 30 49*/
-  [data-theme="dark"] {
-     --color-bg: 12 12 12;
-     --color-primary: 31 31 31;
+  [data-theme='dark'] {
+    --color-bg: 12 12 12;
+    --color-primary: 31 31 31;
     --color-secondary: 47 45 48;
     --color-ascent1: 255 255 255;
     --color-ascent2: 164 161 162;
@@ -94,8 +125,8 @@ z-index: 49;
     --color-red: 239 68 68;
     --color-sky: 59 130 246;
     --color-gray: 164 161 162;
+    --color-green: 16 176 75;
     /* //16 176 255; */
     --color-white: 255 255 255;
   }
 }
-
