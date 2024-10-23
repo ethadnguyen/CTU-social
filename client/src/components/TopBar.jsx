@@ -99,7 +99,7 @@ const TopBar = (friends) => {
 
         </div>
 
-        <div className='flex items-center'>
+        <div className='flex relative'>
           <Link to={`/notifications/${user?._id}`}>
             {user?.messages?.length > 0 && (
                 <div className='absolute inline-flex items-center justify-center w-4 h-4 text-xs font-bold text-white bg-red border-3 border-white rounded-full -top-2 -end-2'>

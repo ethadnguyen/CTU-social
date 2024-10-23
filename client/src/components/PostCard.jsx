@@ -10,28 +10,30 @@ import TextInput from "./TextInput";
 import Loading from "./Loading";
 import CustomButton from "./CustomButton";
 import { postComments } from "../assets/home";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { ImageDetail } from ".";
+import Modal from "react-modal";
+import { getPosts, savePost } from '../redux/postSlice';
 
 const ReplyCard = ({ reply, user, handleLike }) => {
   return (
     <div className='w-full py-3'>
-      <div className='flex gap-3 items-center mb-1'>
-        <Link to={"/profile/" + reply?.userId?._id}>
+      <div className='flex items-center gap-3 mb-1'>
+        <Link to={"/profile/" + reply?.user?._id}>
           <img
-            src={reply?.userId?.profileUrl ?? NoProfile}
-            alt={reply?.userId?.firstName}
-            className='w-10 h-10 rounded-full object-cover'
+            src={reply?.user?.avatar ?? NoProfile}
+            alt={reply?.user?.firstName}
+            className='object-cover w-10 h-10 rounded-full'
           />
         </Link>
 
         <div>
-          <Link to={"/profile/" + reply?.userId?._id}>
-            <p className='font-medium text-base text-ascent-1'>
-              {reply?.userId?.firstName} {reply?.userId?.lastName}
+          <Link to={"/profile/" + reply?.user?._id}>
+            <p className='text-base font-medium text-ascent-1'>
+              {reply?.user?.firstName} {reply?.user?.lastName}
             </p>
           </Link>
-          <span className='text-ascent-2 text-sm'>
+          <span className='text-sm text-ascent-2'>
             {moment(reply?.createdAt).fromNow()}
           </span>
         </div>
@@ -39,9 +41,9 @@ const ReplyCard = ({ reply, user, handleLike }) => {
 
       <div className='ml-12'>
         <p className='text-ascent-2 '>{reply?.comment}</p>
-        <div className='mt-2 flex gap-6'>
+        <div className='flex gap-6 mt-2'>
           <p
-            className='flex gap-2 items-center text-base text-ascent-2 cursor-pointer'
+            className='flex items-center gap-2 text-base cursor-pointer text-ascent-2'
             onClick={handleLike}
           >
             {reply?.likes?.includes(user?._id) ? (
@@ -69,18 +71,18 @@ const CommentForm = ({ user, id, replyAt, getComments }) => {
     mode: "onChange",
   });
 
-  const onSubmit = async (data) => {};
+  const onSubmit = async (data) => { };
 
   return (
     <form
       onSubmit={handleSubmit(onSubmit)}
       className='w-full border-b border-[#66666645]'
     >
-      <div className='w-full flex items-center gap-2 py-4'>
+      <div className='flex items-center w-full gap-2 py-4'>
         <img
-          src={user?.profileUrl ?? NoProfile}
+          src={user?.avatar ?? NoProfile}
           alt='User Image'
-          className='w-10 h-10 rounded-full object-cover'
+          className='object-cover w-10 h-10 rounded-full'
         />
 
         <TextInput
@@ -96,11 +98,10 @@ const CommentForm = ({ user, id, replyAt, getComments }) => {
       {errMsg?.message && (
         <span
           role='alert'
-          className={`text-sm ${
-            errMsg?.status === "failed"
-              ? "text-[#f64949fe]"
-              : "text-[#2ba150fe]"
-          } mt-0.5`}
+          className={`text-sm ${errMsg?.status === "failed"
+            ? "text-[#f64949fe]"
+            : "text-[#2ba150fe]"
+            } mt-0.5`}
         >
           {errMsg?.message}
         </span>
@@ -121,7 +122,7 @@ const CommentForm = ({ user, id, replyAt, getComments }) => {
   );
 };
 
-const PostCard = ({ post, user, deletePost, likePost }) => {
+const PostCard = ({ post, user, deletePost, likePost, reportPost }) => {
   const { theme } = useSelector((state) => state.theme);
   const [showAll, setShowAll] = useState(0);
   const [showReply, setShowReply] = useState(0);
@@ -129,6 +130,18 @@ const PostCard = ({ post, user, deletePost, likePost }) => {
   const [loading, setLoading] = useState(false);
   const [replyComments, setReplyComments] = useState(0);
   const [showComments, setShowComments] = useState(0);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const hasReported = post?.reportedBy?.includes(user?._id);
+  const isSaved = post?.savedBy?.includes(user?._id);
+  const dispatch = useDispatch();
+
+  const openModal = () => setIsModalOpen(true);
+  const closeModal = () => setIsModalOpen(false);
+
+  const handleReport = () => {
+    reportPost(post);
+    closeModal();
+  };
 
   const getComments = async () => {
     setReplyComments(0);
@@ -136,7 +149,15 @@ const PostCard = ({ post, user, deletePost, likePost }) => {
     setComments(postComments);
     setLoading(false);
   };
-  const handleLike = async () => {};
+  const handleLikeComment = async () => {
+    // likePost(post._id);
+  };
+
+  const handleSavePost = async () => {
+    console.log('isSaved', isSaved);
+    await dispatch(savePost(post._id));
+    await dispatch(getPosts());
+  }
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -148,58 +169,58 @@ const PostCard = ({ post, user, deletePost, likePost }) => {
   const [showMenu, setShowMenu] = useState(false);
 
   return (
-    <div className='mb-2 bg-primary p-4 rounded-xl'>
+    <div className='p-4 mb-2 bg-primary rounded-xl'>
       {showImageModal && (
         <ImageDetail
-          images={post.image} 
-          onClose={() => setShowImageModal(false)} 
+          images={post.images}
+          onClose={() => setShowImageModal(false)}
         />
       )}
 
       {post?.groupId && (
         <div className="mb-4">
-        <Link to={`/groups/${post.groupId}`} className="flex items-center">
-          <MdGroups size={30} className="text-ascent-1" />
-          <span className="text-ascent-1 ml-2">{post.groupName}</span>
-        </Link>
-      </div>
+          <Link to={`/groups/${post.groupId}`} className="flex items-center">
+            <MdGroups size={30} className="text-ascent-1" />
+            <span className="ml-2 text-ascent-1">{post.groupName}</span>
+          </Link>
+        </div>
       )}
 
-      <div className='flex gap-3 items-center mb-2'>
-        <Link to={"/profile/" + post?.userId?._id}>
+      <div className='flex items-center gap-3 mb-2'>
+        <Link to={"/profile/" + post?.user?._id}>
           <img
-            src={post?.userId?.profileUrl ?? NoProfile}
-            alt={post?.userId?.firstName}
-            className='w-16 h-13 object-cover rounded-full'
+            src={post?.user?.avatar ?? NoProfile}
+            alt={post?.user?.firstName}
+            className='object-cover w-16 rounded-full h-13'
           />
         </Link>
 
-        <div className='w-full flex justify-between'>
+        <div className='flex justify-between w-full'>
           <div className=''>
-            <Link to={"/profile/" + post?.userId?._id}>
-              <p className='font-medium text-lg text-ascent-1'>
-                {post?.userId?.lastName} {post?.userId?.firstName}
+            <Link to={"/profile/" + post?.user?._id}>
+              <p className='text-lg font-medium text-ascent-1'>
+                {post?.user?.lastName} {post?.user?.firstName}
               </p>
             </Link>
             <span className='text-ascent-2'>
-              {post?.userId?.major ? (
-                <>{post?.userId?.faculty}, {post?.userId?.major}</>
-                ) : (
-                <>{post?.userId?.faculty || post?.userId?.major}</>
+              {post?.user?.major ? (
+                <>{post?.user?.faculty?.name}, {post?.user?.major?.majorName}</>
+              ) : (
+                <>{post?.user?.faculty?.name || post?.user?.major?.majorName}</>
               )}
-      </span>
+            </span>
           </div>
 
-          <span className='flex item-centers gap-4 text-ascent-2'>
-            {moment(post?.createdAt ?? "2023-05-25").fromNow()}
+          <span className='flex gap-4 item-centers text-ascent-2'>
+            {moment(post?.createdAt ?? "2024-05-25").fromNow()}
             <div className='relative'>
-              <CiMenuKebab className='text-ascent-1 h-full text-lg' onClick={() => setShowMenu(!showMenu)} />
+              <CiMenuKebab className='h-full text-lg cursor-pointer text-ascent-1' onClick={() => setShowMenu(!showMenu)} />
               {showMenu && (
-                <div className="absolute top-0 end-5 bg-primary border border-gray-300 rounded-md z-50">
-                  <ul className="py-1 text-ascent-1 itemscenters px-2">
-                    <li className='py-1'>Lưu</li>
-                    <li className='py-1'><span>Chia&nbsp;sẻ</span></li>
-                    {user?._id === post?.userId?._id && (
+                <div className="absolute top-0 z-50 border border-gray-300 rounded-md end-5 bg-primary">
+                  <ul className="px-2 py-1 cursor-pointer text-ascent-1 items-center">
+                    <li className={`${isSaved ? 'text-red' : ''} py-1`} onClick={handleSavePost}>{isSaved ? 'Bỏ lưu' : 'Lưu'}</li>
+                    <li className='py-1' onClick={() => { }}><span>Chia&nbsp;sẻ</span></li>
+                    {user?._id === post?.user?._id && (
                       <li className='py-1' onClick={() => deletePost(post._id)}>Xóa</li>
                     )}
                   </ul>
@@ -213,44 +234,43 @@ const PostCard = ({ post, user, deletePost, likePost }) => {
       <div>
         <p className='text-ascent-2'>
           {showAll === post?._id
-            ? post?.description
-            : post?.description.slice(0, 300)}
+            ? post?.content
+            : post?.content?.slice(0, 300)}
 
-          {post?.description?.length > 301 &&
+          {post?.content?.length > 301 &&
             (showAll === post?._id ? (
               <span
-                className='text-blue ml-2 font-mediu cursor-pointer'
+                className='ml-2 font-medium cursor-pointer text-blue'
                 onClick={() => setShowAll(0)}
               >
-                Show Less
+                Rút gọn
               </span>
             ) : (
               <span
-                className='text-blue ml-2 font-medium cursor-pointer'
+                className='ml-2 font-medium cursor-pointer text-blue'
                 onClick={() => setShowAll(post?._id)}
               >
-                Show More
+                Xem thêm
               </span>
             ))}
         </p>
 
-        {post?.image && (
+        {post?.images && (
           <div className='relative'>
-            <div className={`grid ${
-              post?.image.length > 1
-                ? (
-                  post?.image.length === 3 ? 'grid-cols-2 grid-rows-2' :
-                  post?.image.length > 4 ? 'grid-cols-2' :
-                  (post?.image.length % 2 === 0 ? 'grid-cols-2' : '')
-                )
-                : ''} gap-2`} >
+            <div className={`grid ${post?.images.length > 1
+              ? (
+                post?.images.length === 3 ? 'grid-cols-2 grid-rows-2' :
+                  post?.images.length > 4 ? 'grid-cols-2' :
+                    (post?.images.length % 2 === 0 ? 'grid-cols-2' : '')
+              )
+              : ''} gap-2`} >
 
-              {post?.image.slice(0, 4).map((img, index) => (
+              {post?.images.slice(0, 4).map((img, index) => (
                 <div key={index}
                   className={`
-                    ${post?.image.length > 4 ? 'relative' : 'flex'}
+                    ${post?.images.length > 4 ? 'relative' : 'flex'}
                     overflow-hidden bg-cover bg-no-repeat
-                    ${post?.image.length === 3 && index === 2 ? 'col-span-2' : ''} 
+                    ${post?.images.length === 3 && index === 2 ? 'col-span-2' : ''} 
                   `}
                 >
                   <img
@@ -258,27 +278,27 @@ const PostCard = ({ post, user, deletePost, likePost }) => {
                     alt={`post image ${index}`}
                     className={`
                       w-full mt-2 rounded-lg transition duration-300 ease-in-out hover:scale-110 
-                      ${post?.image.length > 4 && index > 2 ? 'hidden' : ''}
+                      ${post?.images.length > 4 && index > 2 ? 'hidden' : ''}
                       `}
-                    style={{ opacity: index === post?.image.slice(0, 4).length - 1 && post?.image.length > 4 ? '0.5' : '1' }}
+                    style={{ opacity: index === post?.images.slice(0, 4).length - 1 && post?.images.length > 4 ? '0.5' : '1' }}
                     onClick={handleImageClick}
                   />
 
-                  {post?.image.length > 4 && index === post?.image.slice(0, 4).length - 1 && (
+                  {post?.images.length > 4 && index === post?.images.slice(0, 4).length - 1 && (
                     <div
-                      className='relative inset-0 bg-black bg-opacity-50 flex items-center justify-center rounded-lg transition duration-300 ease-in-out hover:scale-110'
-                      onClick={() => handleImageClick(post.image)}
+                      className='relative inset-0 flex items-center justify-center transition duration-300 ease-in-out bg-black bg-opacity-50 rounded-lg hover:scale-110'
+                      onClick={() => handleImageClick(post.images)}
                     >
                       <img
                         src={img}
                         alt={`post image ${index}`}
-                        className='w-full mt-2 opacity-50 rounded-lg transition duration-300 ease-in-out hover:scale-110'
+                        className='w-full mt-2 transition duration-300 ease-in-out rounded-lg opacity-50 hover:scale-110'
                       />
-                      <span 
-                      className={`
+                      <span
+                        className={`
                           font-bold text-lg absolute inset-0 flex items-center justify-center ${theme === 'dark' ? 'text-white' : ''}
                         `}>
-                        +{post?.image.length - 4}
+                        +{post?.images.length - 4}
                       </span>
                     </div>
                   )}
@@ -295,18 +315,18 @@ const PostCard = ({ post, user, deletePost, likePost }) => {
         className='mt-4 flex justify-between items-center px-3 py-2 text-ascent-2
       text-base border-t border-[#66666645]'
       >
-        <p className='flex gap-2 items-center text-base cursor-pointer'>
-          {post?.likes?.includes(user?._id) ? (
+        <p className='flex items-center gap-2 text-base cursor-pointer' onClick={() => likePost(post)}>
+          {post?.likedBy?.includes(user?._id) ? (
             <BiSolidLike size={20} color='#065ad8' />
           ) : (
             <BiLike size={20} />
           )}
-          {post?.likes?.length}
+          {post?.likes}
         </p>
 
 
         <p
-          className='flex gap-2 items-center text-base cursor-pointer'
+          className='flex items-center gap-2 text-base cursor-pointer'
           onClick={() => {
             setShowComments(showComments === post._id ? null : post._id);
             getComments(post?._id);
@@ -316,23 +336,23 @@ const PostCard = ({ post, user, deletePost, likePost }) => {
           {post?.comments?.length}
         </p>
 
-        {/* <p className='flex gap-2 items-center text-base cursor-pointer'>
+        {/* <p className='flex items-center gap-2 text-base cursor-pointer'>
           <CiShare2 size={20} />
           {post?.share?.length}
         </p> */}
-        
-        <p className='flex gap-2 items-center text-base cursor-pointer'>
-          {post?.report?.length > 0 ? (
+
+        <p className='flex items-center gap-2 text-base cursor-pointer' onClick={openModal}>
+          {post?.reportedBy?.includes(user?._id) ? (
             <MdOutlineReportProblem size={20} color='red' />
           ) : (
             <MdOutlineReportProblem size={20} />
           )}
-          {post?.report?.length}
+          {post?.reports}
         </p>
 
-        {/* {user?._id === post?.userId?._id && (
+        {/* {user?._id === post?.user?._id && (
           <div
-            className='flex gap-1 items-center text-base text-ascent-1 cursor-pointer'
+            className='flex items-center gap-1 text-base cursor-pointer text-ascent-1'
             onClick={() => deletePost(post?._id)}
           >
             <MdOutlineDeleteOutline size={20} />
@@ -340,6 +360,38 @@ const PostCard = ({ post, user, deletePost, likePost }) => {
           </div>
         )} */}
       </div>
+
+      <Modal
+        isOpen={isModalOpen}
+        onRequestClose={closeModal}
+        contentLabel="Report Post Confirmation"
+        className={{
+          base: `modal-base ${theme === 'dark' ? 'modal-dark' : 'modal-light'}`,
+          afterOpen: "modal-after-open",
+          beforeClose: "modal-before-close"
+        }}
+        overlayClassName="modal-overlay"
+        ariaHideApp={false}
+      >
+        <div className={`p-4 ${theme === 'dark' ? 'bg-dark text-white' : 'bg-white text-black'} rounded-lg`}>
+          <h2 className="mb-4 text-lg font-semibold">Báo cáo bài viết</h2>
+          <p>{!hasReported ? 'Bạn có chắc muốn báo cáo bài viết này?' : 'Bạn có chắc muốn gỡ báo cáo bài viết này?'}</p>
+          <div className="flex justify-end gap-4 mt-4">
+            <button
+              onClick={closeModal}
+              className={`px-4 py-2 ${theme === 'dark' ? 'text-white' : 'text-ascent'} bg-gray-200 rounded-md hover:bg-blue`}
+            >
+              Thoát
+            </button>
+            <button
+              onClick={handleReport}
+              className={`px-4 py-2 ${theme === 'dark' ? 'text-white' : 'text-ascent'} bg-gray-200 rounded-md ${!hasReported ? 'hover:bg-red' : 'hover:bg-gray'}`}
+            >
+              Xác nhận
+            </button>
+          </div>
+        </div>
+      </Modal>
 
       {/* COMMENTS */}
       {showComments === post?._id && (
@@ -355,21 +407,21 @@ const PostCard = ({ post, user, deletePost, likePost }) => {
           ) : comments?.length > 0 ? (
             comments?.map((comment) => (
               <div className='w-full py-2' key={comment?._id}>
-                <div className='flex gap-3 items-center mb-1'>
-                  <Link to={"/profile/" + comment?.userId?._id}>
+                <div className='flex items-center gap-3 mb-1'>
+                  <Link to={"/profile/" + comment?.user?._id}>
                     <img
-                      src={comment?.userId?.profileUrl ?? NoProfile}
-                      alt={comment?.userId?.firstName}
-                      className='w-10 h-10 rounded-full object-cover'
+                      src={comment?.user?.avatar ?? NoProfile}
+                      alt={comment?.user?.firstName}
+                      className='object-cover w-10 h-10 rounded-full'
                     />
                   </Link>
                   <div>
-                    <Link to={"/profile/" + comment?.userId?._id}>
-                      <p className='font-medium text-base text-ascent-1'>
-                        {comment?.userId?.firstName} {comment?.userId?.lastName}
+                    <Link to={"/profile/" + comment?.user?._id}>
+                      <p className='text-base font-medium text-ascent-1'>
+                        {comment?.user?.firstName} {comment?.user?.lastName}
                       </p>
                     </Link>
-                    <span className='text-ascent-2 text-sm'>
+                    <span className='text-sm text-ascent-2'>
                       {moment(comment?.createdAt ?? "2023-05-25").fromNow()}
                     </span>
                   </div>
@@ -378,8 +430,8 @@ const PostCard = ({ post, user, deletePost, likePost }) => {
                 <div className='ml-12'>
                   <p className='text-ascent-2'>{comment?.comment}</p>
 
-                  <div className='mt-2 flex gap-6'>
-                    <p className='flex gap-2 items-center text-base text-ascent-2 cursor-pointer'>
+                  <div className='flex gap-6 mt-2'>
+                    <p className='flex items-center gap-2 text-base cursor-pointer text-ascent-2'>
                       {comment?.likes?.includes(user?._id) ? (
                         <BiSolidLike size={20} color='blue' />
                       ) : (
@@ -388,7 +440,7 @@ const PostCard = ({ post, user, deletePost, likePost }) => {
                       {comment?.likes?.length}
                     </p>
                     <span
-                      className='text-blue cursor-pointer'
+                      className='cursor-pointer text-blue'
                       onClick={() => setReplyComments(comment?._id)}
                     >
                       Phản hồi
@@ -407,10 +459,10 @@ const PostCard = ({ post, user, deletePost, likePost }) => {
 
                 {/* REPLIES */}
 
-                <div className='py-2 px-8 mt-6'>
+                <div className='px-8 py-2 mt-6'>
                   {comment?.replies?.length > 0 && (
                     <p
-                      className='text-base text-ascent-1 cursor-pointer'
+                      className='text-base cursor-pointer text-ascent-1'
                       onClick={() =>
                         setShowReply(
                           showReply === comment?.replies?._id
@@ -430,11 +482,11 @@ const PostCard = ({ post, user, deletePost, likePost }) => {
                         user={user}
                         key={reply?._id}
                         handleLike={() =>
-                          handleLike(
+                          handleLikeComment(
                             "/posts/like-comment/" +
-                              comment?._id +
-                              "/" +
-                              reply?._id
+                            comment?._id +
+                            "/" +
+                            reply?._id
                           )
                         }
                       />
@@ -443,7 +495,7 @@ const PostCard = ({ post, user, deletePost, likePost }) => {
               </div>
             ))
           ) : (
-            <span className='flex text-sm py-4 text-ascent-2 text-center'>
+            <span className='flex py-4 text-sm text-center text-ascent-2'>
               No Comments, be first to comment
             </span>
           )}

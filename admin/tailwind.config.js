@@ -13,6 +13,8 @@ export default {
       white: "rgb(var(--color-white) / <alpha-value>)",
       red: "rgb(var(--color-red) / <alpha-value>)",
       sky: "rgb(var(--color-sky) / <alpha-value>)",
+      gray: "rgb(var(--color-gray) / <alpha-value>)",
+      green: "rgb(var(--color-green) / <alpha-value>)",
       ascent: {
         1: "rgb(var(--color-ascent1) / <alpha-value>)",
         2: "rgb(var(--color-ascent2) / <alpha-value>)",

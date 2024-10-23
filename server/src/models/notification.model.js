@@ -12,6 +12,10 @@ const NotificationSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
     },
+    title: {
+        type: String,
+        required: true
+    },
     type: {
         type: String,
         enum: ['like', 'comment', 'friend_request', 'group_request', 'follow', 'report', 'custom'],

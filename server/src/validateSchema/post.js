@@ -1,6 +1,13 @@
 const Joi = require('joi');
 
 const createPostValidateSchema = Joi.object({
+    userId: Joi.string()
+        .pattern(/^[0-9a-fA-F]{24}$/)
+        .required()
+        .messages({
+            'string.empty': 'UserId không được để trống',
+            'string.pattern.base': 'UserId không hợp lệ',
+        }),
     content: Joi.string()
         .min(1)
         .required()
@@ -12,17 +19,13 @@ const createPostValidateSchema = Joi.object({
     images: Joi.array()
         .default([])
         .optional()
-        .items(Joi.string().custom((value, helpers) => {
-            const fileExtension = value.split('.').pop().toLowerCase();
-            const validExtensions = ['jpg', 'jpeg', 'png', 'gif'];
-            if (!validExtensions.includes(fileExtension)) {
-                return helpers.error('any.invalid');
-            }
-            return value;
+        .items(Joi.object().keys({
+            secure_url: Joi.string().uri().required(),
         }))
         .messages({
             'array.base': 'Hình ảnh phải là một mảng',
-            'any.invalid': 'Hình ảnh phải ở định dạng JPG, JPEG, PNG hoặc GIF',
+            'object.base': 'Mỗi mục phải là một đối tượng',
+            'string.uri': 'Hình ảnh phải là một URL hợp lệ',
         }),
     files: Joi.array()
         .default([])
@@ -38,6 +41,13 @@ const createPostValidateSchema = Joi.object({
         .messages({
             'array.base': 'Tệp phải là một mảng',
             'any.invalid': 'Tệp phải ở định dạng PDF, DOC, DOCX, PPT, PPTX, XLS hoặc XLSX',
+        }),
+    privacy: Joi.string()
+        .valid('public', 'private')
+        .required()
+        .messages({
+            'string.empty': 'Quyền riêng tư không được để trống',
+            'any.only': 'Quyền riêng tư phải là "public" hoặc "private"',
         }),
 });
 

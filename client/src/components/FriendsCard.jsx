@@ -19,13 +19,13 @@ const FriendsCard = ({ friends }) => {
               className='w-full flex gap-4 items-center cursor-pointer'
             >
               <img
-                src={friend?.profileUrl ?? NoProfile}
+                src={friend?.avatar ?? NoProfile}
                 alt={friend?.firstName}
                 className='w-10 h-10 object-cover rounded-full'
               />
               <div className='flex-1'>
                 <p className='text-base font-medium text-ascent-1'>
-                {friend?.lastName} {friend?.firstName}
+                  {friend?.lastName} {friend?.firstName}
                 </p>
               </div>
             </Link>

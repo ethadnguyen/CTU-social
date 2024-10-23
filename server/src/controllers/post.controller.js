@@ -2,25 +2,77 @@ const Comment = require('../models/comment.model');
 const Group = require('../models/group.model');
 const Post = require('../models/post.model');
 const User = require('../models/user.model');
-const upload = require('../utils/upload');
 
-const fs = require('fs');
-const util = require('util');
-const unlinkFile = util.promisify(fs.unlink);
+// const getPosts = async (req, res) => {
+//     try {
+//         const { userId } = req.body.user;
+//         const { search } = req.query;
+
+
+//         const user = await User.findById(userId)
+//             .populate('faculty', 'name')
+//             .populate('major', 'majorName academicYear');
+
+//         const friends = user?.friends?.toString().split(',') ?? [];
+//         friends.push(userId);
+
+//         const searchPostQuery = {
+//             $or: [
+//                 {
+//                     content: { $regex: search, $options: 'i' },
+//                 },
+//             ],
+//         };
+
+//         const posts = await Post.find(search ? searchPostQuery : {})
+//             .populate({
+//                 path: 'user',
+//                 select: 'firstName lastName avatar -password',
+//                 populate: {
+//                     'path': 'faculty',
+//                     select: 'name'
+//                 },
+//             })
+//             .populate({
+//                 path: 'user',
+//                 populate: {
+//                     path: 'major',
+//                     select: 'majorName academicYear',
+//                 },
+//             })
+//             .sort({ _id: -1 });
+
+//         const friendsPosts = posts?.filter((post) => {
+//             return friends.includes(post?.user?._id.toString());
+//         });
+
+//         const otherPosts = posts.filter((post) => {
+//             !friends.includes(post?.user?._id.toString());
+//         });
+
+//         let postsRes = null;
+
+//         if (friendsPosts.length > 0) {
+//             postsRes = search ? friendsPosts : [...friendsPosts, ...otherPosts];
+//         } else {
+//             postsRes = posts;
+//         }
+
+//         res.status(200).json({
+//             message: 'Lấy bài viết thành công',
+//             posts: postsRes,
+//         });
+//     } catch (error) {
+//         console.log(error);
+//         res.status(500).json({ message: error.message });
+//     }
+// };
 
 const getPosts = async (req, res) => {
     try {
-        const { userId } = req.body.user;
         const { search } = req.query;
 
-
-        const user = await User.findById(userId)
-            .populate('faculty', 'name')
-            .populate('major', 'majorName academicYear');
-
-        const friends = user?.friends?.toString().split(',') ?? [];
-        friends.push(userId);
-
+        // Tạo điều kiện tìm kiếm dựa trên nội dung bài viết nếu có từ khóa tìm kiếm
         const searchPostQuery = {
             $or: [
                 {
@@ -29,13 +81,14 @@ const getPosts = async (req, res) => {
             ],
         };
 
+        // Lấy tất cả các bài viết từ CSDL, có thể có hoặc không có từ khóa tìm kiếm
         const posts = await Post.find(search ? searchPostQuery : {})
             .populate({
                 path: 'user',
                 select: 'firstName lastName avatar -password',
                 populate: {
-                    'path': 'faculty',
-                    select: 'name'
+                    path: 'faculty',
+                    select: 'name',
                 },
             })
             .populate({
@@ -45,27 +98,47 @@ const getPosts = async (req, res) => {
                     select: 'majorName academicYear',
                 },
             })
+            .sort({ _id: -1 }); // Sắp xếp bài viết theo thứ tự mới nhất
+
+        // Render tất cả các bài viết
+        res.status(200).json({
+            message: 'Lấy bài viết thành công',
+            posts: posts,
+        });
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({ message: error.message });
+    }
+};
+
+const getUserPosts = async (req, res) => {
+    const { userId } = req.params;
+    try {
+        const posts = await Post.find({ user: userId })
+            .populate({
+                path: 'user',
+                select: 'firstName lastName avatar -password',
+                populate: {
+                    path: 'faculty',
+                    select: 'name'
+                }
+            })
+            .populate({
+                path: 'user',
+                populate: {
+                    path: 'major',
+                    select: 'majorName academicYear'
+                }
+            })
             .sort({ _id: -1 });
 
-        const friendsPosts = posts?.filter((post) => {
-            return friends.includes(post?.user?._id.toString());
-        });
-
-        const otherPosts = posts.filter((post) => {
-            !friends.includes(post?.user?._id.toString());
-        });
-
-        let postsRes = null;
-
-        if (friendsPosts.length > 0) {
-            postsRes = search ? friendsPosts : [...friendsPosts, ...otherPosts];
-        } else {
-            postsRes = posts;
+        if (!posts.length) {
+            return res.status(404).json({ message: 'Không có bài viết nào' });
         }
 
         res.status(200).json({
-            message: 'Lấy bài viết thành công',
-            posts: postsRes,
+            message: 'Lấy bài viết của người dùng thành công',
+            posts
         });
     } catch (error) {
         console.log(error);
@@ -218,7 +291,7 @@ const reportPost = async (req, res) => {
         const updatedPost = await post.save();
 
         res.status(200).json({
-            message: 'Báo cáo bài viết thành công',
+            message: `${userReported ? 'Bỏ ' : ''}báo cáo bài viết thành công`,
             post: updatedPost
         });
     } catch (error) {
@@ -370,6 +443,7 @@ const reportPostComment = async (req, res) => {
 const savePost = async (req, res) => {
     const { userId } = req.body.user;
     const { id } = req.params;
+    console.log('user:', req.body.user);
 
     try {
         const user = await User.findById(userId);
@@ -378,22 +452,7 @@ const savePost = async (req, res) => {
             return res.status(404).json({ message: 'Người dùng không tồn tại' });
         }
 
-        const post = await Post.findById(id)
-        // .populate({
-        //     path: 'user',
-        //     select: 'firstName lastName',
-        //     populate: {
-        //         path: 'faculty',
-        //         select: 'name'
-        //     }
-        // })
-        // .populate({
-        //     path: 'user',
-        //     populate: {
-        //         path: 'major',
-        //         select: 'majorName academicYear'
-        //     }
-        // });
+        const post = await Post.findById(id);
 
         if (!post) {
             return res.status(404).json({ message: 'Bài viết không tồn tại' });
@@ -402,25 +461,21 @@ const savePost = async (req, res) => {
         const isSaved = user.saved.includes(id);
 
         if (!isSaved) {
+            post.savedBy.push(userId);
+            post.saves += 1;
             user.saved.push(id);
         } else {
+            post.savedBy = post.savedBy.filter(savedUserId => savedUserId.toString() !== userId);
+            post.saves -= 1;
             user.saved = user.saved.filter(postId => postId.toString() !== id);
         }
 
         await user.save();
+        await post.save();
 
         res.status(200).json({
             message: isSaved ? 'Bỏ lưu bài viết thành công' : 'Lưu bài viết thành công',
             savedPosts: user.saved,
-            // postOwner: {
-            //     firstName: post.user.firstName,
-            //     lastName: post.user.lastName,
-            //     faculty: post.user.faculty.name,
-            //     major: {
-            //         majorName: post.user.major.majorName,
-            //         academicYear: post.user.major.academicYear
-            //     }
-            // }
         });
     } catch (error) {
         console.log(error);
@@ -563,8 +618,11 @@ const replyPostComment = async (req, res) => {
 
 const createPost = async (req, res) => {
     try {
-        const { userId } = req.body.user;
-        const { content } = req.body;
+        const { userId, content, privacy } = req.body;
+
+        if (!userId) {
+            return res.status(400).json({ message: 'userId là bắt buộc!' });
+        }
 
         const images = req.files && req.files['images'] ? req.files['images'].map(file => file.path) : [];
         const files = req.files && req.files['files'] ? req.files['files'].map(file => file.path) : [];
@@ -573,7 +631,8 @@ const createPost = async (req, res) => {
             user: userId,
             content,
             images,
-            files
+            files,
+            privacy
         });
 
         await newPost.save();
@@ -581,6 +640,7 @@ const createPost = async (req, res) => {
         res.status(201).json({ message: 'Tạo bài viết thành công', post: newPost });
     } catch (error) {
         console.log(error);
+        console.log('Uploaded files:', req.files);
         res.status(500).json({ message: error.message });
     }
 };
@@ -588,7 +648,7 @@ const createPost = async (req, res) => {
 const updatePost = async (req, res) => {
     try {
         const id = req.params.id;
-        const { content } = req.body;
+        const { userId, content, privacy, removeImages, removeFiles } = req.body;
 
         const post = await Post.findById(id);
 
@@ -596,35 +656,39 @@ const updatePost = async (req, res) => {
             return res.status(404).json({ message: 'Bài viết không tồn tại' });
         }
 
+        if (post.user.toString() !== userId) {
+            return res.status(403).json({ message: 'Bạn không có quyền chỉnh sửa bài viết này' });
+        }
+
+        if (removeImages && Array.isArray(removeImages)) {
+            post.images = post.images.filter(image => !removeImages.includes(image));
+        }
+
+        if (removeFiles && Array.isArray(removeFiles)) {
+            post.files = post.files.filter(file => !removeFiles.includes(file));
+        }
+
         if (req.files && req.files['images']) {
-            const imageUploadPromises = req.files['images'].map(async (file) => {
-                const result = await upload(file.path, 'CTU-social/images');
-                await unlinkFile(file.path);  // Xóa file tạm sau khi upload
-                return result.secure_url;
-            });
-            const newImageUrls = await Promise.all(imageUploadPromises);
-            post.images = [...post.images, ...newImageUrls];
+            const newImagePaths = req.files['images'].map(file => file.path);
+            post.images = [...post.images, ...newImagePaths];
         }
 
         if (req.files && req.files['files']) {
-            const fileUploadPromises = req.files['files'].map(async (file) => {
-                const result = await upload(file.path, 'CTU-social/files');
-                await unlinkFile(file.path);  // Xóa file tạm sau khi upload
-                return result.secure_url;
-            });
-            const newFileUrls = await Promise.all(fileUploadPromises);
-            post.files = [...post.files, ...newFileUrls];
+            const newFilePaths = req.files['files'].map(file => file.path);
+            post.files = [...post.files, ...newFilePaths];
         }
 
-        // Chỉ cập nhật content nếu nó không phải là undefined
         if (content !== undefined) {
             post.content = content;
+        }
+        if (privacy !== undefined) {
+            post.privacy = privacy;
         }
 
         await post.save();
         res.status(200).json({ message: 'Cập nhật bài viết thành công', post });
     } catch (error) {
-        console.error(error);
+        console.log(error);
         res.status(500).json({ message: error.message });
     }
 };
@@ -638,7 +702,7 @@ const deletePost = async (req, res) => {
             return res.status(404).json({ message: 'Bài viết không tồn tại' });
         }
 
-        await post.remove();
+        await Post.deleteOne({ _id: id });
 
         res.status(200).json({ message: 'Xóa bài viết thành công' });
     } catch (error) {
@@ -691,6 +755,7 @@ const deletePostComment = async (req, res) => {
 module.exports = {
     getPosts,
     getPost,
+    getUserPosts,
     getUserPost,
     getComments,
     likePost,

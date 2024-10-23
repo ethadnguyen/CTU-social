@@ -1,25 +1,31 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useDispatch } from "react-redux";
+<<<<<<< HEAD
 import { useForm } from "react-hook-form";
+=======
+import { set, useForm } from "react-hook-form";
+>>>>>>> 608b3c53c971202cb226c405f53bd747709aadda
 import { CustomButton, Loading, TextInput, SelectInput } from "../components";
 import { BgImage } from "../assets";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faChevronLeft, faChevronRight } from '@fortawesome/free-solid-svg-icons';
 import { useSelector } from "react-redux";
 import backgroundImage from '../assets/CTU.jpg';
+import { fetchFaculties, fetchMajors } from './../redux/facultySlice';
+import axiosInstance from '../api/axiosConfig';
 
 //Thêm dữ liệu khoa từ data
 import { faculties } from "../assets/register";
 
 const Register = () => {
   const { theme } = useSelector((state) => state.theme);
+  const { faculties, majors } = useSelector((state) => state.faculty);
   const {
     register,
     handleSubmit,
     getValues,
     trigger,
-    setError,
     formState: { errors },
   } = useForm({
     mode: "onChange",
@@ -27,13 +33,13 @@ const Register = () => {
 
   const [currentStep, setCurrentStep] = useState(1);
   const [selectedFaculty, setSelectedFaculty] = useState("");
-  const [availableMajors, setAvailableMajors] = useState([]);
   const [selectedCourse, setSelectedCourse] = useState("");
   const [selectedMajor, setSelectedMajor] = useState("");
   const [showFacultyError, setShowFacultyError] = useState(false);
   const [showMajorError, setShowMajorError] = useState(false);
   const [showCourseError, setShowCourseError] = useState(false);
 
+<<<<<<< HEAD
   //Hàm truy xuất các khoa, ngành, khóa
   const getFaculties = () => {
     return faculties;
@@ -73,52 +79,128 @@ const Register = () => {
     console.log("is submitted")
   };
 
+=======
+>>>>>>> 608b3c53c971202cb226c405f53bd747709aadda
   const [errMsg, setErrMsg] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const dispatch = useDispatch();
+
+
+  useEffect(() => {
+    dispatch(fetchFaculties());
+  }, [dispatch]);
+
+  useEffect(() => {
+    if (selectedFaculty) {
+      dispatch(fetchMajors(selectedFaculty));
+    }
+  }, [selectedFaculty, dispatch]);
+
+  const onSubmit = async (data) => {
+    const { cPassword, ...filteredData } = data;
+    console.log(data);
+    try {
+      setIsSubmitting(true);
+      const res = await axiosInstance.post('/auth/register', {
+        ...filteredData,
+        faculty: selectedFaculty,
+        major: selectedMajor,
+        academicYear: selectedCourse,
+      });
+      setIsSubmitting(false);
+    } catch (error) {
+      setIsSubmitting(false);
+      console.log(error);
+      setErrMsg(error.response.data.message);
+    }
+  };
 
   const steps = [
     {
       title: "Thông tin cá nhân",
       content: (
-          <div className='w-full flex-content flex-col lg:flex-row gap-1 md:gap-2'> 
-            <div className='w-full flex flex-col lg:flex-row gap-1 md:gap-2'>
-              <TextInput
-                name='firstName'
-                label={<span className="font-bold">Tên</span>}
-                placeholder='Tên'
-                type='text'
-                styles='w-full'
-                register={register("firstName", {
-                  required: "Tên không được để trống!",
-                })}
-                error={errors.firstName ? errors.firstName?.message : ""}
-              />
+        <div className='w-full flex-content flex-col lg:flex-row gap-1 md:gap-2'>
+          <div className='w-full flex flex-col lg:flex-row gap-1 md:gap-2'>
+            <TextInput
+              name='firstName'
+              label={<span className="font-bold">Tên</span>}
+              placeholder='Tên'
+              type='text'
+              styles='w-full'
+              register={register("firstName", {
+                required: "Tên không được để trống!",
+              })}
+              error={errors.firstName ? errors.firstName?.message : ""}
+            />
 
-              <TextInput
-                label={<span className="font-bold">Họ</span>}
-                placeholder='Họ'
-                type='lastName'
-                styles='w-full'
-                register={register("lastName", {
-                  required: "Họ không được để trống!",
-                })}
-                error={errors.lastName ? errors.lastName?.message : ""}
-              />
-            </div>
+            <TextInput
+              label={<span className="font-bold">Họ</span>}
+              placeholder='Họ'
+              type='lastName'
+              styles='w-full'
+              register={register("lastName", {
+                required: "Họ không được để trống!",
+              })}
+              error={errors.lastName ? errors.lastName?.message : ""}
+            />
+          </div>
 
-            <div className='w-full flex flex-col lg:flex-row gap-1 md:gap-2'>
-              <TextInput
-                  name='mssv'
-                  label={<span className="font-bold">Mã số sinh viên</span>}
-                  placeholder='B1234567'
-                  type='text'
+          <div className='w-full flex flex-col lg:flex-row gap-1 md:gap-2'>
+            <TextInput
+              name='student_id'
+              label={<span className="font-bold">Mã số sinh viên</span>}
+              placeholder='B1234567'
+              type='text'
+              styles='w-full'
+              register={register("student_id", {
+                required: "Mã số sinh viên không được để trống!",
+              })}
+              error={errors.student_id ? errors.student_id?.message : ""}
+            />
+          </div>
+
+          <div className='w-full my-1 lg:flex-row gap-1 md:gap-2'>
+            <SelectInput
+              label='Khoa'
+              value={selectedFaculty}
+              onChange={(e) => {
+                setSelectedFaculty(e.target.value);
+                setShowFacultyError(false);
+              }}
+              options={[
+                { value: "", label: "Chọn khoa" },
+                ...faculties.map((faculty) => ({
+                  value: faculty._id,
+                  label: faculty.name,
+                })),
+              ]}
+              styles='w-full'
+            />
+
+            {showFacultyError && (
+              <div className="text-red text-sm">Vui lòng chọn Khoa!</div>
+            )}
+
+            <div className="w-full flex gap-1">
+              <div className="flex flex-col w-full">
+                <SelectInput
+                  label='Ngành'
+                  value={selectedMajor}
+                  onChange={(e) => {
+                    setSelectedMajor(e.target.value);
+                    console.log(e.target.value);
+                    setShowMajorError(false); // Ẩn thông báo lỗi khi người dùng chọn lại
+                  }}
+                  options={[
+                    { value: "", label: "Chọn ngành" },
+                    ...majors.map((major) => ({
+                      value: major._id,
+                      label: major.majorName,
+                    })),
+                  ]}
                   styles='w-full'
-                  register={register("mssv", {
-                    required: "Mã số sinh viên không được để trống!",
-                  })}
-                  error={errors.mssv ? errors.mssv?.message : ""}
                 />
+<<<<<<< HEAD
             </div>
 
             <div className='w-full my-1 lg:flex-row gap-1 md:gap-2'>
@@ -187,94 +269,110 @@ const Register = () => {
                     <div className="text-red text-sm">Vui lòng chọn Khóa!</div>
                   )}
                 </div>
+=======
+                {showMajorError && (
+                  <div className="text-red text-sm">Vui lòng chọn Ngành!</div>
+                )}
+>>>>>>> 608b3c53c971202cb226c405f53bd747709aadda
               </div>
 
-
-
-              {/* <div className="w-full flex flex-col relative">
-                {showMajorError && (
-                  <div className="flex justify-start text-red text-sm">Vui lòng chọn Ngành!</div>
-                )}
+              <div className="flex flex-col w-full">
+                <SelectInput
+                  label='Khóa'
+                  value={selectedCourse}
+                  onChange={(e) => {
+                    setSelectedCourse(e.target.value);
+                    setShowCourseError(false); // Ẩn thông báo lỗi khi người dùng chọn lại
+                  }}
+                  options={[
+                    { value: "", label: "Chọn khóa" },
+                    ...(selectedMajor && majors.find(major => major._id === selectedMajor)?.academicYear || []).map((course) => ({
+                      value: course,
+                      label: course,
+                    })),
+                  ]}
+                  styles='w-full'
+                />
                 {showCourseError && (
-                  <div className="flex justify-end text-red text-sm">Vui lòng chọn Khóa!</div>
+                  <div className="text-red text-sm">Vui lòng chọn Khóa!</div>
                 )}
-              </div> */}
-
+              </div>
             </div>
           </div>
-        ),
+        </div>
+      ),
     },
 
     {
       title: "Thông tin đăng nhập",
       content: (
-        <div className='w-full flex-content flex-col lg:flex-row gap-1 md:gap-2'> 
-            
-            <div className='w-full flex flex-col lg:flex-row gap-1 md:gap-2'>
-              <TextInput 
-                name='birthdate'
-                label={<span className="font-bold">Ngày sinh</span>}
-                type='date' 
-                styles='w-full'
-                register={register("birthdate", {
-                  required: "Ngày sinh không được để trống!"
-                })}
-                error={errors.birthdate ? errors.birthdate.message : ""}
-              />
-            </div>
+        <div className='w-full flex-content flex-col lg:flex-row gap-1 md:gap-2'>
 
-            <div className='w-full my-1 flex flex-col lg:flex-row gap-1 md:gap-2'>
-              <TextInput
-                name='email'
-                placeholder='B1234567@ctu.edu.vn'
-                label={<span className="font-bold">Địa chỉ email</span>}
-                type='email'
-                register={register("email", {
-                  required: "Địa chỉ Email là bắt buộc!",
-                  pattern: {
-                    value: /^[A-Za-z0-9]+(@ctu\.edu\.vn)|(@+[A-Za-z]+\.+ctu\.edu\.vn)$/,
-                    message: "Email phải là mail của Đại Học Cần Thơ!"
-                  }
-                })}
-                styles='w-full'
-                error={errors.email ? errors.email.message : ""}
-              />
-            </div>
+          <div className='w-full flex flex-col lg:flex-row gap-1 md:gap-2'>
+            <TextInput
+              name='dateOfBirth'
+              label={<span className="font-bold">Ngày sinh</span>}
+              type='date'
+              styles='w-full'
+              register={register("dateOfBirth", {
+                required: "Ngày sinh không được để trống!"
+              })}
+              error={errors.dateOfBirth ? errors.dateOfBirth.message : ""}
+            />
+          </div>
 
-            <div className='w-full my-1 flex flex-col lg:flex-row gap-1 md:gap-2'>
-              <TextInput
-                name='password'
-                label={<span className="font-bold">Mật khẩu</span>}
-                placeholder='Mật khẩu'
-                type='password'
-                styles='w-full'
-                register={register("password", {
-                  required: "Mật khẩu là bắt buộc!",
-                })}
-                error={errors.password ? errors.password?.message : ""}
-              />
-
-              <TextInput
-                label={<span className="font-bold">Xác nhận mật khẩu</span>}
-                placeholder='Mật khẩu'
-                type='password'
-                styles='w-full'
-                register={register("cPassword", {
-                  validate: (value) => {
-                    const { password } = getValues();
-
-                    if (password != value) {
-                      return "Mật khẩu không khớp!";
-                    }
-                  },
-                })}
-                error={
-                  errors.cPassword && errors.cPassword.type === "validate"
-                    ? errors.cPassword?.message
-                    : ""
+          <div className='w-full my-1 flex flex-col lg:flex-row gap-1 md:gap-2'>
+            <TextInput
+              name='email'
+              placeholder='B1234567@ctu.edu.vn'
+              label={<span className="font-bold">Địa chỉ email</span>}
+              type='email'
+              register={register("email", {
+                required: "Địa chỉ Email là bắt buộc!",
+                pattern: {
+                  value: /^[A-Za-z0-9]+(@ctu\.edu\.vn)|(@+[A-Za-z]+\.+ctu\.edu\.vn)$/,
+                  message: "Email phải là mail của Đại Học Cần Thơ!"
                 }
-              />
-            </div>
+              })}
+              styles='w-full'
+              error={errors.email ? errors.email.message : ""}
+            />
+          </div>
+
+          <div className='w-full my-1 flex flex-col lg:flex-row gap-1 md:gap-2'>
+            <TextInput
+              name='password'
+              label={<span className="font-bold">Mật khẩu</span>}
+              placeholder='Mật khẩu'
+              type='password'
+              styles='w-full'
+              register={register("password", {
+                required: "Mật khẩu là bắt buộc!",
+              })}
+              error={errors.password ? errors.password?.message : ""}
+            />
+
+            <TextInput
+              label={<span className="font-bold">Xác nhận mật khẩu</span>}
+              placeholder='Mật khẩu'
+              type='password'
+              styles='w-full'
+              register={register("cPassword", {
+                validate: (value) => {
+                  const { password } = getValues();
+
+                  if (password != value) {
+                    return "Mật khẩu không khớp!";
+                  }
+                },
+              })}
+              error={
+                errors.cPassword && errors.cPassword.type === "validate"
+                  ? errors.cPassword?.message
+                  : ""
+              }
+            />
+          </div>
 
         </div>
       ),
@@ -283,8 +381,8 @@ const Register = () => {
 
   const handleNextStep = async () => {
     const fieldsToValidate = currentStep === 1
-      ? ["firstName", "lastName", "mssv", "faculty", "major", "course"]
-      : ["email", "birthdate", "password", "cPassword"];
+      ? ["firstName", "lastName", "student_id", "faculty", "major", "course"]
+      : ["email", "dateOfBirth", "password", "cPassword"];
 
     let isValid = await trigger(fieldsToValidate);
     //validate
@@ -313,7 +411,7 @@ const Register = () => {
   };
 
   return (
-    <div style={{ 
+    <div style={{
       backgroundImage: `url(${backgroundImage})`,
       backgroundSize: 'cover',
       backgroundPosition: 'center',
@@ -323,7 +421,7 @@ const Register = () => {
         <div className='w-full md:w-1/3 h-fit lg:h-fix 2xl:h-5/7 py-8 lg:py-0 flex flex-row-reverse justify-center bg-primary rounded-xl overflow-hidden shadow-xl'>
           <div className='w-full h-full mb-10 mt-10 p-10 2xl:px-20 flex flex-col overflow-y-auto'>
             <div className='w-full flex gap-2 items-center mb-6 justify-center'>
-              <img src= {BgImage} className='w-14 h-14' />
+              <img src={BgImage} className='w-14 h-14' />
               <span className='text-2xl text-[#065ad8] font-semibold' >
                 CTU Social
               </span>
@@ -343,6 +441,12 @@ const Register = () => {
               <div className={`${currentStep === 2 ? '' : 'hidden'}`}>
                 {steps[1].content}
               </div>
+
+              {errMsg && (
+                <div className="text-red text-center">
+                  {errMsg}
+                </div>
+              )}
 
               {/* Nút điều hướng */}
               <div className="flex justify-between items-center">

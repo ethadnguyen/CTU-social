@@ -54,6 +54,16 @@ const userSchema = mongoose.Schema({
         ref: 'Major',
         required: true
     },
+    tags: [
+        {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Tag',
+        }
+    ],
+    academicYear: {
+        type: String,
+        required: true
+    },
     facebook: {
         type: String,
     },

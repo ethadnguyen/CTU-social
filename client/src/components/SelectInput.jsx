@@ -1,7 +1,7 @@
 import React from "react";
 
 const SelectInput = React.forwardRef(
-  ({ label, labelStyles, options, value, onChange, styles, error }, ref) => {
+  ({ label, labelStyles, options, value, onChange, styles, error, register }, ref) => {
     return (
       <div className="w-full flex flex-col mt-2">
         {label && (
@@ -20,6 +20,7 @@ const SelectInput = React.forwardRef(
             className={`bg-secondary rounded border border-[#66666690] mb-2 outline-none text-sm text-ascent-2 px-4 py-3 placeholder:text-[#666] ${styles}`}
             aria-invalid={error ? "true" : "false"}
             required
+            {...register}
           >
             {options.map((option) => (
               <option key={option.value} value={option.value}>

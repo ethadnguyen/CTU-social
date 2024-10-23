@@ -86,6 +86,13 @@ const createUserSchema = Joi.object({
             'string.empty': 'Ngành không được để trống',
             'string.pattern.base': 'Ngành phải là một ObjectId hợp lệ',
         }),
+    academicYear: Joi.string()
+        .regex(/^K\d{2}$/)
+        .required()
+        .messages({
+            'string.empty': 'Khóa học không được để trống',
+            'string.pattern.base': 'Khóa học phải có định dạng K và theo sau là 2 chữ số, ví dụ: K47, K48',
+        }),
     facebook: Joi.string()
         .uri()
         .optional()

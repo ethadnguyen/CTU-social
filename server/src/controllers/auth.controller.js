@@ -63,7 +63,7 @@ const login = async (req, res) => {
     try {
         const { email, password } = req.body;
 
-        const user = await User.findOne({ email });
+        const user = await User.findOne({ email }).populate('faculty').populate('major');
         if (!user) {
             return res.status(400).json({ message: 'Người dùng không tồn tại' });
         }

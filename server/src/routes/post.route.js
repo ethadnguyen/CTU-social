@@ -18,7 +18,8 @@ const {
     savePost,
     sharePost,
     getSharedPosts,
-    getSavedPosts
+    getSavedPosts,
+    getUserPosts
 } = require('../controllers/post.controller');
 const upload = require('../utils/upload');
 const { validateCreateComment, validateCreatePost } = require('../middlewares/validate.middleware');
@@ -27,19 +28,23 @@ const router = express.Router();
 
 //get post
 router.get('/', authMiddleware, getPosts);
+router.get('/:userId', authMiddleware, getUserPosts);
 router.get('/:id', authMiddleware, getPost);
 router.get('/shared', authMiddleware, getSharedPosts);
 router.get('/saved', authMiddleware, getSavedPosts);
-router.post('get-user-post/:id', authMiddleware, getUserPost);
+router.post('/get-user-post/:id', authMiddleware, getUserPost);
 
 //create post
-router.post('/create-post', authMiddleware, validateCreatePost, upload.fields([
+router.post('/create-post', authMiddleware, upload.fields([
     { name: 'images', maxCount: 5 },
     { name: 'files', maxCount: 5 }
-]), createPost);
+]), validateCreatePost, createPost);
 
 // update post
-router.put('/:id', authMiddleware, updatePost);
+router.put('/:id', authMiddleware, upload.fields([
+    { name: 'images', maxCount: 5 },
+    { name: 'files', maxCount: 5 }
+]), validateCreatePost, updatePost);
 
 // get comments
 router.get('/comments/:postId', authMiddleware, getComments);
