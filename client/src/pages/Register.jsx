@@ -1,7 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useDispatch } from "react-redux";
+<<<<<<< HEAD
+import { useForm } from "react-hook-form";
+=======
 import { set, useForm } from "react-hook-form";
+>>>>>>> 608b3c53c971202cb226c405f53bd747709aadda
 import { CustomButton, Loading, TextInput, SelectInput } from "../components";
 import { BgImage } from "../assets";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -10,6 +14,9 @@ import { useSelector } from "react-redux";
 import backgroundImage from '../assets/CTU.jpg';
 import { fetchFaculties, fetchMajors } from './../redux/facultySlice';
 import axiosInstance from '../api/axiosConfig';
+
+//Thêm dữ liệu khoa từ data
+import { faculties } from "../assets/register";
 
 const Register = () => {
   const { theme } = useSelector((state) => state.theme);
@@ -32,6 +39,48 @@ const Register = () => {
   const [showMajorError, setShowMajorError] = useState(false);
   const [showCourseError, setShowCourseError] = useState(false);
 
+<<<<<<< HEAD
+  //Hàm truy xuất các khoa, ngành, khóa
+  const getFaculties = () => {
+    return faculties;
+  };
+  
+  const getMajors = () => {
+    return faculties.flatMap((faculty) => faculty.majors);
+  };
+  
+  const getMajorsByFacultyId = (facultyId) => {
+    const faculty = faculties.find((f) => f.id === facultyId);
+    return faculty ? faculty.majors : [];
+  };
+  
+  const getCoursesByMajorId = (majorId) => {
+    for (const faculty of faculties) {
+      const major = faculty.majors.find((m) => m.id === majorId);
+      if (major) {
+        return major.courses;
+      }
+    }
+    return [];
+  };
+  //
+  
+  const getCoursesByFacultyId = (facultyId) => {
+    const faculty = faculties.find((f) => f.id === facultyId);
+    return faculty ? faculty.majors.flatMap((major) => major.courses) : [];
+  };
+
+  useEffect(() => {
+    const majors = getMajorsByFacultyId(selectedFaculty);
+    setAvailableMajors(majors);
+  }, [selectedFaculty]);
+
+  const onSubmit = async (data) => {
+    console.log("is submitted")
+  };
+
+=======
+>>>>>>> 608b3c53c971202cb226c405f53bd747709aadda
   const [errMsg, setErrMsg] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const dispatch = useDispatch();
@@ -151,9 +200,80 @@ const Register = () => {
                   ]}
                   styles='w-full'
                 />
+<<<<<<< HEAD
+            </div>
+
+            <div className='w-full my-1 lg:flex-row gap-1 md:gap-2'>
+              <SelectInput
+                label='Khoa'
+                value={selectedFaculty}
+                onChange={(e) => {
+                  setSelectedFaculty(parseInt(e.target.value, 10));
+                  setShowFacultyError(false); // Ẩn thông báo lỗi khi người dùng chọn lại
+                }}
+                options={[
+                  { value: "", label: "Chọn khoa" },
+                  ...getFaculties().map((faculty) => ({
+                    value: faculty.id,
+                    label: faculty.name,
+                  })),
+                ]}
+                styles='w-full'
+              />
+
+              {showFacultyError && (
+                <div className="text-red text-sm">Vui lòng chọn Khoa!</div>
+              )}
+
+              <div className="w-full flex gap-1">
+                <div className="flex flex-col w-full">
+                  <SelectInput
+                    label='Ngành'
+                    value={selectedMajor}
+                    onChange={(e) => {
+                      setSelectedMajor(parseInt(e.target.value, 10));
+                      setShowMajorError(false); // Ẩn thông báo lỗi khi người dùng chọn lại
+                    }}
+                    options={[
+                      { value: "", label: "Chọn ngành" },
+                      ...availableMajors.map((major) => ({
+                        value: major.id,
+                        label: major.name,
+                      })),
+                    ]}
+                    styles='w-full'
+                  />
+                  {showMajorError && (
+                    <div className="text-red text-sm">Vui lòng chọn Ngành!</div>
+                  )}
+                </div>
+
+                <div className="flex flex-col w-full">
+                  <SelectInput
+                    label='Khóa'
+                    value={selectedCourse}
+                    onChange={(e) => {
+                      setSelectedCourse(parseInt(e.target.value, 10));
+                      setShowCourseError(false); // Ẩn thông báo lỗi khi người dùng chọn lại
+                    }}
+                    options={[
+                      { value: "", label: "Chọn khóa" },
+                      ...(selectedMajor && availableMajors.find(major => major.id === selectedMajor)?.courses || []).map((course) => ({
+                        value: course.id,
+                        label: course.name,
+                      })),
+                    ]}
+                    styles='w-full'
+                  />
+                  {showCourseError && (
+                    <div className="text-red text-sm">Vui lòng chọn Khóa!</div>
+                  )}
+                </div>
+=======
                 {showMajorError && (
                   <div className="text-red text-sm">Vui lòng chọn Ngành!</div>
                 )}
+>>>>>>> 608b3c53c971202cb226c405f53bd747709aadda
               </div>
 
               <div className="flex flex-col w-full">

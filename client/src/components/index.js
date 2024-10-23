@@ -6,7 +6,6 @@ import ProfileCard from "./ProfileCard";
 import FriendsCard from "./FriendsCard";
 import PostCard from "./PostCard";
 import EditProfile from "./EditProfile";
-import * as FacultiesSelector from "./FacultiesSelector"
 import SelectInput from "./SelectInput";
 import Menu from "./Menu";
 import ImageDetail from "./ImageDetail";
@@ -23,7 +22,6 @@ export {
   FriendsCard,
   PostCard,
   EditProfile,
-  FacultiesSelector,
   SelectInput,
   Menu,
   ImageDetail,
