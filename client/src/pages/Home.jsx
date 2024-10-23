@@ -19,7 +19,7 @@ import { BiImages } from "react-icons/bi";
 import { useForm } from "react-hook-form";
 import { CiFileOn } from "react-icons/ci";
 import axiosInstance from '../api/axiosConfig';
-import { getPosts, likePost, reportPost } from '../redux/postSlice';
+import { getPosts, likePost, reportPost, updatePosts } from '../redux/postSlice';
 import { FaFile } from 'react-icons/fa6';
 import io from 'socket.io-client';
 import { toast } from 'react-toastify';
@@ -119,7 +119,23 @@ const Home = () => {
 
     try {
       await dispatch(likePost(postId));
-      await dispatch(getPosts());
+
+      const updatedPosts = posts.map((p) => {
+        if (p._id === postId) {
+          // Kiểm tra xem user đã like bài viết hay chưa
+          const hasLiked = p.likedBy.includes(userId);
+
+          return {
+            ...p,
+            likes: hasLiked ? p.likes - 1 : p.likes + 1,  // Tăng hoặc giảm số lượng like
+            likedBy: hasLiked
+              ? p.likedBy.filter(id => id !== userId)  // Bỏ userId nếu đã like
+              : [...p.likedBy, userId],  // Thêm userId nếu chưa like
+          };
+        }
+        return p;
+      });
+      dispatch(updatePosts(updatedPosts));
       socket.emit('likePost', { userId, postId });
 
     } catch (error) {

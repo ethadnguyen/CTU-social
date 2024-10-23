@@ -9,7 +9,12 @@ export const getPosts = createAsyncThunk('post/getPosts', async () => {
 export const getUserPosts = createAsyncThunk('post/getUserPosts', async (userId) => {
   const response = await axiosInstance.get(`/posts/${userId}`);
   return response.data.posts;
-})
+});
+
+export const getSavedPosts = createAsyncThunk('post/getSavedPosts', async (userId) => {
+  const response = await axiosInstance.get(`/posts/saved/${userId}`);
+  return response.data.savedPosts;
+});
 
 export const likePost = createAsyncThunk('post/likePost', async (postId) => {
   const response = await axiosInstance.post(`/posts/like/${postId}`);
@@ -34,6 +39,7 @@ export const reportPost = createAsyncThunk('post/reportPost', async (postId) => 
 const initialState = {
   posts: [],
   userPosts: [],
+  savedPosts: [],
   status: 'idle',
   error: null
 };
@@ -41,6 +47,14 @@ const initialState = {
 const postSlice = createSlice({
   name: "post",
   initialState,
+  reducers: {
+    updatePosts: (state, action) => {
+      state.posts = action.payload;
+    },
+    updateSavedPosts: (state, action) => {
+      state.savedPosts = action.payload;
+    }
+  },
   extraReducers: (builder) => {
     builder
       .addCase(getPosts.pending, (state) => {
@@ -66,6 +80,18 @@ const postSlice = createSlice({
         state.status = 'failed';
         state.error = action.error.message;
       })
+      //get saved posts
+      .addCase(getSavedPosts.pending, (state) => {
+        state.status = 'loading';
+      })
+      .addCase(getSavedPosts.fulfilled, (state, action) => {
+        state.status = 'succeeded';
+        state.savedPosts = action.payload;
+      })
+      .addCase(getSavedPosts.rejected, (state, action) => {
+        state.status = 'failed';
+        state.error = action.error.message;
+      })
       // like post
       .addCase(likePost.pending, (state) => {
         state.status = 'loading';
@@ -86,10 +112,12 @@ const postSlice = createSlice({
         state.status = 'loading';
       })
       .addCase(savePost.fulfilled, (state, action) => {
+        state.status = 'succeeded';
         const { postId, data } = action.payload;
         const post = state.posts.find((p) => p.id === postId);
         if (post) {
           post.saves = data.saves;
+          post.savedBy = data.savedBy;
         }
       })
       .addCase(savePost.rejected, (state, action) => {
@@ -125,4 +153,5 @@ const postSlice = createSlice({
   }
 });
 
+export const { updatePosts, updateSavedPosts } = postSlice.actions;
 export default postSlice.reducer;

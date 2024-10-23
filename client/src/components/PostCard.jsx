@@ -10,9 +10,10 @@ import TextInput from "./TextInput";
 import Loading from "./Loading";
 import CustomButton from "./CustomButton";
 import { postComments } from "../assets/home";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { ImageDetail } from ".";
 import Modal from "react-modal";
+import { getPosts, savePost } from '../redux/postSlice';
 
 const ReplyCard = ({ reply, user, handleLike }) => {
   return (
@@ -131,6 +132,8 @@ const PostCard = ({ post, user, deletePost, likePost, reportPost }) => {
   const [showComments, setShowComments] = useState(0);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const hasReported = post?.reportedBy?.includes(user?._id);
+  const isSaved = post?.savedBy?.includes(user?._id);
+  const dispatch = useDispatch();
 
   const openModal = () => setIsModalOpen(true);
   const closeModal = () => setIsModalOpen(false);
@@ -149,6 +152,12 @@ const PostCard = ({ post, user, deletePost, likePost, reportPost }) => {
   const handleLikeComment = async () => {
     // likePost(post._id);
   };
+
+  const handleSavePost = async () => {
+    console.log('isSaved', isSaved);
+    await dispatch(savePost(post._id));
+    await dispatch(getPosts());
+  }
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -208,8 +217,8 @@ const PostCard = ({ post, user, deletePost, likePost, reportPost }) => {
               <CiMenuKebab className='h-full text-lg cursor-pointer text-ascent-1' onClick={() => setShowMenu(!showMenu)} />
               {showMenu && (
                 <div className="absolute top-0 z-50 border border-gray-300 rounded-md end-5 bg-primary">
-                  <ul className="px-2 py-1 cursor-pointer text-ascent-1 itemscenters">
-                    <li className='py-1' onClick={() => { }}>Lưu</li>
+                  <ul className="px-2 py-1 cursor-pointer text-ascent-1 items-center">
+                    <li className={`${isSaved ? 'text-red' : ''} py-1`} onClick={handleSavePost}>{isSaved ? 'Bỏ lưu' : 'Lưu'}</li>
                     <li className='py-1' onClick={() => { }}><span>Chia&nbsp;sẻ</span></li>
                     {user?._id === post?.user?._id && (
                       <li className='py-1' onClick={() => deletePost(post._id)}>Xóa</li>

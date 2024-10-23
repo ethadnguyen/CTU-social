@@ -443,6 +443,7 @@ const reportPostComment = async (req, res) => {
 const savePost = async (req, res) => {
     const { userId } = req.body.user;
     const { id } = req.params;
+    console.log('user:', req.body.user);
 
     try {
         const user = await User.findById(userId);
@@ -451,22 +452,7 @@ const savePost = async (req, res) => {
             return res.status(404).json({ message: 'Người dùng không tồn tại' });
         }
 
-        const post = await Post.findById(id)
-        // .populate({
-        //     path: 'user',
-        //     select: 'firstName lastName',
-        //     populate: {
-        //         path: 'faculty',
-        //         select: 'name'
-        //     }
-        // })
-        // .populate({
-        //     path: 'user',
-        //     populate: {
-        //         path: 'major',
-        //         select: 'majorName academicYear'
-        //     }
-        // });
+        const post = await Post.findById(id);
 
         if (!post) {
             return res.status(404).json({ message: 'Bài viết không tồn tại' });
@@ -475,25 +461,21 @@ const savePost = async (req, res) => {
         const isSaved = user.saved.includes(id);
 
         if (!isSaved) {
+            post.savedBy.push(userId);
+            post.saves += 1;
             user.saved.push(id);
         } else {
+            post.savedBy = post.savedBy.filter(savedUserId => savedUserId.toString() !== userId);
+            post.saves -= 1;
             user.saved = user.saved.filter(postId => postId.toString() !== id);
         }
 
         await user.save();
+        await post.save();
 
         res.status(200).json({
             message: isSaved ? 'Bỏ lưu bài viết thành công' : 'Lưu bài viết thành công',
             savedPosts: user.saved,
-            // postOwner: {
-            //     firstName: post.user.firstName,
-            //     lastName: post.user.lastName,
-            //     faculty: post.user.faculty.name,
-            //     major: {
-            //         majorName: post.user.major.majorName,
-            //         academicYear: post.user.major.academicYear
-            //     }
-            // }
         });
     } catch (error) {
         console.log(error);
