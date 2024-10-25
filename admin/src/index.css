@@ -108,3 +108,19 @@ z-index: 49;
 .text-green {
   color: rgb(78, 201, 124);
 }
+
+.hover:bg-green {
+  background-color: transparent;
+}
+
+.hover:bg-green:hover {
+  background-color: rgb(78, 201, 124);
+}
+
+.hover:text-green {
+  color: transparent;
+}
+
+.hover:text-green:hover {
+  color: rgb(78, 201, 124);
+}

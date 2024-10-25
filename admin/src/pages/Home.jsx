@@ -13,7 +13,7 @@ import { useSelector } from "react-redux";
 const Home = () => {
   const { user, edit } = useSelector((state) => state.user);
   
-  const [activeTab, setActiveTab] = useState("khoa");
+  const [activeTab, setActiveTab] = useState("nhom");
 
   const handleTabClick = (tab) => {
     setActiveTab(tab);
@@ -25,21 +25,13 @@ const Home = () => {
         <TopBar />
         <div className="flex flex-1 overflow-hidden">
           {/* Sidebar */}
-          <div className="h-full w-1/4 mb-3">
+          <div className="h-full w-1/4 mb-3 overflow-y-auto">
             <div className="hidden w-full md:flex flex-col p-4"> 
               <ProfileCard user={user} /> 
             </div>
             
-            <div className="rounded-md p-4 h-full">
+            <div className="rounded-md p-4 h-80">
               <ul className="bg-primary rounded-md h-full">
-                <li
-                  className={`pl-6 py-3 cursor-pointer hover:bg-gray text-ascent-1 ${
-                    activeTab === "khoa" ? "bg-sky" : ""
-                  } rounded-md`}
-                  onClick={() => handleTabClick("khoa")}
-                >
-                  Quản lý Khoa
-                </li>
                 <li
                   className={`pl-6 py-3 cursor-pointer hover:bg-gray text-ascent-1 ${
                     activeTab === "nhom" ? "bg-sky" : ""
@@ -54,7 +46,15 @@ const Home = () => {
                   } rounded-md`}
                   onClick={() => handleTabClick("baiDang")}
                 >
-                  Quản lý Bài đăng
+                  Quản lý người dùng
+                </li>
+                <li
+                  className={`pl-6 py-3 cursor-pointer hover:bg-gray text-ascent-1 ${
+                    activeTab === "khoa" ? "bg-sky" : ""
+                  } rounded-md`}
+                  onClick={() => handleTabClick("khoa")}
+                >
+                  Quản lý Khoa
                 </li>
                 <li
                   className={`pl-6 py-3 cursor-pointer hover:bg-gray text-ascent-1 ${
