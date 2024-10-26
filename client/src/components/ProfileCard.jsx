@@ -5,7 +5,6 @@ import { LiaEditSolid } from "react-icons/lia";
 import {
   BsBriefcase,
   BsFacebook,
-  BsInstagram,
   BsPersonFillAdd,
 } from "react-icons/bs";
 import { FaRegBuilding, FaLinkedin, FaGithub } from "react-icons/fa";
@@ -20,6 +19,9 @@ const ProfileCard = ({ user }) => {
   const dispatch = useDispatch();
   const location = useLocation();
 
+  const handleAddFriend = (userId) => {
+    console.log("Add friend:", userId);
+  };
 
   return (
     <div>
@@ -41,19 +43,18 @@ const ProfileCard = ({ user }) => {
 
           <div className=''>
             {user?._id === data?._id && (
-              location.pathname === "/" && (
-                <LiaEditSolid
-                  size={22}
-                  className='cursor-pointer text-blue'
-                  onClick={() => dispatch(UpdateProfile(true))}
-                />
-              )
+              <LiaEditSolid
+                size={22}
+                className='cursor-pointer text-blue'
+                onClick={() => dispatch(UpdateProfile(true))}
+              />
+
             )}
 
             {user?._id !== data?._id && (
               <button
                 className='bg-[#0444a430] text-sm text-white p-1 rounded'
-                onClick={() => { }}
+                onClick={() => handleAddFriend(user?._id)}
               >
                 <BsPersonFillAdd size={20} className='text-[#0f52b6]' />
               </button>
@@ -75,7 +76,7 @@ const ProfileCard = ({ user }) => {
 
         <div className='w-full flex flex-col gap-2 py-4 border-b border-[#66666645]'>
           <p className='text-xl font-semibold text-ascent-1'>
-            {user?.friends?.length} Friends
+            {user?.friends?.length} Bạn bè
           </p>
 
           <div className='flex items-center justify-between'>
@@ -118,7 +119,6 @@ const ProfileCard = ({ user }) => {
               GitHub
             </a>
           </div>
-
         </div>
       </div>
     </div>

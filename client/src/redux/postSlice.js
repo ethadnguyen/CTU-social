@@ -51,9 +51,12 @@ const postSlice = createSlice({
     updatePosts: (state, action) => {
       state.posts = action.payload;
     },
-    updateSavedPosts: (state, action) => {
-      state.savedPosts = action.payload;
-    }
+    updatePost: (state, action) => {
+      const index = state.posts.findIndex(post => post._id === action.payload._id);
+      if (index !== -1) {
+        state.posts[index] = action.payload;
+      }
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -153,5 +156,5 @@ const postSlice = createSlice({
   }
 });
 
-export const { updatePosts, updateSavedPosts } = postSlice.actions;
+export const { updatePosts, updatePost } = postSlice.actions;
 export default postSlice.reducer;

@@ -5,8 +5,9 @@ import { useDispatch, useSelector } from "react-redux";
 import TextInput from "./TextInput";
 import Loading from "./Loading";
 import CustomButton from "./CustomButton";
-import { UpdateProfile } from "../redux/userSlice";
+import { UpdateProfile, updateUser } from "../redux/userSlice";
 import { NoProfile } from "../assets";
+import axiosInstance from '../api/axiosConfig';
 
 const EditProfile = () => {
   const { theme } = useSelector((state) => state.theme);
@@ -15,6 +16,7 @@ const EditProfile = () => {
   const [errMsg, setErrMsg] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [picture, setPicture] = useState(null);
+  const [preview, setPreview] = useState(user?.avatar || NoProfile);
 
   const {
     register,
@@ -25,19 +27,59 @@ const EditProfile = () => {
     defaultValues: { ...user },
   });
 
-  const onSubmit = async (data) => {};
+  const onSubmit = async (data) => {
+    setIsSubmitting(true);
+    setErrMsg("");
+
+    try {
+      // Tạo FormData và thêm dữ liệu vào
+      const formData = new FormData();
+      formData.append("firstName", data.firstName);
+      formData.append("lastName", data.lastName);
+      formData.append("bio", data.bio);
+      formData.append("gender", selectedGender);
+
+      // Kiểm tra xem ảnh có được thêm vào không
+      if (picture) {
+        formData.append("avatar", picture);
+      }
+
+      // Gọi API
+      const res = await axiosInstance.put(`/users/${user._id}`, formData);
+
+      if (res.data.status === "SUCCESS") {
+        dispatch(UpdateProfile(false));
+        dispatch(updateUser(res.data.user));
+        setIsSubmitting(false);
+      } else {
+        setErrMsg(res.data.message);
+        setIsSubmitting(false);
+      }
+    } catch (error) {
+      setErrMsg("An error occurred while updating.");
+      setIsSubmitting(false);
+    }
+  };
 
   const handleClose = () => {
     dispatch(UpdateProfile(false));
   };
+
   const handleSelect = (e) => {
-    setPicture(e.target.files[0]);
+    const file = e.target.files[0];
+    if (file && file.size <= 2 * 1024 * 1024 && (file.type === "image/jpeg" || file.type === "image/png")) {
+      setPicture(file);
+      setPreview(URL.createObjectURL(file));
+    } else {
+      setErrMsg("Vui lòng chọn ảnh JPEG hoặc PNG có kích thước tối đa 2MB.");
+    }
   };
 
   const [selectedGender, setSelectedGender] = useState(user?.gender || "");
   const handleGenderChange = (event) => {
     setSelectedGender(event.target.value);
   };
+
 
   return (
     <>
@@ -70,21 +112,22 @@ const EditProfile = () => {
               className='px-4 sm:px-6 flex flex-col gap-3 2xl:gap-6'
               onSubmit={handleSubmit(onSubmit)}
             >
-               <label htmlFor='imgUpload'
+              <label htmlFor='imgUploadProfile'
                 className={`
                   cursor-pointer my-4
                 `}
               >
                 <input
                   type='file'
+                  name='avatar'
                   className='hidden'
-                  id='imgUpload'
+                  id='imgUploadProfile'
                   onChange={(e) => handleSelect(e)}
                   accept='.jpg, .png, .jpeg'
                 />
 
                 <img
-                  src={user?.profileUrl ?? NoProfile}
+                  src={preview}
                   alt='user profile'
                   className={`
                     ${window.innerWidth < 768 ? 'w-[40%]' : 'w-[35%]'}
@@ -107,6 +150,7 @@ const EditProfile = () => {
 
               <TextInput
                 label={<span className="font-bold">Họ</span>}
+                name='lastName'
                 placeholder='Họ'
                 type='lastName'
                 styles='w-full'
@@ -134,22 +178,22 @@ const EditProfile = () => {
                   value={selectedGender}
                   onChange={handleGenderChange}
                   className={`bg-secondary border-[#66666690] mb-2 outline-none text-sm text-ascent-2 placeholder:text-[#666] w-full border rounded-md py-2 px-3 mt-1`}
+
                 >
                   <option value="" className={`text-ascent-2 text-sm mb-2 ${theme === 'dark' ? 'text-white' : 'text-black'}`}>Chọn giới tính</option>
-                  <option value="Nam">Nam</option>
-                  <option value="Nữ">Nữ</option>
-                  <option value="Khác">Khác</option>
+                  <option value="Male">Nam</option>
+                  <option value="Female">Nữ</option>
+                  <option value="Other">Khác</option>
                 </select>
               </label>
 
               {errMsg?.message && (
                 <span
                   role='alert'
-                  className={`text-sm ${
-                    errMsg?.status === "failed"
-                      ? "text-[#f64949fe]"
-                      : "text-[#2ba150fe]"
-                  } mt-0.5`}
+                  className={`text-sm ${errMsg?.status === "failed"
+                    ? "text-[#f64949fe]"
+                    : "text-[#2ba150fe]"
+                    } mt-0.5`}
                 >
                   {errMsg?.message}
                 </span>
@@ -162,7 +206,7 @@ const EditProfile = () => {
                   <CustomButton
                     type='submit'
                     containerStyles={`inline-flex justify-center rounded-md bg-blue px-8 py-3 text-sm font-medium text-white outline-none`}
-                    title='Submit'
+                    title='Lưu'
                   />
                 )}
               </div>

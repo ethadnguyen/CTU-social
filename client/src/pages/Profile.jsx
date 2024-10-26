@@ -3,6 +3,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { useParams, Link } from "react-router-dom";
 import {
   CustomButton,
+  EditProfile,
   FriendsCard,
   Loading,
   PostCard,
@@ -20,9 +21,9 @@ import { toast } from 'react-toastify';
 
 const Profile = () => {
   const { id } = useParams();
-  const { user } = useSelector((state) => state.user);
+  const { user, edit } = useSelector((state) => state.user);
   const { userPosts } = useSelector((state) => state.posts);
-  const [userInfo, setUserInfo] = useState(user);
+  const [userInfo, setUserInfo] = useState(null);
   const [loading, setLoading] = useState(false);
   const [expandedTags, setExpandedTags] = useState({});
   const dispatch = useDispatch();
@@ -30,8 +31,20 @@ const Profile = () => {
   const [showSavedPosts, setShowSavedPosts] = useState(false);
 
   useEffect(() => {
-    dispatch(getUserPosts(user._id));
-  }, [dispatch, user]);
+    if (id === user._id) {
+      setUserInfo(user);
+    } else {
+      setLoading(true);
+      axiosInstance.get(`/users/get-user/${id}`).then((res) => {
+        setUserInfo(res.data.user);
+        setLoading(false);
+      });
+    }
+  }, [id, user]);
+
+  useEffect(() => {
+    dispatch(getUserPosts(id));
+  }, [dispatch, id]);
 
 
   const handleDeletePost = async (postId) => {
@@ -222,6 +235,7 @@ const Profile = () => {
           </div>
         </div>
       </div>
+      {edit && <EditProfile />}
     </>
   );
 };

@@ -162,10 +162,19 @@ const getUser = async (req, res, next) => {
         const { userId } = req.body.user;
         const { id } = req.params;
 
-        const user = await User.findById(id ?? userId).populate({
-            path: 'friends',
-            select: '-password',
-        });
+        const user = await User.findById(id ?? userId)
+            .populate({
+                path: 'friends',
+                select: '-password',
+            })
+            .populate({
+                path: 'faculty',
+                select: 'name',
+            })
+            .populate({
+                path: 'major',
+                select: 'majorName academicYear',
+            });
 
         if (!user) {
             return res.status(404).json({
@@ -190,8 +199,9 @@ const getUser = async (req, res, next) => {
 };
 
 const updateUser = async (req, res, next) => {
+    const { userId } = req.params;
+    console.log(req.files);
     try {
-        const { userId } = req.params;
         const {
             firstName,
             lastName,
@@ -200,42 +210,58 @@ const updateUser = async (req, res, next) => {
             major,
             gender,
             dateOfBirth,
-            phone,
-            avatar,
             bio,
             facebook,
             linkedin,
-            github } = req.body;
+            github,
+        } = req.body;
 
-        const updateFields = {};
+        const updateFields = {
+            ...(firstName && { firstName }),
+            ...(lastName && { lastName }),
+            ...(student_id && { student_id }),
+            ...(faculty && { faculty }),
+            ...(major && { major }),
+            ...(gender && { gender }),
+            ...(dateOfBirth && { dateOfBirth }),
+            ...(bio && { bio }),
+            ...(facebook && { facebook }),
+            ...(linkedin && { linkedin }),
+            ...(github && { github }),
+        };
 
-        if (firstName) updateFields.firstName = firstName;
-        if (lastName) updateFields.lastName = lastName;
-        if (student_id) updateFields.student_id = student_id;
-        if (faculty) updateFields.faculty = faculty;
-        if (major) updateFields.major = major;
-        if (gender) updateFields.gender = gender;
-        if (dateOfBirth) updateFields.dateOfBirth = dateOfBirth;
-        if (phone) updateFields.phone = phone;
-        if (avatar) updateFields.avatar = avatar;
-        if (bio) updateFields.bio = bio;
-        if (facebook) updateFields.facebook = facebook;
-        if (linkedin) updateFields.linkedin = linkedin;
-        if (github) updateFields.github = github;
+        if (req.files && req.files.avatar) {
+            updateFields.avatar = req.files.avatar[0].path; // sử dụng path từ file đã upload
+        }
 
-        const updatedUser = await User.findByIdAndUpdate(userId, { $set: updateFields }, { new: true });
+        // Update the user in the database
+        const updatedUser = await User.findByIdAndUpdate(userId, { $set: updateFields }, { new: true })
+            .populate({
+                path: 'faculty',
+                select: 'name',
+            })
+            .populate({
+                path: 'major',
+                select: 'majorName academicYear',
+            })
+            .populate({
+                path: 'friends',
+                select: '-password',
+            })
 
+        // Handle case where the user does not exist
         if (!updatedUser) {
             return res.status(404).json({ status: 'FAILED', message: 'Không tìm thấy người dùng' });
         }
 
+        // Respond with the updated user
         res.status(200).json({
             status: 'SUCCESS',
             user: updatedUser,
         });
     } catch (error) {
-        console.log(error);
-        res.status(500).json({ message: error.message });
+        console.error('Error updating user:', error);
+        res.status(500).json({ status: 'FAILED', message: 'Lỗi máy chủ' });
     }
 };
 
@@ -317,7 +343,6 @@ const createGroupRequest = async (req, res) => {
         res.status(500).json({ message: 'Lỗi tạo yêu cầu mở nhóm', error: error.message });
     }
 };
-
 
 const getFriendRequest = async (req, res) => {
     try {

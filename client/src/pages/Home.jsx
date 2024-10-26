@@ -148,7 +148,21 @@ const Home = () => {
     const postId = post._id;
     try {
       await dispatch(reportPost(postId));
-      await dispatch(getPosts());
+      const updatedPosts = posts.map((p) => {
+        if (p._id === postId) {
+          const hasReported = p.reportedBy.includes(user._id);
+          return {
+            ...p,
+            reports: hasReported ? p.reports - 1 : p.reports + 1,
+            reportedBy: hasReported
+              ? p.reportedBy.filter(id => id !== user._id)
+              : [...p.reportedBy, user._id],
+          }
+        }
+        return p;
+      });
+      dispatch(updatePosts(updatedPosts));
+      toast.success(`Đã ${post.reportedBy.includes(user._id) ? 'bỏ' : ''} báo cáo bài viết thành công!`);
       socket.emit('reportPost', { id: postId, reportedBy: user._id });
     } catch (error) {
       console.error('Error reporting post:', error);

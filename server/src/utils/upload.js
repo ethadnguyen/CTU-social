@@ -17,9 +17,9 @@ const storage = new CloudinaryStorage({
             folder += 'images';
         } else if (file.fieldname === 'files') {
             folder += 'files';
+        } else if (file.fieldname === 'avatar') {
+            folder += 'avatars';
         }
-        console.log('File fieldname:', file.fieldname);
-        console.log('Upload folder:', folder);
         return {
             folder: folder,
             allowed_formats: ['jpg', 'png', 'jpeg', 'pdf', 'doc', 'docx', 'xls', 'xlsx'],
@@ -28,7 +28,5 @@ const storage = new CloudinaryStorage({
 });
 
 const upload = multer({ storage: storage });
-
-
 
 module.exports = upload;

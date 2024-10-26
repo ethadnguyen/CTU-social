@@ -22,11 +22,15 @@ const userSlice = createSlice({
     updateProfile(state, action) {
       state.edit = action.payload;
     },
+    updateUser(state, action) {
+      state.user = action.payload;
+      localStorage.setItem("user", JSON.stringify(action.payload));
+    }
   },
 });
 export default userSlice.reducer;
 
-export const { login, logout, updateProfile } = userSlice.actions;
+export const { login, logout, updateProfile, updateUser } = userSlice.actions;
 
 export function UserLogin(credentials) {
   return async (dispatch, getState) => {
@@ -56,4 +60,9 @@ export function UpdateProfile(val) {
   return (dispatch, getState) => {
     dispatch(userSlice.actions.updateProfile(val));
   };
+}
+export function UpdateUser(user) {
+  return (dispatch) => {
+    dispatch(userSlice.actions.updateUser(user));
+  }
 }

@@ -1,3 +1,4 @@
+const { default: mongoose } = require('mongoose');
 const Comment = require('../models/comment.model');
 const Group = require('../models/group.model');
 const Post = require('../models/post.model');
@@ -216,7 +217,7 @@ const getComments = async (req, res) => {
         const comments = await Comment.find({ post: postId })
             .populate({
                 path: 'user',
-                select: 'firstName lastName avatar -password',
+                select: 'firstName lastName avatar',
                 populate: {
                     path: 'faculty',
                     select: 'name'
@@ -224,7 +225,23 @@ const getComments = async (req, res) => {
             })
             .populate({
                 path: 'user',
-                select: 'firstName lastName avatar -password',
+                select: 'firstName lastName avatar',
+                populate: {
+                    path: 'major',
+                    select: 'majorName academicYear'
+                }
+            })
+            .populate({
+                path: 'replies.user',
+                select: 'firstName lastName avatar',
+                populate: {
+                    path: 'faculty',
+                    select: 'name'
+                }
+            })
+            .populate({
+                path: 'replies.user',
+                select: 'firstName lastName avatar',
                 populate: {
                     path: 'major',
                     select: 'majorName academicYear'
@@ -571,7 +588,22 @@ const commentPost = async (req, res) => {
 
         post.comments.push(newComment._id);
 
-        const updatedPost = await Post.findByIdAndUpdate(id, post, { new: true });
+        const updatedPost = await Post.findByIdAndUpdate(id, post, { new: true })
+            .populate({
+                path: 'user',
+                select: 'firstName lastName avatar',
+                populate: {
+                    path: 'faculty',
+                    select: 'name'
+                }
+            })
+            .populate({
+                path: 'user',
+                populate: {
+                    path: 'major',
+                    select: 'majorName academicYear'
+                }
+            });
 
         res.status(201).json({
             message: 'Bình luận bài viết thành công',
@@ -586,27 +618,33 @@ const commentPost = async (req, res) => {
 
 const replyPostComment = async (req, res) => {
     const { userId } = req.body.user;
-    const { comment, replyAt, from } = req.body;
+    const { content: replyComment, replyAt, from } = req.body;
     const { id } = req.params;
 
-    if (!comment) {
+    if (!replyComment) {
         return res.status(400).json({ message: 'Nội dung bình luận không được để trống' });
     }
 
     try {
         const comment = await Comment.findById(id);
 
-        comment.replies.push({
-            content: comment,
-            replyAt,
+        if (!comment) {
+            return res.status(404).json({ message: 'Bình luận không tồn tại' });
+        }
+
+        const newReply = {
+            rid: new mongoose.Types.ObjectId(),
+            content: replyComment,
             from,
             user: userId,
-            created_At: Date.now(),
-        });
+            replyAt: replyAt,
+        }
+
+        comment.replies.push(newReply);
 
         await comment.save();
 
-        res.status(200).json({
+        res.status(201).json({
             message: 'Trả lời bình luận thành công',
             comment
         });
@@ -722,7 +760,12 @@ const deletePostComment = async (req, res) => {
                 return res.status(404).json({ message: 'Bình luận không tồn tại' });
             }
 
-            await comment.remove();
+            await comment.deleteOne({ _id: id });
+
+            await Post.updateOne(
+                { comments: id },
+                { $pull: { comments: id } }
+            );
 
             res.status(200).json({ message: 'Xóa bình luận thành công' });
         } else {
