@@ -1,8 +1,8 @@
-import React, { useState } from "react";
+import { React, useState } from "react";
 import {
   EditProfile,
   ProfileCard,
-  PostRequests,
+  UserManagement,
   FacultiesSelector,
   TopBar,
   GroupRequests,
@@ -23,9 +23,9 @@ const Home = () => {
     <>
       <div className="flex flex-col bg-bgColor h-screen">
         <TopBar />
-        <div className="flex flex-1 overflow-hidden">
+        <div className="flex flex-1">
           {/* Sidebar */}
-          <div className="h-full w-1/4 mb-3 overflow-y-auto">
+          <div className="h-[90%] w-1/4 mb-3 overflow-y-auto">
             <div className="hidden w-full md:flex flex-col p-4"> 
               <ProfileCard user={user} /> 
             </div>
@@ -42,9 +42,9 @@ const Home = () => {
                 </li>
                 <li
                   className={`pl-6 py-3 cursor-pointer hover:bg-gray text-ascent-1 ${
-                    activeTab === "baiDang" ? "bg-sky" : ""
+                    activeTab === "nguoiDung" ? "bg-sky" : ""
                   } rounded-md`}
-                  onClick={() => handleTabClick("baiDang")}
+                  onClick={() => handleTabClick("nguoiDung")}
                 >
                   Quản lý người dùng
                 </li>
@@ -69,25 +69,25 @@ const Home = () => {
           </div>
 
           {/* Main Content */}
-          <div className="flex-1 p-4 gap-4 mt-4 mr-4 bg-primary rounded-md h-full">
+          <div className="flex-1 p-4 gap-4 mt-4 mr-4 bg-primary rounded-md h-[88%]">
             {activeTab === "khoa" &&
-              <div className="text-ascent-1">
+              <div className="text-ascent-1 h-full">
                 <FacultiesSelector />
               </div>
             }
 
             {activeTab === "nhom" && (
-              <div>
+              <div className="h-full">
                 <GroupRequests />
               </div>
             )}
-            {activeTab === "baiDang" &&
-              <div>
-                <PostRequests />
+            {activeTab === "nguoiDung" &&
+              <div className="h-full">
+                <UserManagement />
               </div>
             }
             {activeTab === "hoatDong" && (
-              <div>
+              <div className="h-full">
                 <ActivitiesCard />
               </div>
             )}

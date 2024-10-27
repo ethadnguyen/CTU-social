@@ -11,9 +11,9 @@ import ImageUpload from './ImageUpload';
 import FileUpload from './FileUpload';
 import FacultiesSelector from './FacultiesSelector';
 import GroupRequests from './GroupRequests';
-import PostRequests from './PostRequests';
+import UserManagement from './UserManagement';
 import ActivitiesCard from './ActivitiesCard';
-
+import ActivityForm from './ActivityForm';
 
 export {
   Loading,
@@ -29,6 +29,7 @@ export {
   FacultiesSelector,
   GroupRequests,
   FriendsCard,
-  PostRequests,
-  ActivitiesCard
+  UserManagement,
+  ActivitiesCard,
+  ActivityForm
 };

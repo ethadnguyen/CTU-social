@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 const GroupRequests = () => {
 
     return (
-        <ul className="divide-y divide-gray">
+        <ul className="divide-y divide-gray overflow-y-auto h-full">
             {groupRequests.map((groupRequest) => (
                 <li key={groupRequest.id} className="py-4 flex items-center rounded-md hover:bg-gray">    
                     <div className="flex-1 ml-3">

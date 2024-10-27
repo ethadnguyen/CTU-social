@@ -1,27 +1,23 @@
-import React, { useState } from 'react';
+import { React, useState, useRef } from 'react';
 import { faculties } from '../assets/register';
 import { useForm } from 'react-hook-form';
 import { AiFillDelete } from 'react-icons/ai';
 import { IoMdAdd } from "react-icons/io";
 import TextInput from './TextInput';
-import { FaSearch, FaChevronDown, FaChevronUp } from "react-icons/fa";
+import { FaSearch, FaChevronDown, FaChevronUp, FaEdit } from "react-icons/fa";
 
 const FacultySelector = () => {
   const [selectedFaculty, setSelectedFaculty] = useState(null);
   const [selectedMajor, setSelectedMajor] = useState(null);
   const [selectedCourse, setSelectedCourse] = useState(null);
-
-  const { register, handleSubmit } = useForm();
-
-  const [newFacultyName, setNewFacultyName] = useState('');
-  const [newMajorName, setNewMajorName] = useState('');
-  const [newCourseName, setNewCourseName] = useState('');
   const { register: registerFaculty, handleSubmit: handleSubmitFaculty } = useForm();
   const { register: registerMajor, handleSubmit: handleSubmitMajor } = useForm();
   const { register: registerCourse, handleSubmit: handleSubmitCourse } = useForm();
   const [showAddFacultyForm, setShowAddFacultyForm] = useState(false);
   const [showAddMajorForm, setShowAddMajorForm] = useState(false);
   const [showAddCourseForm, setShowAddCourseForm] = useState(false);
+  const [editingFacultyId, setEditingFacultyId] = useState(null);
+  const editInputRef = useRef(null);
 
   const handleShowAddMajorForm = () => {
     if(selectedFaculty===null);
@@ -66,24 +62,43 @@ const FacultySelector = () => {
     } else {
       setSelectedCourse(course);
     }
-  };  
+  };
 
   const handleAddFaculty = (data) => {
     console.log("Thêm khoa:", data.facultyName);
     // ... (logic thêm khoa)
-    setNewFacultyName('');
   };
 
   const handleAddMajor = (data) => {
     console.log("Thêm ngành:", data.majorName, "cho khoa", selectedFaculty.name);
     // ... (logic thêm ngành)
-    setNewMajorName('');
   };
 
   const handleAddCourse = (data) => {
     console.log("Thêm khóa học:", data.courseName, "cho ngành", selectedMajor.name);
     // ... (logic thêm khóa học)
-    setNewCourseName('');
+  };
+
+  const handleEditFaculty = (facultyId) => {
+    setEditingFacultyId(facultyId);
+    setSelectedFaculty(null);
+  };
+
+  const handleFacultyNameChange = (event, facultyId) => {
+    const updatedFaculties = faculties.map((faculty) =>
+      faculty.id === facultyId ? { ...faculty, name: event.target.value } : faculty
+    );
+    // ... (update tên khoa khi server lưu thành công)
+  };
+
+  const handleFacultyNameKeyDown = (event, facultyId) => {
+    if (event.key === 'Enter') {
+      const updatedFacultyName = event.target.value; 
+      console.log("Sửa khoa",facultyId," thành",updatedFacultyName);
+      event.preventDefault();
+      setEditingFacultyId(null);
+      // ... (gọi API lưu thay đổi tên khoa)
+    }
   };
 
   const handleDeleteFaculty = (facultyId) => {
@@ -91,9 +106,66 @@ const FacultySelector = () => {
     // ... (logic xóa khoa)
   };
 
+  const [editingMajorId, setEditingMajorId] = useState(null);
+
+  const handleEditMajor = (majorId) => {
+    setEditingMajorId(majorId);
+    setSelectedMajor(null);
+  };
+
+  const handleMajorNameChange = (event, majorId) => {
+    const updatedFaculties = faculties.map((faculty) => ({
+      ...faculty,
+      majors: faculty.majors.map((major) =>
+        major.id === majorId ? { ...major, name: event.target.value } : major
+      ),
+    }));
+    // ... (update tên ngành khi server lưu thành công)
+  };
+
+  const handleMajorNameKeyDown = (event, majorId) => {
+    if (event.key === 'Enter') {
+      const updatedMajorName = event.target.value;
+      console.log("Sửa ngành", majorId, "của khoa", selectedFaculty.name, " thành", updatedMajorName);
+      event.preventDefault();
+      setEditingMajorId(null);
+      // ... (gọi API lưu thay đổi tên ngành)
+    }
+  };
+
   const handleDeleteMajor = (majorId) => {
     console.log("Xóa ngành:", majorId);
     // ... (logic xóa ngành)
+  };
+
+  const [editingCourseId, setEditingCourseId] = useState(null);
+
+  const handleEditCourse = (courseId) => {
+    setEditingCourseId(courseId);
+    setSelectedCourse(null);
+  };
+
+  const handleCourseNameChange = (event, courseId) => {
+    const updatedFaculties = faculties.map((faculty) => ({
+      ...faculty,
+      majors: faculty.majors.map((major) => ({
+        ...major,
+        courses: major.courses.map((course) =>
+          course.id === courseId ? { ...course, name: event.target.value } : course
+        ),
+      })),
+    }));
+    // ... (update tên khóa học khi server lưu thành công)
+  };
+
+  const handleCourseNameKeyDown = (event, courseId) => {
+    if (event.key === 'Enter') {
+      const updatedCourseName = event.target.value;
+      console.log("Sửa khóa học", courseId, "thành", updatedCourseName);
+      event.preventDefault();
+      setEditingCourseId(null);
+      // ... (gọi API lưu thay đổi tên khóa học)
+    }
   };
 
   const handleDeleteCourse = (courseId) => {
@@ -133,9 +205,9 @@ const FacultySelector = () => {
   );
 
   return (
-    <div className="grid grid-cols-3 gap-4 overflow-y-auto min-h-screen">
+    <div className="grid grid-cols-3 gap-4 h-[calc(91vh-8rem)]">
       {/* Cột 1: Danh sách Khoa */}
-      <div className="border-r flex-grow">
+      <div className="border-r flex-grow h-[calc(91vh-8rem)]">
         <div className='flex flex-col items-start mr-3 justify-between text-xl text-ascent-1 pb-2 border-b mb-3 border-[#66666645]'>
           <div className="flex items-center justify-between w-full mb-3">
             <span className="font-bold">Khoa</span> 
@@ -186,28 +258,56 @@ const FacultySelector = () => {
           </div>
         </div>
 
-        <ul className="rounded-md mr-3">
+        <ul className={`rounded-md mr-3 overflow-y-auto ${showAddFacultyForm ? 'h-[80%]' : 'h-[85%]'}`}>
           {filteredFaculties.map((faculty) => (
             <li
               key={faculty.id}
-              onClick={() => handleFacultyClick(faculty)}
+              onClick={() => {
+                if (editingFacultyId === null) { 
+                  handleFacultyClick(faculty)
+                }
+              }}              
               className={`cursor-pointer hover:bg-gray py-2 px-4 rounded-md relative 
                 ${selectedFaculty?.id === faculty.id ? 'bg-sky text-white' : ''}`}
             >
-              {faculty.name}
-              <div className={`absolute right-2 top-1/2 transform -translate-y-1/2 
-                ${selectedFaculty?.id === faculty.id ? 'opacity-100' : 'opacity-0'}`}>
-                <button onClick={() => handleDeleteFaculty(faculty.id)}>
-                  <AiFillDelete className="text-red-500" />
-                </button>
-              </div>
+              {editingFacultyId === faculty.id ? (
+                <input
+                  ref={editInputRef}
+                  type="text"
+                  defaultValue={faculty.name}
+                  onChange={(event) => handleFacultyNameChange(event, faculty.id)}
+                  onKeyDown={(event) => handleFacultyNameKeyDown(event, faculty.id)}
+                  autoFocus
+                  onBlur={() => setEditingFacultyId(null)}
+                  className="bg-gray-100 border border-gray-300 text-asent-1 bg-secondary rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              ) : (
+                <>
+                  {faculty.name}
+                  <div className={`absolute right-2 top-1/2 transform -translate-y-1/2 
+                    ${selectedFaculty?.id === faculty.id ? '' : 'hidden'}`}>
+                      <button className="mr-3" onClick={(event) => {
+                        event.stopPropagation();
+                        handleEditFaculty(faculty.id);
+                      }}>
+                        <FaEdit className="" />
+                    </button>
+                    <button className="mr-3" onClick={(event) => {
+                        event.stopPropagation();
+                        handleDeleteFaculty(faculty.id);
+                    }}>
+                      <AiFillDelete className="" />
+                    </button>
+                  </div>
+                </>
+              )}
             </li>
           ))}
         </ul>
       </div>
 
       {/* Cột 2: Danh sách Ngành */}
-      <div className="border-r flex-grow">
+      <div className="border-r flex-grow h-[calc(91vh-8rem)]">
           <div className='flex flex-col items-start mr-3 justify-between text-xl text-ascent-1 pb-2 border-b mb-3 border-[#66666645]'>
             <div className="flex items-center justify-between w-full mb-3">
               <span className="font-bold">Ngành</span> 
@@ -261,21 +361,48 @@ const FacultySelector = () => {
         </div>
 
         {selectedFaculty && (
-          <ul className="rounded-md mr-3">
+          <ul className={`rounded-md mr-3 overflow-y-auto ${showAddMajorForm ? 'h-[80%]' : 'h-[85%]'}`}>
             {filteredMajors.map((major) => (
               <li
                 key={major.id}
-                onClick={() => handleMajorClick(major)}
+                onClick={() => {
+                  if (editingMajorId === null) {
+                    handleMajorClick(major);
+                  }
+                }}
                 className={`cursor-pointer hover:bg-gray py-2 px-4 rounded-md relative
-                    ${selectedMajor?.id === major.id ? 'bg-sky text-white' : ''}`}
+                  ${selectedMajor?.id === major.id ? 'bg-sky text-white' : ''}`}
               >
-                {major.name}
-                <div className={`absolute right-2 top-1/2 transform -translate-y-1/2 
-                    ${selectedMajor?.id === major.id ? 'opacity-100' : 'opacity-0'}`}>
-                  <button onClick={() => handleDeleteMajor(major.id)}>
-                    <AiFillDelete className="text-red-500" />
-                  </button>
-                </div>
+                {editingMajorId === major.id ? (
+                  <input
+                    type="text"
+                    defaultValue={major.name}
+                    onChange={(event) => handleMajorNameChange(event, major.id)}
+                    onKeyDown={(event) => handleMajorNameKeyDown(event, major.id)}
+                    autoFocus
+                    onBlur={() => setEditingMajorId(null)}
+                    className="bg-gray-100 border border-gray-300 text-asent-1 bg-secondary rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                ) : (
+                  <>
+                    {major.name}
+                    <div className={`absolute right-2 top-1/2 transform -translate-y-1/2 
+                      ${selectedMajor?.id === major.id ? '' : 'hidden'}`}>
+                      <button className="mr-3" onClick={(event) => {
+                        event.stopPropagation();
+                        handleEditMajor(major.id);
+                      }}>
+                        <FaEdit className="" />
+                      </button>
+                      <button onClick={(event) => {
+                        event.stopPropagation();
+                        handleDeleteMajor(major.id);
+                      }}>
+                        <AiFillDelete className="" />
+                      </button>
+                    </div>
+                  </>
+                )}
               </li>
             ))}
           </ul>
@@ -283,7 +410,7 @@ const FacultySelector = () => {
       </div>
 
       {/* Cột 3: Danh sách Khóa học */}
-      <div className="gap-4">
+      <div className="gap-4 h-[calc(91vh-8rem)]">
           <div className='flex flex-col items-start mr-3 justify-between text-xl text-ascent-1 pb-2 border-b mb-3 border-[#66666645]'>
             <div className="flex items-center justify-between w-full mb-3">
               <span className="font-bold">Khóa học</span> 
@@ -336,21 +463,48 @@ const FacultySelector = () => {
         </div>
 
         {selectedMajor && (
-          <ul className="rounded-md mr-3">
+          <ul className={`rounded-md mr-3 overflow-y-auto ${showAddCourseForm ? 'h-[80%]' : 'h-[85%]'}`}>
             {filteredCourses.map((course) => (
               <li
                 key={course.id}
-                onClick={() => handleCourseClick(course)}
+                onClick={() => {
+                  if (editingCourseId === null) {
+                    handleCourseClick(course);
+                  }
+                }}
                 className={`cursor-pointer hover:bg-gray py-2 px-4 rounded-md relative
-                        ${selectedCourse?.id === course.id ? 'bg-sky text-white' : ''}`}
+                  ${selectedCourse?.id === course.id ? 'bg-sky text-white' : ''}`}
               >
-                {course.name}
-                <div className={`absolute right-2 top-1/2 transform -translate-y-1/2 
-                        ${selectedCourse?.id === course.id ? 'opacity-100' : 'opacity-0'}`}>
-                  <button onClick={() => handleDeleteCourse(course.id)}>
-                    <AiFillDelete className="text-red-500" />
-                  </button>
-                </div>
+                {editingCourseId === course.id ? (
+                  <input
+                    type="text"
+                    defaultValue={course.name}
+                    onChange={(event) => handleCourseNameChange(event, course.id)}
+                    onKeyDown={(event) => handleCourseNameKeyDown(event, course.id)}
+                    autoFocus
+                    onBlur={() => setEditingCourseId(null)}
+                    className="bg-gray-100 border border-gray-300 text-asent-1 bg-secondary rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                ) : (
+                  <>
+                    {course.name}
+                    <div className={`absolute right-2 top-1/2 transform -translate-y-1/2 
+                      ${selectedCourse?.id === course.id ? '' : 'hidden'}`}>
+                      <button className="mr-3" onClick={(event) => {
+                        event.stopPropagation();
+                        handleEditCourse(course.id);
+                      }}>
+                        <FaEdit className="" />
+                      </button>
+                      <button onClick={(event) => {
+                        event.stopPropagation();
+                        handleDeleteCourse(course.id);
+                      }}>
+                        <AiFillDelete className="" />
+                      </button>
+                    </div>
+                  </>
+                )}
               </li>
             ))}
           </ul>
