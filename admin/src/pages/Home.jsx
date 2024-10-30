@@ -21,16 +21,16 @@ const Home = () => {
 
   return (
     <>
-      <div className="flex flex-col bg-bgColor h-screen">
+      <div className="w-full h-screen px-0 pb-20 overflow-hidden lg:px-10 2xl:px-40 bg-bgColor lg:rounded-lg">
         <TopBar />
-        <div className="flex flex-1">
+        <div className="flex w-full h-full gap-2 pt-5 pb-10 lg:gap-4">
           {/* Sidebar */}
-          <div className="h-[90%] w-1/4 mb-3 overflow-y-auto">
-            <div className="hidden w-full md:flex flex-col p-4"> 
+          <div className="flex-col hidden w-1/3 h-full gap-3 overflow-y-auto lg:w-1/4 md:flex">
+            <div className="hidden w-full md:flex flex-col"> 
               <ProfileCard user={user} /> 
             </div>
             
-            <div className="rounded-md p-4 h-80">
+            <div className="rounded-md h-full">
               <ul className="bg-primary rounded-md h-full">
                 <li
                   className={`pl-6 py-3 cursor-pointer hover:bg-gray text-ascent-1 ${
@@ -69,7 +69,7 @@ const Home = () => {
           </div>
 
           {/* Main Content */}
-          <div className="flex-1 p-4 gap-4 mt-4 mr-4 bg-primary rounded-md h-[88%]">
+          <div className="flex flex-col flex-1 h-full gap-6 px-4 overflow-y-auto bg-primary rounded-lg">
             {activeTab === "khoa" &&
               <div className="text-ascent-1 h-full">
                 <FacultiesSelector />

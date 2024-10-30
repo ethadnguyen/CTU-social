@@ -205,9 +205,9 @@ const FacultySelector = () => {
   );
 
   return (
-    <div className="grid grid-cols-3 gap-4 h-[calc(91vh-8rem)]">
+    <div className="grid grid-cols-3 gap-4 h-full overflow-hidden">
       {/* Cột 1: Danh sách Khoa */}
-      <div className="border-r flex-grow h-[calc(91vh-8rem)]">
+      <div className="border-r flex-grow h-full">
         <div className='flex flex-col items-start mr-3 justify-between text-xl text-ascent-1 pb-2 border-b mb-3 border-[#66666645]'>
           <div className="flex items-center justify-between w-full mb-3">
             <span className="font-bold">Khoa</span> 
@@ -307,7 +307,7 @@ const FacultySelector = () => {
       </div>
 
       {/* Cột 2: Danh sách Ngành */}
-      <div className="border-r flex-grow h-[calc(91vh-8rem)]">
+      <div className="border-r flex-grow h-full">
           <div className='flex flex-col items-start mr-3 justify-between text-xl text-ascent-1 pb-2 border-b mb-3 border-[#66666645]'>
             <div className="flex items-center justify-between w-full mb-3">
               <span className="font-bold">Ngành</span> 

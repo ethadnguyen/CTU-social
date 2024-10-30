@@ -112,11 +112,11 @@ const UserManagement = () => {
   );
 
   return (
-    <div className="grid grid-cols-3 gap-4 h-[calc(91vh-8rem)]">
+    <div className="grid grid-cols-3 gap-4 h-full">
       {/* Cột 1: Danh sách người dùng */}
-      <div className="border-r flex-grow h-[calc(91vh-8rem)]">
-        <div className='flex flex-col items-start mr-3 justify-between text-xl text-ascent-1 pb-2 border-b mb-3 border-[#66666645]'>
-          <div className="flex items-center justify-between w-full mb-3">
+      <div className="border-r flex-grow h-full overflow-hidden">
+        <div className='flex flex-col h-[10%] items-start mr-3 justify-between text-xl text-ascent-1 pb-2 border-b mb-3 border-[#66666645]'>
+          <div className="flex items-center justify-between w-full">
             <span className="font-bold">Người dùng</span> 
             <div className="flex items-center">
               <TextInput
@@ -134,7 +134,7 @@ const UserManagement = () => {
           </div>
         </div>
 
-        <ul className="rounded-md mr-3 overflow-y-auto h-[85%]">
+        <ul className="rounded-md mr-3 overflow-y-auto h-[90%]">
           {filteredusers.map((User) => (
             <li
               key={User.id}
@@ -160,9 +160,9 @@ const UserManagement = () => {
       </div>
 
       {/* Cột 2: Danh sách bài đăng */}
-      <div className="border-r flex-grow h-[calc(91vh-8rem)]">
-          <div className='flex flex-col items-start mr-3 justify-between text-xl text-ascent-1 pb-2 border-b mb-3 border-[#66666645]'>
-            <div className="flex items-center justify-between w-full mb-3">
+      <div className="border-r flex-grow h-full overflow-hidden">
+          <div className='flex flex-col h-[10%] items-start mr-3 justify-between text-xl text-ascent-1 pb-2 border-b mb-3 border-[#66666645]'>
+            <div className="flex items-center justify-between w-full">
               <span className="font-bold">Bài đăng</span> 
               <div className="flex items-center">
                 <TextInput
@@ -181,7 +181,7 @@ const UserManagement = () => {
         </div>
 
         {selectedUser && (
-            <ul className="rounded-md mr-3 overflow-y-auto h-[80%]">
+            <ul className="rounded-md mr-3 overflow-y-auto h-[90%]">
                 {filteredPosts.map((Post) => (
                 <li
                     key={Post.id}
@@ -212,10 +212,10 @@ const UserManagement = () => {
       </div>
 
       {/* Cột 3: Reports và Likes */}
-      <div className="h-[calc(91vh-8rem)]">
-        <div className="gap-4 h-[47%]">
-            <div className='flex flex-col items-start mr-3 justify-between text-xl text-ascent-1 pb-2 border-b mb-3 border-[#66666645]'>
-                <div className="flex items-center justify-between w-full mb-3">
+      <div className="h-full flex flex-col overflow-hidden">
+        <div className="flex-grow overflow-hidden">
+            <div className='flex flex-col h-[20%] items-start mr-3 justify-between text-xl text-ascent-1 border-b border-[#66666645]'>
+                <div className="flex items-center justify-between w-full">
                 <span className="font-bold">Likes</span> 
                 <div className="flex items-center">
                     <TextInput
@@ -234,7 +234,7 @@ const UserManagement = () => {
             </div>
 
             {selectedPost && (
-                <ul className="rounded-md mr-3 overflow-y-auto h-[75%]">
+                <ul className="rounded-md mr-3 overflow-y-auto h-[80%]">
                     {filteredLikes.map((Like) => (
                     <li
                         key={Like.id}
@@ -260,23 +260,23 @@ const UserManagement = () => {
             )}
         </div>
 
-        <div className="gap-4 border-t border-[#66666645] h-[50%]">
-            <div className='flex flex-col items-start mr-3 mt-3 justify-between text-xl text-ascent-1 pb-2 border-b mb-3 border-[#66666645]'>
-                <div className="flex items-center justify-between w-full mb-3">
-                <span className="font-bold">Reports</span> 
-                <div className="flex items-center">
-                    <TextInput
-                    placeholder="Tìm lượt report"
-                    name="SearchReport"
-                    value={searchReport}
-                    onChange={handleSearchReportChange}
-                    className="border border-gray rounded-l-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue"
-                    />
+        <div className="flex-grow overflow-hidden">
+            <div className='flex flex-col h-[20%] items-start mr-3 justify-between text-xl text-ascent-1 border-b border-t border-[#66666645]'>
+                <div className="flex items-center mt-1 justify-between w-full mb-1">
+                  <span className="font-bold">Reports</span> 
+                  <div className="flex items-center">
+                      <TextInput
+                      placeholder="Tìm lượt report"
+                      name="SearchReport"
+                      value={searchReport}
+                      onChange={handleSearchReportChange}
+                      className="border border-gray rounded-l-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue"
+                      />
 
-                    <button type="button" className="ml-2">
-                    <FaSearch />
-                    </button>
-                </div>
+                      <button type="button" className="ml-2">
+                      <FaSearch />
+                      </button>
+                  </div>
                 </div>
             </div>
 
