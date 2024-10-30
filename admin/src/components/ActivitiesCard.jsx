@@ -77,8 +77,8 @@ const ActivitiesCard = () => {
 
     return (
         <>
-            <div className='flex-1 bg-primary shadow-sm rounded-lg px-5 py-5 mb-1 h-full' >
-                <div className='flex items-center justify-between text-lg text-ascent-1 border-b border-[#66666645]'>
+            <div className='flex-1 shadow-sm rounded-lg py-5 mb-1 h-full overflow-y-auto' >
+                <div className='flex items-center justify-between h-[10%] text-lg text-ascent-1 border-b border-[#66666645]'>
                     <div>
                         <CustomButton
                             onClick={handleAddActivityClick}
@@ -133,7 +133,7 @@ const ActivitiesCard = () => {
                     </div>
                 </div>
 
-                <div className='w-full flex flex-col gap-4 pt-4 overflow-y-auto h-[calc(85vh-8rem)]'>
+                <div className='w-full flex flex-col gap-4 pt-4 overflow-y-auto h-[90%]'>
                     {faculties
                         .find((faculty) => faculty.id === selectedFaculty)
                         ?.activities.filter((activity) => 
