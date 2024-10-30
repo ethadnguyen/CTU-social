@@ -3,26 +3,26 @@ import { useDispatch, useSelector } from "react-redux";
 import { useParams, Link } from "react-router-dom";
 import {
   CustomButton,
+  EditProfile,
   FriendsCard,
   Loading,
   PostCard,
   ProfileCard,
   TopBar,
 } from "../components";
-import { savedPosts } from "../assets/home";
 import { profile } from "../assets/profile";
 import { ChevronDownIcon, ChevronUpIcon } from "@heroicons/react/24/outline";
 import { MdOutlineFileUpload } from "react-icons/md";
-import { getUserPosts, likePost, reportPost } from './../redux/postSlice';
+import { getSavedPosts, getUserPosts, likePost, reportPost } from './../redux/postSlice';
 import io from 'socket.io-client';
 import axiosInstance from '../api/axiosConfig';
 import { toast } from 'react-toastify';
 
 const Profile = () => {
   const { id } = useParams();
-  const { user } = useSelector((state) => state.user);
-  const { userPosts } = useSelector((state) => state.posts);
-  const [userInfo, setUserInfo] = useState(user);
+  const { user, edit } = useSelector((state) => state.user);
+  const { userPosts, savedPosts } = useSelector((state) => state.posts);
+  const [userInfo, setUserInfo] = useState(null);
   const [loading, setLoading] = useState(false);
   const [expandedTags, setExpandedTags] = useState({});
   const dispatch = useDispatch();
@@ -30,8 +30,21 @@ const Profile = () => {
   const [showSavedPosts, setShowSavedPosts] = useState(false);
 
   useEffect(() => {
-    dispatch(getUserPosts(user._id));
-  }, [dispatch, user]);
+    if (id === user._id) {
+      setUserInfo(user);
+    } else {
+      setLoading(true);
+      axiosInstance.get(`/users/get-user/${id}`).then((res) => {
+        setUserInfo(res.data.user);
+        setLoading(false);
+      });
+    }
+  }, [id, user]);
+
+  useEffect(() => {
+    dispatch(getUserPosts(id));
+    dispatch(getSavedPosts(id));
+  }, [dispatch, id]);
 
 
   const handleDeletePost = async (postId) => {
@@ -139,11 +152,11 @@ const Profile = () => {
                     ))
                   ) : showSavedPosts ? (
                     <div className='flex items-center justify-center w-full h-full'>
-                      <p className='text-lg text-ascent-2'>No Saved Post Available</p>
+                      <p className='text-lg text-ascent-2'>Chưa có bài viết đã lưu</p>
                     </div>
                   ) : (
                     <div className='flex items-center justify-center w-full h-full'>
-                      <p className='text-lg text-ascent-2'>No Post Available</p>
+                      <p className='text-lg text-ascent-2'>Chưa có bài viết nào. Hãy tạo bài đăng nào!</p>
                     </div>
                   )}
 
@@ -222,6 +235,7 @@ const Profile = () => {
           </div>
         </div>
       </div>
+      {edit && <EditProfile />}
     </>
   );
 };

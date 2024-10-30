@@ -2,18 +2,18 @@ import React, { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import moment from "moment";
 import { NoProfile } from "../assets";
-import { BiComment, BiLike, BiSolidLike } from "react-icons/bi";
+import { BiComment, BiLike, BiSolidLike, BiTrash } from "react-icons/bi";
 import { CiShare2, CiMenuKebab } from "react-icons/ci";
 import { MdOutlineReportProblem, MdGroups } from "react-icons/md";
 import { useForm } from "react-hook-form";
 import TextInput from "./TextInput";
 import Loading from "./Loading";
 import CustomButton from "./CustomButton";
-import { postComments } from "../assets/home";
 import { useDispatch, useSelector } from "react-redux";
 import { ImageDetail } from ".";
 import Modal from "react-modal";
-import { getPosts, savePost } from '../redux/postSlice';
+import { savePost, updatePost } from '../redux/postSlice';
+import axiosInstance from '../api/axiosConfig';
 
 const ReplyCard = ({ reply, user, handleLike }) => {
   return (
@@ -40,18 +40,18 @@ const ReplyCard = ({ reply, user, handleLike }) => {
       </div>
 
       <div className='ml-12'>
-        <p className='text-ascent-2 '>{reply?.comment}</p>
+        <p className='text-ascent-2 '>{reply?.content}</p>
         <div className='flex gap-6 mt-2'>
           <p
             className='flex items-center gap-2 text-base cursor-pointer text-ascent-2'
             onClick={handleLike}
           >
-            {reply?.likes?.includes(user?._id) ? (
+            {reply?.likedBy?.includes(user?._id) ? (
               <BiSolidLike size={20} color='blue' />
             ) : (
               <BiLike size={20} />
             )}
-            {reply?.likes?.length}
+            {reply?.likes}
           </p>
         </div>
       </div>
@@ -71,7 +71,40 @@ const CommentForm = ({ user, id, replyAt, getComments }) => {
     mode: "onChange",
   });
 
-  const onSubmit = async (data) => { };
+  const dispatch = useDispatch();
+
+  const onSubmit = async (data) => {
+    setLoading(true);
+    try {
+      const endpoint = replyAt ? `/posts/reply-comment/${id}` : `/posts/comment/${id}`;
+
+      const payload = {
+        content: data.comment,
+        from: user?._id
+      };
+
+      if (replyAt) {
+        payload.replyAt = replyAt;
+      }
+
+      const res = await axiosInstance.post(endpoint, payload);
+      if (res.status === 201) {
+        reset();
+        getComments();
+        if (res.data.post) {
+          const post = res.data.post;
+          dispatch(updatePost(post));
+        }
+      }
+    } catch (error) {
+      setErrMsg({
+        status: "failed",
+        message: error.response.data.message,
+      });
+      console.log(error);
+    }
+    setLoading(false);
+  };
 
   return (
     <form
@@ -135,29 +168,49 @@ const PostCard = ({ post, user, deletePost, likePost, reportPost }) => {
   const isSaved = post?.savedBy?.includes(user?._id);
   const dispatch = useDispatch();
 
-  const openModal = () => setIsModalOpen(true);
-  const closeModal = () => setIsModalOpen(false);
+  const openReportModal = () => setIsModalOpen(true);
+  const closeReportModal = () => setIsModalOpen(false);
 
   const handleReport = () => {
     reportPost(post);
-    closeModal();
+    closeReportModal();
   };
 
-  const getComments = async () => {
-    setReplyComments(0);
-
-    setComments(postComments);
-    setLoading(false);
+  const getComments = async (postId) => {
+    try {
+      setLoading(true);
+      const postComments = await axiosInstance.get(`/posts/comments/${postId}`)
+        .then(res => res.data.comments);
+      setReplyComments(0);
+      setComments(postComments);
+      setLoading(false);
+    } catch (error) {
+      console.log(error);
+    }
   };
+
   const handleLikeComment = async () => {
     // likePost(post._id);
   };
 
+  const handleDeleteComment = async (commentId) => {
+    try {
+      const res = await axiosInstance.delete(`/posts/comment/${commentId}`);
+      getComments(post._id);
+      const updatedComments = comments.filter(comment => comment._id !== commentId);
+      const updatedPost = { ...post, comments: updatedComments };
+      dispatch(updatePost(updatedPost));
+    } catch (error) {
+      console.log(error);
+    }
+
+  };
+
   const handleSavePost = async () => {
-    console.log('isSaved', isSaved);
     await dispatch(savePost(post._id));
-    await dispatch(getPosts());
-  }
+    const updatedPost = { ...post, savedBy: isSaved ? post.savedBy.filter(id => id !== user?._id) : [...post.savedBy, user?._id] };
+    dispatch(updatePost(updatedPost));
+  };
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -167,6 +220,8 @@ const PostCard = ({ post, user, deletePost, likePost, reportPost }) => {
   };
   const [showImageModal, setShowImageModal] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
+
+  console.log('comments:', comments);
 
   return (
     <div className='p-4 mb-2 bg-primary rounded-xl'>
@@ -341,7 +396,7 @@ const PostCard = ({ post, user, deletePost, likePost, reportPost }) => {
           {post?.share?.length}
         </p> */}
 
-        <p className='flex items-center gap-2 text-base cursor-pointer' onClick={openModal}>
+        <p className='flex items-center gap-2 text-base cursor-pointer' onClick={openReportModal}>
           {post?.reportedBy?.includes(user?._id) ? (
             <MdOutlineReportProblem size={20} color='red' />
           ) : (
@@ -361,9 +416,10 @@ const PostCard = ({ post, user, deletePost, likePost, reportPost }) => {
         )} */}
       </div>
 
+      {/* Report modal */}
       <Modal
         isOpen={isModalOpen}
-        onRequestClose={closeModal}
+        onRequestClose={closeReportModal}
         contentLabel="Report Post Confirmation"
         className={{
           base: `modal-base ${theme === 'dark' ? 'modal-dark' : 'modal-light'}`,
@@ -378,7 +434,7 @@ const PostCard = ({ post, user, deletePost, likePost, reportPost }) => {
           <p>{!hasReported ? 'Bạn có chắc muốn báo cáo bài viết này?' : 'Bạn có chắc muốn gỡ báo cáo bài viết này?'}</p>
           <div className="flex justify-end gap-4 mt-4">
             <button
-              onClick={closeModal}
+              onClick={closeReportModal}
               className={`px-4 py-2 ${theme === 'dark' ? 'text-white' : 'text-ascent'} bg-gray-200 rounded-md hover:bg-blue`}
             >
               Thoát
@@ -425,19 +481,24 @@ const PostCard = ({ post, user, deletePost, likePost, reportPost }) => {
                       {moment(comment?.createdAt ?? "2023-05-25").fromNow()}
                     </span>
                   </div>
-                </div>
+                  {user._id === comment.user._id && (
+                    <button onClick={() => handleDeleteComment(comment._id)}>
+                      <BiTrash size={20} color='red' />
+                    </button>
+                  )}
 
+                </div>
                 <div className='ml-12'>
-                  <p className='text-ascent-2'>{comment?.comment}</p>
+                  <p className='text-ascent-2'>{comment?.content}</p>
 
                   <div className='flex gap-6 mt-2'>
                     <p className='flex items-center gap-2 text-base cursor-pointer text-ascent-2'>
-                      {comment?.likes?.includes(user?._id) ? (
+                      {comment?.likedBy?.includes(user?._id) ? (
                         <BiSolidLike size={20} color='blue' />
                       ) : (
                         <BiLike size={20} />
                       )}
-                      {comment?.likes?.length}
+                      {comment?.likes}
                     </p>
                     <span
                       className='cursor-pointer text-blue'
@@ -451,7 +512,7 @@ const PostCard = ({ post, user, deletePost, likePost, reportPost }) => {
                     <CommentForm
                       user={user}
                       id={comment?._id}
-                      replyAt={comment?.from}
+                      replyAt={comment?.user?.firstName}
                       getComments={() => getComments(post?._id)}
                     />
                   )}

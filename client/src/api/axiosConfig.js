@@ -6,6 +6,14 @@ const axiosInstance = axios.create({
     headers: {
         'Accept': 'application/json'
     },
+    withCredentials: true
+});
+
+axiosInstance.interceptors.request.use((config) => {
+    if (config.data instanceof FormData) {
+        delete config.headers['Content-Type'];
+    }
+    return config;
 });
 
 axiosInstance.interceptors.request.use(

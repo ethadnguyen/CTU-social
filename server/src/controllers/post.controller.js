@@ -1,3 +1,4 @@
+const { default: mongoose } = require('mongoose');
 const Comment = require('../models/comment.model');
 const Group = require('../models/group.model');
 const Post = require('../models/post.model');
@@ -130,6 +131,12 @@ const getUserPosts = async (req, res) => {
                     select: 'majorName academicYear'
                 }
             })
+            .populate({
+                path: 'user',
+                populate: {
+                    path: 'saved'
+                }
+            })
             .sort({ _id: -1 });
 
         if (!posts.length) {
@@ -216,7 +223,7 @@ const getComments = async (req, res) => {
         const comments = await Comment.find({ post: postId })
             .populate({
                 path: 'user',
-                select: 'firstName lastName avatar -password',
+                select: 'firstName lastName avatar',
                 populate: {
                     path: 'faculty',
                     select: 'name'
@@ -224,7 +231,23 @@ const getComments = async (req, res) => {
             })
             .populate({
                 path: 'user',
-                select: 'firstName lastName avatar -password',
+                select: 'firstName lastName avatar',
+                populate: {
+                    path: 'major',
+                    select: 'majorName academicYear'
+                }
+            })
+            .populate({
+                path: 'replies.user',
+                select: 'firstName lastName avatar',
+                populate: {
+                    path: 'faculty',
+                    select: 'name'
+                }
+            })
+            .populate({
+                path: 'replies.user',
+                select: 'firstName lastName avatar',
                 populate: {
                     path: 'major',
                     select: 'majorName academicYear'
@@ -443,7 +466,6 @@ const reportPostComment = async (req, res) => {
 const savePost = async (req, res) => {
     const { userId } = req.body.user;
     const { id } = req.params;
-    console.log('user:', req.body.user);
 
     try {
         const user = await User.findById(userId);
@@ -484,33 +506,41 @@ const savePost = async (req, res) => {
 };
 
 const getSavedPosts = async (req, res) => {
-    const { userId } = req.body.user;
+    const { userId } = req.params;
 
     try {
-        const savedPosts = await Post.find({
-            savedBy: userId
-        })
-            .populate({
-                path: 'user',
-                select: 'firstName lastName',
-                populate: [
-                    { path: 'faculty', select: 'name' },
-                    { path: 'major', select: 'majorName academicYear' }
-                ]
-            })
+        const user = await User.findById(userId);
 
-        if (savedPosts.length === 0) {
-            return res.status(404).json({ message: 'Không có bài viết nào được lưu' });
+        if (!user) {
+            return res.status(404).json({ message: 'Người dùng không tồn tại' });
         }
 
-        res.status(200).json({ message: 'Lấy bài viết đã lưu thành công', savedPosts });
+        const savedPosts = await Post.find({ _id: { $in: user.saved } })
+            .populate({
+                path: 'user',
+                select: 'firstName lastName avatar',
+                populate: [
+                    {
+                        path: 'faculty',
+                        select: 'name'
+                    },
+                    {
+                        path: 'major',
+                        select: 'majorName academicYear'
+                    }
+                ]
+            })
+            .sort({ _id: -1 });
 
+        res.status(200).json({
+            message: 'Lấy bài viết đã lưu thành công',
+            savedPosts
+        });
     } catch (error) {
         console.log(error);
         res.status(500).json({ message: error.message });
     }
-
-}
+};
 
 const sharePost = async (req, res) => {
     const { userId } = req.body.user;
@@ -571,7 +601,22 @@ const commentPost = async (req, res) => {
 
         post.comments.push(newComment._id);
 
-        const updatedPost = await Post.findByIdAndUpdate(id, post, { new: true });
+        const updatedPost = await Post.findByIdAndUpdate(id, post, { new: true })
+            .populate({
+                path: 'user',
+                select: 'firstName lastName avatar',
+                populate: {
+                    path: 'faculty',
+                    select: 'name'
+                }
+            })
+            .populate({
+                path: 'user',
+                populate: {
+                    path: 'major',
+                    select: 'majorName academicYear'
+                }
+            });
 
         res.status(201).json({
             message: 'Bình luận bài viết thành công',
@@ -586,27 +631,33 @@ const commentPost = async (req, res) => {
 
 const replyPostComment = async (req, res) => {
     const { userId } = req.body.user;
-    const { comment, replyAt, from } = req.body;
+    const { content: replyComment, replyAt, from } = req.body;
     const { id } = req.params;
 
-    if (!comment) {
+    if (!replyComment) {
         return res.status(400).json({ message: 'Nội dung bình luận không được để trống' });
     }
 
     try {
         const comment = await Comment.findById(id);
 
-        comment.replies.push({
-            content: comment,
-            replyAt,
+        if (!comment) {
+            return res.status(404).json({ message: 'Bình luận không tồn tại' });
+        }
+
+        const newReply = {
+            rid: new mongoose.Types.ObjectId(),
+            content: replyComment,
             from,
             user: userId,
-            created_At: Date.now(),
-        });
+            replyAt: replyAt,
+        }
+
+        comment.replies.push(newReply);
 
         await comment.save();
 
-        res.status(200).json({
+        res.status(201).json({
             message: 'Trả lời bình luận thành công',
             comment
         });
@@ -722,7 +773,12 @@ const deletePostComment = async (req, res) => {
                 return res.status(404).json({ message: 'Bình luận không tồn tại' });
             }
 
-            await comment.remove();
+            await comment.deleteOne({ _id: id });
+
+            await Post.updateOne(
+                { comments: id },
+                { $pull: { comments: id } }
+            );
 
             res.status(200).json({ message: 'Xóa bình luận thành công' });
         } else {

@@ -12,6 +12,12 @@ const FacultySchema = new mongoose.Schema({
             ref: 'Major'
         }
     ],
+    activities: [
+        {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Activity'
+        }
+    ],
     slug: {
         type: String,
         unique: true

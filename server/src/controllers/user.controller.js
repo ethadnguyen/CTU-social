@@ -162,10 +162,19 @@ const getUser = async (req, res, next) => {
         const { userId } = req.body.user;
         const { id } = req.params;
 
-        const user = await User.findById(id ?? userId).populate({
-            path: 'friends',
-            select: '-password',
-        });
+        const user = await User.findById(id ?? userId)
+            .populate({
+                path: 'friends',
+                select: '-password',
+            })
+            .populate({
+                path: 'faculty',
+                select: 'name',
+            })
+            .populate({
+                path: 'major',
+                select: 'majorName academicYear',
+            });
 
         if (!user) {
             return res.status(404).json({
@@ -190,8 +199,8 @@ const getUser = async (req, res, next) => {
 };
 
 const updateUser = async (req, res, next) => {
+    const { userId } = req.params;
     try {
-        const { userId } = req.params;
         const {
             firstName,
             lastName,
@@ -200,42 +209,58 @@ const updateUser = async (req, res, next) => {
             major,
             gender,
             dateOfBirth,
-            phone,
-            avatar,
             bio,
             facebook,
             linkedin,
-            github } = req.body;
+            github,
+        } = req.body;
 
-        const updateFields = {};
+        const updateFields = {
+            ...(firstName && { firstName }),
+            ...(lastName && { lastName }),
+            ...(student_id && { student_id }),
+            ...(faculty && { faculty }),
+            ...(major && { major }),
+            ...(gender && { gender }),
+            ...(dateOfBirth && { dateOfBirth }),
+            ...(bio && { bio }),
+            ...(facebook && { facebook }),
+            ...(linkedin && { linkedin }),
+            ...(github && { github }),
+        };
 
-        if (firstName) updateFields.firstName = firstName;
-        if (lastName) updateFields.lastName = lastName;
-        if (student_id) updateFields.student_id = student_id;
-        if (faculty) updateFields.faculty = faculty;
-        if (major) updateFields.major = major;
-        if (gender) updateFields.gender = gender;
-        if (dateOfBirth) updateFields.dateOfBirth = dateOfBirth;
-        if (phone) updateFields.phone = phone;
-        if (avatar) updateFields.avatar = avatar;
-        if (bio) updateFields.bio = bio;
-        if (facebook) updateFields.facebook = facebook;
-        if (linkedin) updateFields.linkedin = linkedin;
-        if (github) updateFields.github = github;
+        if (req.files && req.files.avatar) {
+            updateFields.avatar = req.files.avatar[0].path; // sử dụng path từ file đã upload
+        }
 
-        const updatedUser = await User.findByIdAndUpdate(userId, { $set: updateFields }, { new: true });
+        // Update the user in the database
+        const updatedUser = await User.findByIdAndUpdate(userId, { $set: updateFields }, { new: true })
+            .populate({
+                path: 'faculty',
+                select: 'name',
+            })
+            .populate({
+                path: 'major',
+                select: 'majorName academicYear',
+            })
+            .populate({
+                path: 'friends',
+                select: '-password',
+            })
 
+        // Handle case where the user does not exist
         if (!updatedUser) {
             return res.status(404).json({ status: 'FAILED', message: 'Không tìm thấy người dùng' });
         }
 
+        // Respond with the updated user
         res.status(200).json({
             status: 'SUCCESS',
             user: updatedUser,
         });
     } catch (error) {
-        console.log(error);
-        res.status(500).json({ message: error.message });
+        console.error('Error updating user:', error);
+        res.status(500).json({ status: 'FAILED', message: 'Lỗi máy chủ' });
     }
 };
 
@@ -318,12 +343,11 @@ const createGroupRequest = async (req, res) => {
     }
 };
 
-
-const getFriendRequest = async (req, res) => {
+const getFriendRequests = async (req, res) => {
     try {
         const { userId } = req.body.user;
 
-        const request = await FriendRequest.find({
+        const requests = await FriendRequest.find({
             requestTo: userId,
             requestStatus: 'PENDING',
         })
@@ -338,8 +362,39 @@ const getFriendRequest = async (req, res) => {
 
         res.status(200).json({
             status: 'SUCCESS',
-            request
+            requests
         });
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({ message: error.message });
+    }
+};
+
+const getUserFriendRequests = async (req, res) => {
+    const { userId } = req.params;
+    try {
+        const requests = await FriendRequest.find({
+            requestTo: userId,
+            requestStatus: 'PENDING',
+        })
+            .populate({
+                path: 'requestFrom',
+                select: '-password'
+            })
+            .populate({
+                path: 'requestTo',
+                select: '-password'
+            })
+            .limit(10)
+            .sort({
+                _id: -1,
+            })
+
+        res.status(200).json({
+            status: 'SUCCESS',
+            requests
+        });
+
     } catch (error) {
         console.log(error);
         res.status(500).json({ message: error.message });
@@ -348,8 +403,7 @@ const getFriendRequest = async (req, res) => {
 
 const acceptRequest = async (req, res, next) => {
     try {
-        const id = req.body.user.userId;
-
+        const { userId } = req.body.user;
         const { requestId, status } = req.body;
 
         const requestExist = await FriendRequest.findById(requestId);
@@ -365,27 +419,58 @@ const acceptRequest = async (req, res, next) => {
             { _id: requestId },
             { requestStatus: status },
         );
+
+        let updatedUser;
         if (status === 'ACCEPTED') {
-            const user = await User.findById(id);
+            const user = await User.findById(userId).populate('faculty').populate('major').populate({
+                path: 'friends',
+                select: '-password',
+            });
             const friend = await User.findById(newRequest?.requestFrom);
 
             user.friends.push(newRequest?.requestFrom);
             user.following.push(friend);
             user.followers.push(friend);
 
-            // await user.save();
-
             friend.friends.push(newRequest?.requestTo);
             friend.following.push(user);
             friend.followers.push(user);
 
             await friend.save();
-            await user.save();
+            updatedUser = await user.save();
         }
 
         res.status(200).json({
             status: 'SUCCESS',
-            message: 'Yêu cầu đã được xác nhận'
+            message: 'Yêu cầu đã được xác nhận',
+            user: updatedUser,
+        });
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({ message: error.message });
+    }
+};
+
+const cancelRequest = async (req, res, next) => {
+    try {
+        const { userId } = req.body.user;
+
+        const requestExist = await FriendRequest.findOne({
+            requestFrom: userId,
+        });
+
+        if (!requestExist) {
+            return res.status(404).json({
+                status: 'FAILED',
+                message: 'Yêu cầu không tồn tại hoặc bạn không có quyền hủy yêu cầu này'
+            });
+        }
+
+        await FriendRequest.findByIdAndDelete(requestExist._id);
+
+        res.status(200).json({
+            status: 'SUCCESS',
+            message: 'Yêu cầu đã bị hủy'
         });
     } catch (error) {
         console.log(error);
@@ -423,7 +508,8 @@ const rejectRequest = async (req, res, next) => {
 
 const unFriend = async (req, res) => {
     try {
-        const { userId, friendId } = req.body;
+        const { userId } = req.body.user;
+        const { friendId } = req.body;
 
         const user = await User.findById(userId);
         const friend = await User.findById(friendId);
@@ -453,7 +539,12 @@ const unFriend = async (req, res) => {
         friend.friends.splice(friendIndex, 1);
         await friend.save();
 
-        res.status(200).json({ status: 'SUCCESS', message: 'Hủy kết bạn thành công' });
+        const updatedUser = await User.findById(userId).populate('faculty').populate('major').populate({
+            path: 'friends',
+            select: '-password',
+        });
+
+        res.status(200).json({ status: 'SUCCESS', message: 'Hủy kết bạn thành công', user: updatedUser });
     } catch (error) {
         console.log(error);
         res.status(500).json({ message: error.message });
@@ -565,8 +656,10 @@ module.exports = {
     updateUser,
     friendRequest,
     createGroupRequest,
-    getFriendRequest,
+    getFriendRequests,
+    getUserFriendRequests,
     acceptRequest,
+    cancelRequest,
     rejectRequest,
     unFriend,
     followUser,

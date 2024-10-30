@@ -17,7 +17,7 @@ const CommentSchema = new mongoose.Schema({
                 type: mongoose.Schema.Types.ObjectId,
                 ref: 'User'
             },
-            replyAt: { type: Date, default: Date.now() },
+            replyAt: { type: String, default: '' },
             content: { type: String, required: true },
             created_At: { type: Date, default: Date.now() },
             updated_At: { type: Date, default: Date.now() },
@@ -43,7 +43,6 @@ const CommentSchema = new mongoose.Schema({
             ],
         },
     ],
-    // tag: Object,
     user: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
