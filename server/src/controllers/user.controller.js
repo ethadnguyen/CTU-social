@@ -200,7 +200,6 @@ const getUser = async (req, res, next) => {
 
 const updateUser = async (req, res, next) => {
     const { userId } = req.params;
-    console.log(req.files);
     try {
         const {
             firstName,
@@ -344,11 +343,11 @@ const createGroupRequest = async (req, res) => {
     }
 };
 
-const getFriendRequest = async (req, res) => {
+const getFriendRequests = async (req, res) => {
     try {
         const { userId } = req.body.user;
 
-        const request = await FriendRequest.find({
+        const requests = await FriendRequest.find({
             requestTo: userId,
             requestStatus: 'PENDING',
         })
@@ -363,8 +362,39 @@ const getFriendRequest = async (req, res) => {
 
         res.status(200).json({
             status: 'SUCCESS',
-            request
+            requests
         });
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({ message: error.message });
+    }
+};
+
+const getUserFriendRequests = async (req, res) => {
+    const { userId } = req.params;
+    try {
+        const requests = await FriendRequest.find({
+            requestTo: userId,
+            requestStatus: 'PENDING',
+        })
+            .populate({
+                path: 'requestFrom',
+                select: '-password'
+            })
+            .populate({
+                path: 'requestTo',
+                select: '-password'
+            })
+            .limit(10)
+            .sort({
+                _id: -1,
+            })
+
+        res.status(200).json({
+            status: 'SUCCESS',
+            requests
+        });
+
     } catch (error) {
         console.log(error);
         res.status(500).json({ message: error.message });
@@ -373,8 +403,7 @@ const getFriendRequest = async (req, res) => {
 
 const acceptRequest = async (req, res, next) => {
     try {
-        const id = req.body.user.userId;
-
+        const { userId } = req.body.user;
         const { requestId, status } = req.body;
 
         const requestExist = await FriendRequest.findById(requestId);
@@ -390,27 +419,58 @@ const acceptRequest = async (req, res, next) => {
             { _id: requestId },
             { requestStatus: status },
         );
+
+        let updatedUser;
         if (status === 'ACCEPTED') {
-            const user = await User.findById(id);
+            const user = await User.findById(userId).populate('faculty').populate('major').populate({
+                path: 'friends',
+                select: '-password',
+            });
             const friend = await User.findById(newRequest?.requestFrom);
 
             user.friends.push(newRequest?.requestFrom);
             user.following.push(friend);
             user.followers.push(friend);
 
-            // await user.save();
-
             friend.friends.push(newRequest?.requestTo);
             friend.following.push(user);
             friend.followers.push(user);
 
             await friend.save();
-            await user.save();
+            updatedUser = await user.save();
         }
 
         res.status(200).json({
             status: 'SUCCESS',
-            message: 'Yêu cầu đã được xác nhận'
+            message: 'Yêu cầu đã được xác nhận',
+            user: updatedUser,
+        });
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({ message: error.message });
+    }
+};
+
+const cancelRequest = async (req, res, next) => {
+    try {
+        const { userId } = req.body.user;
+
+        const requestExist = await FriendRequest.findOne({
+            requestFrom: userId,
+        });
+
+        if (!requestExist) {
+            return res.status(404).json({
+                status: 'FAILED',
+                message: 'Yêu cầu không tồn tại hoặc bạn không có quyền hủy yêu cầu này'
+            });
+        }
+
+        await FriendRequest.findByIdAndDelete(requestExist._id);
+
+        res.status(200).json({
+            status: 'SUCCESS',
+            message: 'Yêu cầu đã bị hủy'
         });
     } catch (error) {
         console.log(error);
@@ -448,7 +508,8 @@ const rejectRequest = async (req, res, next) => {
 
 const unFriend = async (req, res) => {
     try {
-        const { userId, friendId } = req.body;
+        const { userId } = req.body.user;
+        const { friendId } = req.body;
 
         const user = await User.findById(userId);
         const friend = await User.findById(friendId);
@@ -478,7 +539,12 @@ const unFriend = async (req, res) => {
         friend.friends.splice(friendIndex, 1);
         await friend.save();
 
-        res.status(200).json({ status: 'SUCCESS', message: 'Hủy kết bạn thành công' });
+        const updatedUser = await User.findById(userId).populate('faculty').populate('major').populate({
+            path: 'friends',
+            select: '-password',
+        });
+
+        res.status(200).json({ status: 'SUCCESS', message: 'Hủy kết bạn thành công', user: updatedUser });
     } catch (error) {
         console.log(error);
         res.status(500).json({ message: error.message });
@@ -590,8 +656,10 @@ module.exports = {
     updateUser,
     friendRequest,
     createGroupRequest,
-    getFriendRequest,
+    getFriendRequests,
+    getUserFriendRequests,
     acceptRequest,
+    cancelRequest,
     rejectRequest,
     unFriend,
     followUser,

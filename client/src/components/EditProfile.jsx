@@ -32,19 +32,17 @@ const EditProfile = () => {
     setErrMsg("");
 
     try {
-      // Tạo FormData và thêm dữ liệu vào
+
       const formData = new FormData();
       formData.append("firstName", data.firstName);
       formData.append("lastName", data.lastName);
       formData.append("bio", data.bio);
       formData.append("gender", selectedGender);
 
-      // Kiểm tra xem ảnh có được thêm vào không
       if (picture) {
         formData.append("avatar", picture);
       }
 
-      // Gọi API
       const res = await axiosInstance.put(`/users/${user._id}`, formData);
 
       if (res.data.status === "SUCCESS") {
@@ -52,11 +50,11 @@ const EditProfile = () => {
         dispatch(updateUser(res.data.user));
         setIsSubmitting(false);
       } else {
-        setErrMsg(res.data.message);
+        setErrMsg({ message: res.error.data.message, status: "failed" });
         setIsSubmitting(false);
       }
     } catch (error) {
-      setErrMsg("An error occurred while updating.");
+      setErrMsg({ message: "Đã xảy ra lỗi, vui lòng thử lại!", status: "failed" });
       setIsSubmitting(false);
     }
   };
@@ -71,7 +69,7 @@ const EditProfile = () => {
       setPicture(file);
       setPreview(URL.createObjectURL(file));
     } else {
-      setErrMsg("Vui lòng chọn ảnh JPEG hoặc PNG có kích thước tối đa 2MB.");
+      setErrMsg({ message: "Ảnh không hợp lệ!", status: "failed" });
     }
   };
 

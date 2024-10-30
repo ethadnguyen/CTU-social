@@ -11,7 +11,6 @@ import {
   TopBar,
 } from "../components";
 import { suggest, requests } from "../assets/data";
-import { posts, faculties } from "../assets/home";
 import { Link, useLocation, ScrollRestoration } from "react-router-dom";
 import { NoProfile } from "../assets";
 import { BsPersonFillAdd } from "react-icons/bs";
@@ -23,10 +22,13 @@ import { getPosts, likePost, reportPost, updatePosts } from '../redux/postSlice'
 import { FaFile } from 'react-icons/fa6';
 import io from 'socket.io-client';
 import { toast } from 'react-toastify';
+import { updateUser } from '../redux/userSlice';
+import { fetchFaculties } from '../redux/facultySlice';
 
 const Home = () => {
   const { user, edit } = useSelector((state) => state.user);
-  const [friendRequest, setFriendRequest] = useState(requests);
+  const { faculties } = useSelector((state) => state.faculty);
+  const [friendRequest, setFriendRequest] = useState([]);
   const [suggestedFriends, setSuggestedFriends] = useState(suggest);
   const [errMsg, setErrMsg] = useState("");
   const [files, setFiles] = useState([]);
@@ -55,6 +57,24 @@ const Home = () => {
     socket.emit('joinUser', user);
   }, [user]);
 
+  useEffect(() => {
+    const getFriendRequests = async () => {
+      try {
+        const res = await axiosInstance.get('/users/friend-requests');
+        console.log('Friend requests:', res.data.requests);
+        setFriendRequest(res.data.requests);
+      } catch (error) {
+        console.error('Error getting friend requests:', error);
+      }
+    }
+
+    getFriendRequests();
+  }, []);
+
+  useEffect(() => {
+    dispatch(fetchFaculties());
+  }, [dispatch]);
+
   const handlePostSubmit = async (data) => {
     const formData = new FormData();
 
@@ -78,10 +98,14 @@ const Home = () => {
         },
       });
       reset();
+      setImages([]);
+      setFiles([]);
       setPosting(false);
       dispatch(getPosts());
     } catch (error) {
       reset();
+      setImages([]);
+      setFiles([]);
       setPosting(false);
       console.error('Error creating post:', error);
     }
@@ -96,7 +120,7 @@ const Home = () => {
 
   useEffect(() => {
     if (user && user.faculty) {
-      setSelectedFaculty(user.faculty);
+      setSelectedFaculty(user.faculty._id);
     } else {
       setSelectedFaculty('');
     }
@@ -166,6 +190,27 @@ const Home = () => {
       socket.emit('reportPost', { id: postId, reportedBy: user._id });
     } catch (error) {
       console.error('Error reporting post:', error);
+    }
+  };
+
+  const handleAcceptFriendRequest = async (requestId) => {
+    try {
+      const res = await axiosInstance.post('/users/accept-request', { requestId, status: "ACCEPTED" });
+      console.log('Accept friend request:', res.data);
+      setFriendRequest((prevRequests) => prevRequests.filter((req) => req._id !== requestId));
+      dispatch(updateUser(res.data.user));
+    } catch (error) {
+      console.error('Error accepting friend request:', error);
+    }
+  };
+
+  const handleRejectFriendRequest = async (requestId) => {
+    try {
+      const res = await axiosInstance.post('/users/reject-request', { requestId, status: "REJECTED" });
+      console.log('Reject friend request:', res.data);
+      setFriendRequest((prevRequests) => prevRequests.filter((req) => req._id !== requestId));
+    } catch (error) {
+      console.error('Error rejecting friend request:', error);
     }
   };
 
@@ -371,8 +416,8 @@ const Home = () => {
 
               <div className='flex flex-col w-full gap-4 pt-4'>
                 {faculties
-                  .find((faculty) => faculty._id === selectedFaculty) // Tìm khoa được chọn
-                  ?.activities.map((activity) => ( // Hiển thị activities của khoa được chọn
+                  .find((faculty) => faculty._id === selectedFaculty)
+                  ?.activities.map((activity) => (
                     <div key={activity.id} className='flex flex-col'>
                       <a
                         href={activity.link}
@@ -422,10 +467,12 @@ const Home = () => {
                       <CustomButton
                         title='Accept'
                         containerStyles='bg-[#0444a4] text-xs text-white px-1.5 py-1 rounded-full'
+                        onClick={() => handleAcceptFriendRequest(_id)}
                       />
                       <CustomButton
                         title='Deny'
                         containerStyles='border border-[#666] text-xs text-ascent-1 px-1.5 py-1 rounded-full'
+                        onClick={() => handleRejectFriendRequest(_id)}
                       />
                     </div>
                   </div>

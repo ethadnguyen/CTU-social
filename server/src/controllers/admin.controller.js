@@ -37,11 +37,10 @@ const getActivity = async (req, res) => {
 };
 
 const createActivity = async (req, res) => {
-    const { title, description, link, faculty } = req.body;
+    const { title, description, link, image, faculty } = req.body;
 
     try {
-
-        const image = req.file ? req.file.path : '';
+        // const image = req.file ? req.file.path : '';
 
         const newActivity = new Activity({
             title,
@@ -52,6 +51,12 @@ const createActivity = async (req, res) => {
         });
 
         await newActivity.save();
+
+        await Faculty.findByIdAndUpdate(
+            faculty,
+            { $push: { activities: newActivity._id } },
+            { new: true }
+        );
 
         res.status(201).json({
             message: 'Hoạt động đã được tạo',

@@ -1,10 +1,13 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Link, useLocation } from "react-router-dom";
 import { LiaEditSolid } from "react-icons/lia";
 import {
   BsBriefcase,
   BsFacebook,
+  BsPersonCheck,
+  BsPersonCircle,
+  BsPersonDash,
   BsPersonFillAdd,
 } from "react-icons/bs";
 import { FaRegBuilding, FaLinkedin, FaGithub } from "react-icons/fa";
@@ -13,15 +16,61 @@ import moment from "moment";
 
 import { NoProfile } from "../assets";
 import { UpdateProfile } from "../redux/userSlice";
+import axiosInstance from '../api/axiosConfig';
 
 const ProfileCard = ({ user }) => {
   const { user: data, edit } = useSelector((state) => state.user);
   const dispatch = useDispatch();
   const location = useLocation();
+  const [friendStatus, setFriendStatus] = useState("");
+  const isFriend = user?.friends?.some((friend) => friend._id === data?._id);
 
-  const handleAddFriend = (userId) => {
-    console.log("Add friend:", userId);
+  console.log('is friend:', isFriend);
+
+  useEffect(() => {
+
+    if (!user?._id || user._id === data?._id) return;
+
+    const fetchFriendRequests = async () => {
+      try {
+        const requests = await axiosInstance.get(`/users/friend-requests/${user._id}`);
+        const requestList = requests.data.requests || [];
+        // console.log("Friend requests:", requestList);
+        const request = requestList.find((req) => req.requestFrom._id === data._id);
+        setFriendStatus(request?.requestStatus);
+      } catch (error) {
+        console.error("Lỗi khi lấy yêu cầu kết bạn:", error);
+      }
+    };
+    fetchFriendRequests();
+
+  }, [user, data]);
+
+
+
+  const handleAddFriend = async (userId) => {
+    try {
+      const res = await axiosInstance.post("/users/friend-request", { requestTo: userId });
+    } catch (error) {
+      console.error("Lỗi khi gửi yêu cầu kết bạn:", error);
+    }
+
   };
+
+  const handleCancelRequest = async () => {
+    const res = await axiosInstance.post("/users/cancel-request");
+    console.log("Cancel request response:", res.data);
+    // setFriendStatus("not_friends");
+  };
+
+  const handleUnFriend = async (userId) => {
+    try {
+      const res = await axiosInstance.post("/users/unfriend", { friendId: userId });
+      console.log("Unfriend response:", res.data);
+    } catch (error) {
+      console.error("Lỗi khi hủy kết bạn:", error);
+    }
+  }
 
   return (
     <div>
@@ -54,9 +103,25 @@ const ProfileCard = ({ user }) => {
             {user?._id !== data?._id && (
               <button
                 className='bg-[#0444a430] text-sm text-white p-1 rounded'
-                onClick={() => handleAddFriend(user?._id)}
+                onClick={() => {
+                  if (!isFriend && friendStatus === "PENDING") {
+                    handleCancelRequest();
+                  } else if (!isFriend) {
+                    handleAddFriend(user?._id);
+                  } else {
+                    handleUnFriend(user?._id);
+                  }
+                }}
               >
-                <BsPersonFillAdd size={20} className='text-[#0f52b6]' />
+                {!isFriend && friendStatus !== "PENDING" && (
+                  <BsPersonFillAdd size={30} className='text-[#0f52b6]' />
+                )}
+                {friendStatus === "PENDING" && (
+                  <BsPersonDash size={30} className='text-[#0552b6]' />
+                )}
+                {isFriend && (
+                  <BsPersonCheck size={30} className='text-[#0f52b6]' />
+                )}
               </button>
             )}
           </div>

@@ -131,6 +131,12 @@ const getUserPosts = async (req, res) => {
                     select: 'majorName academicYear'
                 }
             })
+            .populate({
+                path: 'user',
+                populate: {
+                    path: 'saved'
+                }
+            })
             .sort({ _id: -1 });
 
         if (!posts.length) {
@@ -460,7 +466,6 @@ const reportPostComment = async (req, res) => {
 const savePost = async (req, res) => {
     const { userId } = req.body.user;
     const { id } = req.params;
-    console.log('user:', req.body.user);
 
     try {
         const user = await User.findById(userId);
@@ -501,33 +506,41 @@ const savePost = async (req, res) => {
 };
 
 const getSavedPosts = async (req, res) => {
-    const { userId } = req.body.user;
+    const { userId } = req.params;
 
     try {
-        const savedPosts = await Post.find({
-            savedBy: userId
-        })
-            .populate({
-                path: 'user',
-                select: 'firstName lastName',
-                populate: [
-                    { path: 'faculty', select: 'name' },
-                    { path: 'major', select: 'majorName academicYear' }
-                ]
-            })
+        const user = await User.findById(userId);
 
-        if (savedPosts.length === 0) {
-            return res.status(404).json({ message: 'Không có bài viết nào được lưu' });
+        if (!user) {
+            return res.status(404).json({ message: 'Người dùng không tồn tại' });
         }
 
-        res.status(200).json({ message: 'Lấy bài viết đã lưu thành công', savedPosts });
+        const savedPosts = await Post.find({ _id: { $in: user.saved } })
+            .populate({
+                path: 'user',
+                select: 'firstName lastName avatar',
+                populate: [
+                    {
+                        path: 'faculty',
+                        select: 'name'
+                    },
+                    {
+                        path: 'major',
+                        select: 'majorName academicYear'
+                    }
+                ]
+            })
+            .sort({ _id: -1 });
 
+        res.status(200).json({
+            message: 'Lấy bài viết đã lưu thành công',
+            savedPosts
+        });
     } catch (error) {
         console.log(error);
         res.status(500).json({ message: error.message });
     }
-
-}
+};
 
 const sharePost = async (req, res) => {
     const { userId } = req.body.user;

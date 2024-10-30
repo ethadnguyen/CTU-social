@@ -26,13 +26,15 @@ router.post('/friend-request', authMiddleware, UserController.friendRequest);
 
 router.post('/group-request', authMiddleware, validateCreateGroupRequest, UserController.createGroupRequest);
 
-router.post('/get-friend-request', authMiddleware, UserController.getFriendRequest);
+router.get('/friend-requests', authMiddleware, UserController.getFriendRequests);
+
+router.get('/friend-requests/:userId', authMiddleware, UserController.getUserFriendRequests);
 
 router.post('/accept-request', authMiddleware, UserController.acceptRequest);
 
-router.post('/reject-request', authMiddleware, UserController.rejectRequest);
+router.post('/cancel-request', authMiddleware, UserController.cancelRequest);
 
-router.post('/un-friend', authMiddleware, UserController.unFriend);
+router.post('/reject-request', authMiddleware, UserController.rejectRequest);
 
 router.post('/unfriend', authMiddleware, UserController.unFriend);
 

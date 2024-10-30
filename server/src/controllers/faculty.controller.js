@@ -2,7 +2,7 @@ const Faculty = require('../models/faculty.model');
 
 const getFaculties = async (req, res) => {
     try {
-        const faculties = await Faculty.find().populate('majors');
+        const faculties = await Faculty.find().populate('majors').populate('activities');
         res.status(200).json(faculties);
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -13,7 +13,7 @@ const getFaculties = async (req, res) => {
 const getFaculty = async (req, res) => {
     const { facultyId } = req.params;
     try {
-        const faculty = await Faculty.findById(facultyId);
+        const faculty = await Faculty.findById(facultyId).populate('activities');
         if (!faculty) {
             return res.status(404).json({ message: 'Khoa không tồn tại' });
         }

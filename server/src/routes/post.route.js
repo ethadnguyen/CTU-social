@@ -31,7 +31,7 @@ router.get('/', authMiddleware, getPosts);
 router.get('/:userId', authMiddleware, getUserPosts);
 router.get('/:id', authMiddleware, getPost);
 router.get('/shared', authMiddleware, getSharedPosts);
-router.get('/saved', authMiddleware, getSavedPosts);
+router.get('/saved/:userId', authMiddleware, getSavedPosts);
 router.post('/get-user-post/:id', authMiddleware, getUserPost);
 
 //create post
