@@ -1,77 +1,102 @@
-import { useCallback, useEffect, useState } from 'react'
-import { useDropzone } from 'react-dropzone'
+import { React, useState, useEffect } from 'react';
 
-const ImageUpload = ({ onImagesSelected }) => {
-    const [previews, setPreviews] = useState([]);
+const ImageUpload = () => {
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [errorMessage, setErrorMessage] = useState(null);
 
-    const onDrop = useCallback((acceptedFiles) => {
-        const newPreviews = acceptedFiles.map(file => {
-            return Object.assign(file, {
-                preview: URL.createObjectURL(file)
-            });
-        });
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const fileSizeInMB = file.size / (1024 * 1024);
+      if (fileSizeInMB > 5) {
+        setErrorMessage('Kích thước file ảnh phải nhỏ hơn 5MB.');
+        setSelectedImage(null);
+      } else {
+        setErrorMessage(null);
+        setSelectedImage(file);
+      }
+    }
+  };
 
-        setPreviews((prevPreviews) => [...prevPreviews, ...newPreviews]);
-        onImagesSelected([...previews, ...newPreviews]);
-    }, [previews, onImagesSelected]);
+  const handleDragOver = (e) => {
+    e.preventDefault();
+  };
 
+  const handleDrop = (e) => {
+    e.preventDefault();
+    const file = e.dataTransfer.files[0];
+    if (file) {
+      const fileSizeInMB = file.size / (1024 * 1024);
+      if (fileSizeInMB > 5) {
+        setErrorMessage('Kích thước file ảnh phải nhỏ hơn 5MB.');
+        setSelectedImage(null);
+      } else {
+        setErrorMessage(null);
+        setSelectedImage(file);
+      }
+    }
+  };
 
+  const handleDeleteImage = () => {
+    setSelectedImage(null);
+    setErrorMessage(null);
+  };
 
     useEffect(() => {
-        return () => {
-            previews.forEach((file) => URL.revokeObjectURL(file.preview));
-        };
-    }, [previews]);
+        if(selectedImage)
+            console.log(selectedImage);
+    }, []);
 
+  return (
+    <div className="mt-5">
+      
+      <div
+        className="border border-dashed border-gray rounded-md p-4 flex items-center justify-center relative"
+        onDragOver={handleDragOver}
+        onDrop={handleDrop}
+      >
+        {selectedImage ? (
+          <div className="relative">
+            <img
+            src={URL.createObjectURL(selectedImage)}
+            alt="Uploaded"
+            className="h-[25%] w-full"
+            />
 
-    const {
-        getRootProps,
-        getInputProps,
-    } = useDropzone({
-        onDrop,
-        accept: 'image/*',
-        maxFiles: 5,
-    })
-
-    const handleRemoveImage = (index) => {
-        setPreviews((prevPreviews) => prevPreviews.filter((_, i) => i !== index));
-
-        onImagesSelected(previews.filter((_, i) => i !== index));
-
-        URL.revokeObjectURL(previews[index].preview);
-    };
-
-
-    return (
-        <div className="p-6 rounded-lg shadow-md bg-bgColor">
-            <div
-                {...getRootProps({
-                    className: 'w-full p-4 border-2 border-dashed border-primary rounded-lg text-center cursor-pointer'
-                })}
+            <span className="text-ascent-1 text-xs absolute top-0 left-0 m-2">
+              {selectedImage.name}
+            </span>
+            <button
+              onClick={handleDeleteImage}
+              className="absolute top-0 right-0 m-2 bg-red hover:bg-white hover:text-red text-white text-2xl rounded-full px-2 py-1"
             >
-                <input {...getInputProps()} />
-                <p className="text-white">Kéo và thả ảnh vào đây hoặc nhấp để chọn (tối đa 5 hình)</p>
-            </div>
+              X
+            </button>
+          </div>
+        ) : (
+          <span className="text-gray-500">
+            Kéo và thả ảnh vào đây hoặc
+            <input
+              type="file"
+              id="image"
+              className="hidden"
+              accept="image/*"
+              onChange={handleImageChange}
+            />
+            <label
+              htmlFor="image"
+              className="text-white hover:text-gray hover:bg-white rounded-md bg-gray cursor-pointer ml-2 py-2 px-2"
+            >
+              chọn ảnh
+            </label>
+          </span>
+        )}
+        {errorMessage && (
+          <p className="text-red-500 text-xs mt-2">{errorMessage}</p>
+        )}
+      </div>
+    </div>
+  );
+};
 
-            <div className="grid grid-cols-2 gap-4 mt-4">
-                {previews.map((file, index) => (
-                    <div key={index} className="relative">
-                        <img
-                            src={file.preview}
-                            alt="preview"
-                            className="object-cover w-full h-32 rounded-lg"
-                        />
-                        <button
-                            onClick={() => handleRemoveImage(index)}
-                            className="absolute p-1 text-white transition rounded-full top-1 right-1 bg-red hover:bg-secondary"
-                        >
-                            X
-                        </button>
-                    </div>
-                ))}
-            </div>
-        </div>
-    )
-}
-
-export default ImageUpload
+export default ImageUpload;

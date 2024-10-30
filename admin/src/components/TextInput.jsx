@@ -2,7 +2,7 @@ import React from "react";
 
 const TextInput = React.forwardRef(
   (
-    { type, placeholder, styles, label, labelStyles, register, name, error },
+    { type, placeholder, styles, label, labelStyles, register, onChange, value, name, error },
     ref
   ) => {
     return (
@@ -15,7 +15,9 @@ const TextInput = React.forwardRef(
           <input
             type={type}
             name={name}
+            value={value}
             placeholder={placeholder}
+            onChange={onChange}
             ref={ref}
             className={`bg-secondary rounded border border-[#66666690] outline-none text-sm text-ascent-1 px-4 py-3 placeholder:text-[#666] ${styles}`}
             {...register}
