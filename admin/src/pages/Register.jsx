@@ -1,16 +1,18 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { useForm } from "react-hook-form";
 import { CustomButton, Loading, TextInput } from "../components";
 import { BgImage } from "../assets";
 import backgroundImage from '../assets/CTU.jpg';
-import { UserLogin } from "../redux/userSlice";
+import { UserAdminLogin } from "../redux/userSlice";
+import axiosInstanceNoAuth from '../api/axiosNoAuth';
 
 const Register = () => {
   const {
     register,
     handleSubmit,
+    watch,
     formState: { errors },
   } = useForm({
     mode: "onChange",
@@ -18,13 +20,53 @@ const Register = () => {
 
   const [errMsg, setErrMsg] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSendingCode, setIsSendingCode] = useState(false);
+  const [countdown, setCountdown] = useState(0);
   const dispatch = useDispatch();
 
   const navigate = useNavigate();
 
+  const email = watch('email');
+
+  const handleSendActivationCode = async () => {
+    setIsSendingCode(true);
+    try {
+      const response = await axiosInstanceNoAuth.post('/admin/send-otp', { email });
+      if (response.data.success) {
+        const expiresAt = response.data.expiresAt; // Nhận expiresAt từ phản hồi
+        const currentTime = Date.now();
+        const countdownTime = Math.max(expiresAt - currentTime, 0); // Tính toán thời gian còn lại
+
+        setCountdown(countdownTime); // Đặt countdown
+        setErrMsg({ message: "Mã kích hoạt đã được gửi qua email!" });
+      }
+    } catch (error) {
+      console.error("Lỗi gửi mã OTP:", error);
+      setErrMsg({ message: "Gửi mã kích hoạt không thành công!", status: "failed" });
+    } finally {
+      setIsSendingCode(false);
+    }
+  };
+
+  useEffect(() => {
+    if (countdown > 0) {
+      const timer = setInterval(() => {
+        setCountdown((prevCountdown) => prevCountdown - 1);
+      }, 1000);
+
+      return () => clearInterval(timer);
+    }
+  }, [countdown]);
+
+  const formatTime = (seconds) => {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes}:${remainingSeconds < 10 ? '0' : ''}${remainingSeconds}`;
+  };
+
   const onSubmit = async (data) => {
     console.log("Is submitted");
-   };
+  };
 
 
   return (
@@ -83,17 +125,27 @@ const Register = () => {
               />
 
               <TextInput
-                name='password'
+                name='securityCode'
                 label={<span className="font-bold">Mã kích hoạt</span>}
                 placeholder='Mã kích hoạt'
                 type='password'
                 styles='w-full rounded-full'
                 labelStyle='ml-2'
-                register={register("password", {
+                register={register("securityCode", {
                   required: "Mã kích hoạt là bắt buộc!",
                 })}
                 error={errors.password ? errors.password?.message : ""}
               />
+
+              <p className='text-[#065ad8] font-semibold ml-2 cursor-pointer' onClick={handleSendActivationCode}>
+                {isSendingCode ? "Đang gửi mã kích hoạt..." : "Gửi mã kích hoạt"}
+              </p>
+
+              {countdown > 0 && (
+                <p className="text-sm text-center text-red-500">
+                  Mã kích hoạt hết hạn trong: {formatTime(countdown)}
+                </p>
+              )}
 
               {errMsg?.message && (
                 <span

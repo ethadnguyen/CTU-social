@@ -1,9 +1,9 @@
 import { createSlice } from "@reduxjs/toolkit";
 import axiosInstance from "../api/axiosConfig";
-import { user } from "../assets/data";
+// import { user } from "../assets/data";
 
 const initialState = {
-  user: JSON.parse(window?.localStorage.getItem("user")) ?? user,
+  user: JSON.parse(window?.localStorage.getItem("user")) ?? null,
   edit: false,
 };
 
@@ -28,10 +28,10 @@ export default userSlice.reducer;
 
 export const { login, logout, updateProfile } = userSlice.actions;
 
-export function UserLogin(credentials) {
+export function UserAdminLogin(credentials) {
   return async (dispatch, getState) => {
     try {
-      const response = await axiosInstance.post("/auth/login", credentials);
+      const response = await axiosInstance.post("/auth/admin/login", credentials);
       const { user, token } = response.data;
       console.log(response.data)
       localStorage.setItem("token", token);

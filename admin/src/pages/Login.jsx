@@ -5,7 +5,7 @@ import { useForm } from "react-hook-form";
 import { CustomButton, Loading, TextInput } from "../components";
 import { BgImage } from "../assets";
 import backgroundImage from '../assets/CTU.jpg';
-import { UserLogin } from "../redux/userSlice";
+import { UserAdminLogin } from "../redux/userSlice";
 
 const Login = () => {
   const {
@@ -23,8 +23,16 @@ const Login = () => {
   const navigate = useNavigate();
 
   const onSubmit = async (data) => {
-    console.log("Is submitted");
-   };
+    console.log(data)
+    try {
+      setIsSubmitting(true);
+      await dispatch(UserAdminLogin(data));
+      setIsSubmitting(false);
+      navigate("/");
+    } catch (error) {
+      console.log(error)
+    }
+  };
 
 
   return (

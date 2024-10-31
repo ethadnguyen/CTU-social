@@ -2,6 +2,7 @@ const bcrypt = require('bcrypt');
 const User = require('../models/user.model');
 const { sendVerificationEmail } = require('../utils/sendMail');
 const { createJWT } = require('../utils');
+const Verification = require('../models/emailVerification.model');
 
 const register = async (req, res) => {
     const {
@@ -12,6 +13,7 @@ const register = async (req, res) => {
         student_id,
         faculty,
         major,
+        academicYear,
         gender,
         dateOfBirth,
         phone,
@@ -40,6 +42,7 @@ const register = async (req, res) => {
             student_id,
             faculty,
             major,
+            academicYear,
             gender,
             dateOfBirth,
             phone,
@@ -101,67 +104,55 @@ const login = async (req, res) => {
     }
 };
 
+
 const registerAdmin = async (req, res) => {
-    const {
-        firstName,
-        lastName,
-        email,
-        password,
-        student_id,
-        faculty,
-        major,
-        gender,
-        role,
-        dateOfBirth,
-        phone,
-        avatar,
-        bio,
-        facebook,
-        linkedin,
-        github
-    } = req.body;
     try {
-        const existingUser = await User.findOne({ email });
+        const { email, password, securityCode } = req.body;
 
-        if (existingUser) {
-            return res.status(400).json({ message: 'Người dùng đã tồn tại' });
+        const user = await User.findOne({ email });
+        if (!user) {
+            return res.status(400).json({ message: 'Người dùng không tồn tại' });
         }
 
-        if (password.length < 6) {
-            return res.status(400).json({ message: 'Mật khẩu phải có ít nhất 6 ký tự' });
+        if (!user.isVerified) {
+            return res.status(400).json({ message: 'Email chưa xác thực' });
         }
 
-        const newUser = new User({
-            firstName,
-            lastName,
-            email,
-            password,
-            student_id,
-            faculty,
-            major,
-            gender,
-            role,
-            dateOfBirth,
-            phone,
-            avatar,
-            bio,
-            facebook,
-            linkedin,
-            github
+        const isPasswordValid = await bcrypt.compare(password, user.password);
+        if (!isPasswordValid) {
+            return res.status(400).json({ message: 'Mật khẩu không đúng' });
+        }
+
+        const otpRecord = await Verification.findOne({ userId: user._id });
+        if (!otpRecord || Date.now() > otpRecord.expiresAt) {
+            return res.status(400).json({ message: 'OTP không tồn tại hoặc đã hết hạn' });
+        }
+
+        if (otpRecord.token !== securityCode) {
+            return res.status(400).json({ message: 'Mã OTP không hợp lệ' });
+        }
+
+        user.role = 'admin';
+        await user.save();
+
+        await Verification.deleteOne({ userId: user._id });
+
+        const token = createJWT(user._id, user.role);
+
+        res.status(200).json({
+            message: 'Đăng ký tài khoản quản trị viên thành công',
+            token,
+            user,
         });
-
-        await sendVerificationEmail(newUser, res);
-
-        await newUser.save();
-
     } catch (error) {
-        res.status(500).json({ message: 'Lỗi tạo người dùng', error: error.message });
+        console.error(error);
+        res.status(500).json({ message: 'Lỗi đăng ký', error: error.message });
     }
 };
 
-const loginAdmin = async (req, res) => {
+const loginAdmin = async (req, res, next) => {
     try {
-        const { email, password, securityCode } = req.body;
+        const { email, password } = req.body;
 
         const user = await User.findOne({ email });
 
@@ -179,13 +170,8 @@ const loginAdmin = async (req, res) => {
             return res.status(400).json({ message: 'Mật khẩu không đúng' });
         }
 
-        if (securityCode !== process.env.SECURITY_CODE) {
-            return res.status(400).json({ message: 'Mã bảo mật không đúng' });
-        }
-
         if (user.role !== 'admin') {
-            user.role = 'admin';
-            await user.save();
+            return res.status(400).json({ message: 'Không phải tài khoản quản trị viên' });
         }
 
         const token = createJWT(user._id, user.role);
@@ -195,11 +181,12 @@ const loginAdmin = async (req, res) => {
             token,
             user
         });
-    } catch (error) {
+    }
+    catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Lỗi đăng nhập', error: error.message });
     }
-}
+};
 
 module.exports = {
     register,

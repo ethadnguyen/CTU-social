@@ -6,11 +6,29 @@ const Post = require('../models/post.model');
 const GroupRequest = require('../models/groupRequest.model');
 const Group = require('../models/group.model');
 const { getAllAccountsQuerySchema } = require('../validateSchema/query');
-
 const fs = require('fs');
 const util = require('util');
 const upload = require('../utils/upload');
+const { sendOTP } = require('../utils/sendMail');
 const unlinkFile = util.promisify(fs.unlink);
+
+
+const sendSecurityCode = async (req, res) => {
+    const { email } = req.body;
+
+    try {
+        const user = await User.findOne({ email });
+        if (!user) {
+            return res.status(404).json({ message: 'Email không tồn tại' });
+        }
+
+        await sendOTP(user, res);
+    }
+    catch (error) {
+        console.log(error);
+        res.status(500).json({ message: 'Lỗi gửi mã OTP', error: error.message });
+    }
+};
 
 // Activity controller
 
@@ -531,6 +549,7 @@ const deleteGroup = async (req, res) => {
 };
 
 module.exports = {
+    sendSecurityCode,
     getAllActivities,
     getActivity,
     createActivity,

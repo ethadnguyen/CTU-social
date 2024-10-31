@@ -27,7 +27,7 @@ const ProfileCard = ({ user }) => {
         <div className='w-full flex items-center justify-between border-b pb-5 border-[#66666645]'>
           <Link to={"/profile/" + user?._id} className='flex gap-2'>
             <img
-              src={user?.profileUrl ?? NoProfile}
+              src={user?.avatar ?? NoProfile}
               alt={user?.email}
               className='w-14 h-14 object-cover rounded-full'
             />
@@ -49,11 +49,11 @@ const ProfileCard = ({ user }) => {
                 />
               )
             )}
-            
+
             {user?._id !== data?._id && (
               <button
                 className='bg-[#0444a430] text-sm text-white p-1 rounded'
-                onClick={() => {}}
+                onClick={() => { }}
               >
                 <BsPersonFillAdd size={20} className='text-[#0f52b6]' />
               </button>
@@ -64,12 +64,12 @@ const ProfileCard = ({ user }) => {
         <div className='w-full flex flex-col gap-2 py-4 border-b border-[#66666645]'>
           <div className='flex gap-2 items-center text-ascent-2'>
             <FaRegBuilding className='text-xl text-ascent-1' />
-            <span>{user?.faculty ?? ""}</span>
+            <span>{user?.faculty?.name ?? ""}</span>
           </div>
 
           <div className='flex gap-2 items-center text-ascent-2'>
             <BsBriefcase className=' text-lg text-ascent-1' />
-            <span>{user?.major ?? ""}</span>
+            <span>{user?.major?.majorName ?? ""}</span>
           </div>
         </div>
 
