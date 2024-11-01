@@ -131,10 +131,15 @@ const registerAdmin = async (req, res) => {
             return res.status(400).json({ message: 'Mã OTP không hợp lệ' });
         }
 
-        user.role = 'admin';
-        await user.save();
+        if (user.role === 'admin') {
+            return res.status(400).json({ message: 'Tài khoản đã là quản trị viên' });
+        }
+        else {
+            user.role = 'admin';
+            await user.save();
+            await Verification.deleteOne({ token: securityCode, userId: user._id });
+        }
 
-        await Verification.deleteOne({ token: securityCode, userId: user._id });
 
         res.status(201).json({
             status: 'success',
@@ -151,7 +156,10 @@ const loginAdmin = async (req, res) => {
     try {
         const { email, password } = req.body;
 
-        const user = await User.findOne({ email });
+        const user = await User.findOne({ email }).populate('faculty').populate('major').populate({
+            path: 'friends',
+            select: '-password'
+        });
 
         if (!user) {
             return res.status(400).json({ message: 'Người dùng không tồn tại' });
@@ -176,7 +184,10 @@ const loginAdmin = async (req, res) => {
         res.status(200).json({
             message: 'Đăng nhập tài khoản quản trị viên thành công',
             token,
-            user
+            user: {
+                ...user._doc,
+                password: '',
+            }
         });
     }
     catch (error) {

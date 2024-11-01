@@ -29,10 +29,14 @@ const {
     getGroupByOwner,
     getGroupByUser,
     sendSecurityCode,
+    addCourse,
+    updateCourse,
+    deleteCourse,
+    getMajorsByFaculty,
 } = require('../controllers/admin.controller');
 const { isAdmin } = require('../utils');
 const authMiddleware = require('../middlewares/auth.middleware');
-const { validateCreateActivity, validateCreateFaculty, validateCreateMajor } = require('../middlewares/validate.middleware');
+const { validateCreateActivity, validateCreateFaculty, validateCreateMajor, validateCreateCourse } = require('../middlewares/validate.middleware');
 const upload = require('../utils/upload');
 const router = express.Router();
 
@@ -58,21 +62,31 @@ router.get('/faculties', authMiddleware, isAdmin, getAllFaculties);
 
 router.post('/create-faculty', authMiddleware, isAdmin, validateCreateFaculty, createFaculty);
 
-router.put('/update-faculty/:id', authMiddleware, isAdmin, validateCreateFaculty, updateFaculty);
+router.put('/update-faculty/:facultyId', authMiddleware, isAdmin, validateCreateFaculty, updateFaculty);
 
-router.delete('/delete-faculty/:id', authMiddleware, isAdmin, deleteFaculty);
+router.delete('/delete-faculty/:facultyId', authMiddleware, isAdmin, deleteFaculty);
 
 // route major
 
 router.get('/majors', authMiddleware, isAdmin, getAllMajors);
 
+router.get('/majors/:facultyId', authMiddleware, isAdmin, getMajorsByFaculty);
+
 router.get('/major/:id', authMiddleware, isAdmin, getMajor);
 
 router.post('/create-major', authMiddleware, isAdmin, validateCreateMajor, createMajor);
 
-router.put('/update-major/:id', authMiddleware, isAdmin, validateCreateMajor, updateMajor);
+router.put('/update-major/:majorId', authMiddleware, isAdmin, validateCreateMajor, updateMajor);
 
-router.delete('/delete-major/:id', authMiddleware, isAdmin, deleteMajor);
+router.delete('/delete-major/:majorId', authMiddleware, isAdmin, deleteMajor);
+
+// route academicYear
+
+router.post('/add-course/:majorId', authMiddleware, isAdmin, validateCreateCourse, addCourse);
+
+router.put('/update-course/:majorId', authMiddleware, isAdmin, validateCreateCourse, updateCourse);
+
+router.delete('/delete-course/:majorId', authMiddleware, isAdmin, deleteCourse);
 
 // route manage user
 

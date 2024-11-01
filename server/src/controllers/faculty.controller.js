@@ -2,7 +2,7 @@ const Faculty = require('../models/faculty.model');
 
 const getFaculties = async (req, res) => {
     try {
-        const faculties = await Faculty.find().populate('majors').populate('activities');
+        const faculties = await Faculty.find({ isDeleted: false }).populate('majors').populate('activities');
         res.status(200).json(faculties);
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -26,7 +26,10 @@ const getFaculty = async (req, res) => {
 const getMajors = async (req, res) => {
     const { facultyId } = req.params;
     try {
-        const faculty = await Faculty.findById(facultyId).populate('majors');
+        const faculty = await Faculty.findById(facultyId).populate({
+            path: 'majors',
+            match: { $or: [{ isFacultyDeleted: false }, { isDeleted: false }] }
+        });
         if (!faculty) {
             return res.status(404).json({ message: 'Khoa không tồn tại' });
         }
