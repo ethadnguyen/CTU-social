@@ -90,7 +90,7 @@ const sendVerificationEmail = async (user, res, next) => {
 const sendOTP = async (user, res, next) => {
     const { _id, email, firstName } = user;
     const otpCode = Math.floor(100000 + Math.random() * 900000); // 6-digit OTP code
-    const expiresAt = Date.now() + 5 * 60 * 1000; // Hết hạn sau 5 phút
+    const expiresAt = Date.now() + 5 * 60 * 1000;
 
     const mailOptions = {
         from: AUTH_EMAIL,

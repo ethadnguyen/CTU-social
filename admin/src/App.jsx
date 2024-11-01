@@ -4,7 +4,7 @@ import { Home, Login, Register, ResetPassword, Messages, Notifications } from ".
 
 function Layout() {
   // const { user } = useSelector((state) => state.user);
-  const token = "jsahdiuqdjasdasd"; //localStorage.getItem("token");
+  const token = localStorage.getItem("token");
   const location = useLocation();
 
   return token ? (

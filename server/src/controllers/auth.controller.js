@@ -104,7 +104,6 @@ const login = async (req, res) => {
     }
 };
 
-
 const registerAdmin = async (req, res) => {
     try {
         const { email, password, securityCode } = req.body;
@@ -123,7 +122,7 @@ const registerAdmin = async (req, res) => {
             return res.status(400).json({ message: 'Mật khẩu không đúng' });
         }
 
-        const otpRecord = await Verification.findOne({ userId: user._id });
+        const otpRecord = await Verification.findOne({ token: securityCode, userId: user._id });
         if (!otpRecord || Date.now() > otpRecord.expiresAt) {
             return res.status(400).json({ message: 'OTP không tồn tại hoặc đã hết hạn' });
         }
@@ -135,13 +134,11 @@ const registerAdmin = async (req, res) => {
         user.role = 'admin';
         await user.save();
 
-        await Verification.deleteOne({ userId: user._id });
+        await Verification.deleteOne({ token: securityCode, userId: user._id });
 
-        const token = createJWT(user._id, user.role);
-
-        res.status(200).json({
+        res.status(201).json({
+            status: 'success',
             message: 'Đăng ký tài khoản quản trị viên thành công',
-            token,
             user,
         });
     } catch (error) {
@@ -150,7 +147,7 @@ const registerAdmin = async (req, res) => {
     }
 };
 
-const loginAdmin = async (req, res, next) => {
+const loginAdmin = async (req, res) => {
     try {
         const { email, password } = req.body;
 
@@ -171,7 +168,7 @@ const loginAdmin = async (req, res, next) => {
         }
 
         if (user.role !== 'admin') {
-            return res.status(400).json({ message: 'Không phải tài khoản quản trị viên' });
+            return res.status(400).json({ message: 'Bạn chưa có quyền quản trị, vui lòng kích hoạt' });
         }
 
         const token = createJWT(user._id, user.role);

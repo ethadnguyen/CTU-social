@@ -61,11 +61,12 @@ const Register = () => {
         major: selectedMajor,
         academicYear: selectedCourse,
       });
+      setErrMsg({ status: "success", message: res.data.message });
       setIsSubmitting(false);
     } catch (error) {
       setIsSubmitting(false);
       console.log(error);
-      setErrMsg(error.response.data.message);
+      setErrMsg({ status: "failed", message: error.response.data.message });
     }
   };
 
@@ -326,9 +327,14 @@ const Register = () => {
               </div>
 
               {errMsg && (
-                <div className="text-red text-center">
-                  {errMsg}
-                </div>
+                <span
+                  className={`text-sm ${errMsg?.status == "failed"
+                    ? "text-[#f64949fe]"
+                    : "text-[#2ba150fe]"
+                    } mt-0.5`}
+                >
+                  {errMsg.message}
+                </span>
               )}
 
               {/* Nút điều hướng */}

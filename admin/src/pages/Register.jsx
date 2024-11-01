@@ -5,8 +5,8 @@ import { useForm } from "react-hook-form";
 import { CustomButton, Loading, TextInput } from "../components";
 import { BgImage } from "../assets";
 import backgroundImage from '../assets/CTU.jpg';
-import { UserAdminLogin } from "../redux/userSlice";
-import axiosInstanceNoAuth from '../api/axiosNoAuth';
+// import axiosInstanceNoAuth from '../api/axiosNoAuth';
+import axiosInstance from '../api/axiosConfig';
 
 const Register = () => {
   const {
@@ -31,11 +31,15 @@ const Register = () => {
   const handleSendActivationCode = async () => {
     setIsSendingCode(true);
     try {
-      const response = await axiosInstanceNoAuth.post('/admin/send-otp', { email });
+      if (!email) {
+        setErrMsg({ message: "Vui lòng nhập địa chỉ email!", status: "failed" });
+        return;
+      }
+      const response = await axiosInstance.post('/admin/send-otp', { email });
       if (response.data.success) {
-        const expiresAt = response.data.expiresAt; // Nhận expiresAt từ phản hồi
+        const expiresAt = response.data.expiresAt;
         const currentTime = Date.now();
-        const countdownTime = Math.max(expiresAt - currentTime, 0); // Tính toán thời gian còn lại
+        const countdownTime = Math.max(Math.floor((expiresAt - currentTime) / 1000), 0);
 
         setCountdown(countdownTime); // Đặt countdown
         setErrMsg({ message: "Mã kích hoạt đã được gửi qua email!" });
@@ -65,7 +69,25 @@ const Register = () => {
   };
 
   const onSubmit = async (data) => {
-    console.log("Is submitted");
+    setIsSubmitting(true);
+    console.log(data);
+    try {
+      const response = await axiosInstance.post('/auth/admin/register', {
+        ...data
+      });
+      if (response.data.status === "success") {
+        setErrMsg({ message: response.data.message, status: "success" });
+        // navigate("/login");
+      } else {
+        setErrMsg({ message: response.data.message, status: "failed" });
+      }
+
+    } catch (error) {
+      console.error("Lỗi kích hoạt tài khoản:", error);
+      setErrMsg({ message: "Kích hoạt tài khoản không thành công!", status: "failed" });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
 
@@ -142,7 +164,7 @@ const Register = () => {
               </p>
 
               {countdown > 0 && (
-                <p className="text-sm text-center text-red-500">
+                <p className="text-sm text-center text-[#2ba150fe]">
                   Mã kích hoạt hết hạn trong: {formatTime(countdown)}
                 </p>
               )}

@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { useForm } from "react-hook-form";
 import { CustomButton, Loading, TextInput } from "../components";
 import { BgImage } from "../assets";
@@ -16,8 +16,9 @@ const Login = () => {
     mode: "onChange",
   });
 
-  const [errMsg, setErrMsg] = useState("");
+  // const [errMsg, setErrMsg] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { error } = useSelector((state) => state.user);
   const dispatch = useDispatch();
 
   const navigate = useNavigate();
@@ -97,14 +98,14 @@ const Login = () => {
                 Kích hoạt tài khoản?
               </Link>
 
-              {errMsg?.message && (
+              {error && (
                 <span
-                  className={`text-sm ${errMsg?.status == "failed"
+                  className={`text-sm ${error
                     ? "text-[#f64949fe]"
                     : "text-[#2ba150fe]"
                     } mt-0.5`}
                 >
-                  {errMsg?.message}
+                  {error}
                 </span>
               )}
 

@@ -6,6 +6,7 @@ const { createGroupRequestValidateSchema } = require('../validateSchema/groupReq
 const { createMajorSchema } = require('../validateSchema/major');
 const { createPostValidateSchema } = require('../validateSchema/post');
 const { createUserSchema } = require('../validateSchema/user');
+const { createAdminSchema } = require('../validateSchema/admin');
 
 const validateCreateActivity = (req, res, next) => {
     const { user, ...bodyWithoutUser } = req.body;
@@ -102,6 +103,19 @@ const validateCreateUser = (req, res, next) => {
     next();
 };
 
+const validateCreateAdmin = (req, res, next) => {
+    const { user, ...bodyWithoutUser } = req.body;
+    const { error } = createAdminSchema.validate(bodyWithoutUser, { abortEarly: false });
+
+    if (error) {
+        const errors = error.details.map(detail => detail.message);
+        return res.status(400).json({ errors });
+    }
+
+    req.body.user = user;
+    next();
+}
+
 const validateCreateGroupPost = (req, res, next) => {
     const { user, ...bodyWithoutUser } = req.body;
     const { error } = createGroupPostValidateSchema.validate(bodyWithoutUser, { abortEarly: false });
@@ -123,5 +137,6 @@ module.exports = {
     validateCreateMajor,
     validateCreatePost,
     validateCreateGroupPost,
-    validateCreateUser
+    validateCreateUser,
+    validateCreateAdmin,
 };
