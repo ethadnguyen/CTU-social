@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 const NotificationSchema = new mongoose.Schema({
-    recipients: [
+    receiver: [
         {
             type: mongoose.Schema.Types.ObjectId,
             ref: 'User',
@@ -12,17 +12,13 @@ const NotificationSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
     },
-    title: {
+    message: {
         type: String,
         required: true
     },
     type: {
         type: String,
-        enum: ['like', 'comment', 'friend_request', 'group_request', 'follow', 'report', 'custom'],
-        required: true
-    },
-    content: {
-        type: String,
+        enum: ['like', 'comment', 'friendRequest', 'groupRequest', 'follow', 'joinGroupRequest', 'accept', 'acceptGroupRequest', 'post', 'custom'],
         required: true
     },
     link: {

@@ -66,10 +66,16 @@ const login = async (req, res) => {
     try {
         const { email, password } = req.body;
 
-        const user = await User.findOne({ email }).populate('faculty').populate('major').populate({
-            path: 'friends',
-            select: '-password'
-        });
+        const user = await User.findOne({ email })
+            .populate('faculty')
+            .populate('major')
+            .populate({
+                path: 'friends',
+                select: '-password'
+            })
+            .populate({
+                path: 'notifications'
+            })
         if (!user) {
             return res.status(400).json({ message: 'Người dùng không tồn tại' });
         }
@@ -156,10 +162,16 @@ const loginAdmin = async (req, res) => {
     try {
         const { email, password } = req.body;
 
-        const user = await User.findOne({ email }).populate('faculty').populate('major').populate({
-            path: 'friends',
-            select: '-password'
-        });
+        const user = await User.findOne({ email })
+            .populate('faculty')
+            .populate('major')
+            .populate({
+                path: 'friends',
+                select: '-password'
+            })
+            .populate({
+                path: 'notifications'
+            });
 
         if (!user) {
             return res.status(400).json({ message: 'Người dùng không tồn tại' });

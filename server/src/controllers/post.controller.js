@@ -99,6 +99,9 @@ const getPosts = async (req, res) => {
                     select: 'majorName academicYear',
                 },
             })
+            .populate({
+                path: 'comments',
+            })
             .sort({ _id: -1 }); // Sắp xếp bài viết theo thứ tự mới nhất
 
         // Render tất cả các bài viết
@@ -329,7 +332,24 @@ const likePostComment = async (req, res) => {
 
     try {
         if (!rid) {
-            const comment = await Comment.findById(id);
+            const comment = await Comment.findById(id)
+                .populate({
+                    path: 'user',
+                    select: 'firstName lastName avatar',
+                    populate: {
+                        path: 'faculty',
+                    }
+                })
+                .populate({
+                    path: 'user',
+                    populate: {
+                        path: 'major'
+                    }
+                })
+                .populate({
+                    path: 'replies.user',
+                    select: 'firstName lastName avatar',
+                });
 
             const userLiked = comment.likedBy.some((user) => user.toString() === userId);
 
@@ -355,7 +375,24 @@ const likePostComment = async (req, res) => {
                         $elemMatch: { _id: rid }
                     },
                 },
-            );
+            )
+                .populate({
+                    path: 'user',
+                    select: 'firstName lastName avatar',
+                    populate: {
+                        path: 'faculty',
+                    }
+                })
+                .populate({
+                    path: 'user',
+                    populate: {
+                        path: 'major'
+                    }
+                })
+                .populate({
+                    path: 'replies.user',
+                    select: 'firstName lastName avatar',
+                });
 
             const userLiked = comment?.replies[0]?.likedBy.some(
                 (user) => user.toString() === userId,
@@ -688,6 +725,10 @@ const createPost = async (req, res) => {
 
         await newPost.save();
 
+        const user = await User.findById(userId);
+        user.posts.push(newPost._id);
+        await user.save();
+
         res.status(201).json({ message: 'Tạo bài viết thành công', post: newPost });
     } catch (error) {
         console.log(error);
@@ -755,6 +796,11 @@ const deletePost = async (req, res) => {
 
         await Post.deleteOne({ _id: id });
 
+        await User.updateOne(
+            { _id: post.user },
+            { $pull: { posts: id } }
+        );
+
         res.status(200).json({ message: 'Xóa bài viết thành công' });
     } catch (error) {
         console.log(error);
@@ -773,23 +819,16 @@ const deletePostComment = async (req, res) => {
                 return res.status(404).json({ message: 'Bình luận không tồn tại' });
             }
 
-            await comment.deleteOne({ _id: id });
+            await comment.deleteOne();
 
             await Post.updateOne(
                 { comments: id },
                 { $pull: { comments: id } }
             );
 
-            res.status(200).json({ message: 'Xóa bình luận thành công' });
+            return res.status(200).json({ message: 'Xóa bình luận thành công' });
         } else {
-            const comment = await Comment.findOne(
-                { _id: id },
-                {
-                    replies: {
-                        $elemMatch: { _id: rid }
-                    },
-                },
-            );
+            const comment = await Comment.findById(id);
 
             if (!comment) {
                 return res.status(404).json({ message: 'Bình luận không tồn tại' });
@@ -799,7 +838,7 @@ const deletePostComment = async (req, res) => {
 
             await comment.save();
 
-            res.status(200).json({ message: 'Xóa bình luận thành công' });
+            return res.status(200).json({ message: 'Xóa phản hồi thành công' });
         }
     } catch (error) {
         console.log(error);

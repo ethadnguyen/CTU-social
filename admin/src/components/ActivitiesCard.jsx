@@ -1,6 +1,5 @@
 import { React, useState, useEffect, useRef } from 'react';
 import { useSelector, useDispatch } from "react-redux";
-// import { faculties } from "../assets/home";
 import {
     CustomButton,
     ActivityForm,
@@ -8,6 +7,9 @@ import {
 import { MdDelete, MdEdit } from "react-icons/md";
 import { FaSearch, FaTimes } from "react-icons/fa";
 import { fetchFaculties } from '../redux/facultySlice';
+import axiosInstance from '../api/axiosConfig';
+import { toast } from 'react-toastify';
+import Swal from 'sweetalert2';
 
 const ActivitiesCard = () => {
     const { user, edit } = useSelector((state) => state.user);
@@ -29,9 +31,21 @@ const ActivitiesCard = () => {
         setShowAddActivity(true);
     };
 
-    const handleAddActivitySubmit = (newActivityData) => {
+    const handleAddActivitySubmit = async (newActivityData) => {
         console.log("Thêm hoạt động mới:", newActivityData, " cho Khoa: ", selectedFaculty);
-        // Xử lý thêm hoạt động mới
+        const response = await axiosInstance.post(`/admin/create-activity`, {
+            faculty: selectedFaculty,
+            title: newActivityData.title,
+            image: newActivityData.imageUrl,
+            link: newActivityData.url
+        });
+
+        if (response.status === 201) {
+            toast.success("Thêm hoạt động thành công!");
+            dispatch(fetchFaculties());
+        } else {
+            toast.error("Thêm hoạt động thất bại!");
+        }
     };
 
     useEffect(() => {
@@ -48,15 +62,48 @@ const ActivitiesCard = () => {
         setEditingActivity(null);
     };
 
-    const handleDeleteActivity = (activityId) => {
-        console.log("Xóa hoạt động:", activityId, " của khoa ", selectedFaculty);
-        // logic xóa hoạt động
+
+    const handleUpdateActivity = async (newActivityData) => {
+        console.log("Cập nhật hoạt động", editingActivity._id, "của khoa ", selectedFaculty, ": ", newActivityData);
+        const response = await axiosInstance.put(`/admin/update-activity/${editingActivity._id}`, {
+            faculty: selectedFaculty,
+            title: newActivityData.title,
+            image: newActivityData.imageUrl,
+            link: newActivityData.url
+        });
+        console.log(response);
+        if (response.status === 200) {
+            toast.success("Cập nhật hoạt động thành công!");
+            dispatch(fetchFaculties());
+        } else {
+            toast.error("Cập nhật hoạt động thất bại!");
+        }
     };
 
-    const handleUpdateActivity = (newActivityData) => {
-        console.log("Cập nhật hoạt động", editingActivity.id, "của khoa ", selectedFaculty, ": ", newActivityData);
-        // logic cập nhật hoạt động
-    }
+    const handleDeleteActivity = (activityId) => {
+        console.log("Xóa hoạt động:", activityId, " của khoa ", selectedFaculty);
+        Swal.fire({
+            title: 'Bạn có chắc chắn muốn xóa hoạt động này?',
+            text: "Dữ liệu sẽ không thể khôi phục lại sau khi xóa!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Xóa!',
+            cancelButtonText: 'Hủy'
+        }).then(async (result) => {
+            if (result.isConfirmed) {
+                const response = await axiosInstance.delete(`/admin/delete-activity/${activityId}`);
+                console.log(response);
+                if (response.status === 200) {
+                    toast.success("Xóa hoạt động thành công!");
+                    dispatch(fetchFaculties());
+                } else {
+                    toast.error("Xóa hoạt động thất bại!");
+                }
+            }
+        });
+    };
 
     const handleEditActivity = (activity) => {
         setEditingActivity(activity);
@@ -147,7 +194,7 @@ const ActivitiesCard = () => {
                             activity.title.toLowerCase().includes(searchTerm.toLowerCase())
                         )
                         .map((activity) => (
-                            <div key={activity.id} className='flex flex-col mb-4 gap-4 relative border-[#66666690] border-b pb-4 transform hover:-translate-y-3 transition-transform duration-300'>
+                            <div key={activity._id} className='flex flex-col mb-4 gap-4 relative border-[#66666690] border-b pb-4 transform hover:-translate-y-3 transition-transform duration-300'>
                                 <div className="flex items-center justify-between">
                                     <a
                                         href={activity.link}
@@ -166,7 +213,7 @@ const ActivitiesCard = () => {
                                             <MdEdit className="h-7 w-7" />
                                         </button>
                                         <button
-                                            onClick={() => handleDeleteActivity(activity.id)}
+                                            onClick={() => handleDeleteActivity(activity._id)}
                                             className="text-ascent-1 p-2 rounded-md"
                                         >
                                             <MdDelete className="h-7 w-7" />

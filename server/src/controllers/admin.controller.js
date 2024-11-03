@@ -88,7 +88,7 @@ const createActivity = async (req, res) => {
 
 const updateActivity = async (req, res) => {
     const { activityId } = req.params;
-    const { title, description, link, faculty } = req.body;
+    const { title, description, link, image, faculty } = req.body;
 
     try {
         const activity = await Activity.findById(activityId);
@@ -98,18 +98,19 @@ const updateActivity = async (req, res) => {
         }
 
 
-        if (req.file) {
-            const result = await upload(req.file.path, 'CTU-social/images');
-            await unlinkFile(req.file.path); // Xóa file tạm sau khi upload
+        // if (req.file) {
+        //     const result = await upload(req.file.path, 'CTU-social/images');
+        //     await unlinkFile(req.file.path); // Xóa file tạm sau khi upload
 
 
-            activity.image = result.secure_url;
-        }
+        //     activity.image = result.secure_url;
+        // }
 
 
         if (title !== undefined && title !== null) activity.title = title;
         if (description !== undefined && description !== null) activity.description = description;
         if (link !== undefined && link !== null) activity.link = link;
+        if (image !== undefined && image !== null) activity.image = image;
         if (faculty !== undefined && faculty !== null) activity.faculty = faculty;
 
         const updatedActivity = await activity.save();
@@ -435,7 +436,18 @@ const getAllAccounts = async (req, res) => {
             }
         }
 
-        const accounts = await User.find(query);
+        const accounts = await User.find(query)
+            .populate('faculty')
+            .populate('major')
+            .populate({
+                path: 'posts',
+                populate: [
+                    { path: 'likedBy' },
+                    { path: 'reportedBy' }
+                ]
+            })
+            .populate('friends')
+            .exec();
         res.json(accounts);
     } catch (error) {
         res.status(500).json({ message: 'Lỗi lấy danh sách tài khoản' });

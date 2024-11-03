@@ -49,12 +49,12 @@ router.get('/activities', authMiddleware, isAdmin, getAllActivities);
 
 router.get('/activity/:id', authMiddleware, isAdmin, getActivity);
 
-router.post('/create-activity', authMiddleware, isAdmin, validateCreateActivity, upload.single('images'), createActivity);
+router.post('/create-activity', authMiddleware, isAdmin, validateCreateActivity, createActivity);
 
-router.put('/update-activity/:id', authMiddleware, isAdmin, validateCreateActivity, updateActivity);
+router.put('/update-activity/:activityId', authMiddleware, isAdmin, validateCreateActivity, updateActivity);
 
 
-router.delete('/delete-activity/:id', authMiddleware, isAdmin, deleteActivity);
+router.delete('/delete-activity/:activityId', authMiddleware, isAdmin, deleteActivity);
 
 // route faculty
 
