@@ -1,0 +1,37 @@
+export const post = {
+    _id: "64e2fe620d7868ecff1a6a86",
+    groupId: "4",
+    groupName: "Hội thánh đức chúa trời",
+    userId: {
+        _id: "64df39704180b81adfe41d0b",
+        firstName: "Lực",
+        lastName: "Nguyễn",
+        profileUrl: "/pictures/Neal.jpg",
+        faculty: "CNTT&TT",
+        major: "Kỹ thuật phần mềm K47",
+    },
+    description: "Nice pic!",
+    image: [
+        "/pictures/1 (1).jpg",
+        "/pictures/1 (2).jpg",
+        "/pictures/Neal.jpg",
+        "/pictures/1 (4).jpg",
+        "/pictures/1 (5).jpg",
+        "/pictures/1 (6).jpg",
+        "/pictures/1 (7).jpg",
+        "/pictures/1 (8).jpg",
+        "/pictures/1 (9).jpg",
+        "/pictures/1 (10).jpg",
+        "/pictures/1 (11).jpg",
+    ],
+    share: [
+        "64df3aec4180b81adfe41d32",
+        "64df39704180b81adfe41d0b",
+        "64df424b4a4c0d47b5369f65"
+        ],
+    likes: ["64df3c064180b81adfe41d4b"],
+    comments: [],
+    createdAt: "2023-08-21T06:04:18.297Z",
+    updatedAt: "2023-08-21T06:04:18.297Z",
+    __v: 0,
+}

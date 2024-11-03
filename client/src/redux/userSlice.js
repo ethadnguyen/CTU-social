@@ -3,7 +3,7 @@ import axiosInstance from "../api/axiosConfig";
 import { user } from "../assets/data";
 
 const initialState = {
-  user: JSON.parse(window?.localStorage.getItem("user")) ?? null,
+  user: JSON.parse(window?.localStorage.getItem("user")) ?? user,
   edit: false,
 };
 

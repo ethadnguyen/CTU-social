@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { Loading, PostCard, TopBar } from "../components";
-import { posts } from "../assets/home";
+import { Posts } from "../assets/home";
 //import { getPostsByGroup } from "../redux/postSlice";
 
 const Group = () => {

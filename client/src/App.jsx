@@ -1,13 +1,13 @@
 import { Outlet, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { useSelector } from "react-redux";
-import { Home, Login, Profile, Register, ResetPassword, Group, Messages, Notifications } from "./pages";
+import { Home, Login, Profile, Register, ResetPassword, Group, Messages, Notifications, Post, Search } from "./pages";
 import Modal from 'react-modal';
 
 Modal.setAppElement('#root');
 
 function Layout() {
   // const { user } = useSelector((state) => state.user);
-  const token = localStorage.getItem("token");
+  const token = "asdadasdasd"; //localStorage.getItem("token");
   const location = useLocation();
 
   return token ? (
@@ -29,6 +29,8 @@ function App() {
           <Route path='/groups/:id?' element={<Group />} />
           <Route path='/messages/:id?' element={<Messages />} />
           <Route path='/notifications/:id?' element={<Notifications />} />
+          <Route path='/post/:id?' element={<Post />} />
+          <Route path='/search/:searchQuery' element={<Search />} />
         </Route>
 
         <Route path='/register' element={<Register />} />
