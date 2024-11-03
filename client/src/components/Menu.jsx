@@ -1,6 +1,6 @@
 import { React, useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   CustomButton,
   FriendsCard,
@@ -16,7 +16,7 @@ import moment from "moment";
 
 import { UpdateProfile } from "../redux/userSlice";
 
-const Menu = ({ user, friends }) => {
+const Menu = ({ user, friends, searchQuery }) => {
   const { user: data } = useSelector((state) => state.user);
   const [friendRequest, setFriendRequest] = useState(requests);
   const [suggestedFriends, setSuggestedFriends] = useState(suggest);
@@ -31,7 +31,13 @@ const Menu = ({ user, friends }) => {
     handleSubmit,
     formState: { errors },
   } = useForm();
-  const handleSearch = async (data) => { };
+  const navigate = useNavigate();
+  const [inputValue, setInputValue] = useState(searchQuery || "");
+  
+  const handleSearch = () => {
+    if (inputValue.trim() !== '')
+      navigate(`/search/${inputValue}`);
+  };
 
   useEffect(() => {
     if (user && user.facultyId) {
@@ -264,7 +270,7 @@ const Menu = ({ user, friends }) => {
         <div className="fixed top-0 left-0 w-full h-full bg-black bg-opacity-50 flex items-center justify-center overflow-y">
           <div className="bg-white w-11/12 md:w-1/2 lg:w-1/3 rounded-lg shadow-lg p-4 relative">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold"></h2>
+              <div></div>
               <button onClick={() => setShowSearch(false)} className="text-ascent-1 text-xl font-bold">
                 X
               </button>
@@ -279,6 +285,8 @@ const Menu = ({ user, friends }) => {
                 <TextInput
                   placeholder='Tìm kiếm...'
                   styles='w-full rounded-l-full py-3 '
+                  value={inputValue}
+                  onChange={(e) => setInputValue(e.target.value)}
                   register={register("search")}
                 />
                 <CustomButton

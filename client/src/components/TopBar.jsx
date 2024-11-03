@@ -63,7 +63,7 @@ const TopBar = ({ friends, searchQuery }) => {
       </div>
 
       {/* Mobile Menu Dropdown */}
-      {showMenu && <Menu user={user} friends={user?.friends} />}
+      {showMenu && <Menu user={user} friends={user?.friends} searchQuery={inputValue} />}
 
       <form
         onSubmit={handleSubmit(handleSearch)}
@@ -107,7 +107,7 @@ const TopBar = ({ friends, searchQuery }) => {
         <div className="flex relative">
           <Link to={`/notifications/${user?._id}`}>
             {user?.messages?.length > 0 && (
-              <div className="absolute inline-flex items-center justify-center w-4 h-4 text-xs font-bold text-white bg-red border-3 border-white rounded-full -top-2 -end-2">
+              <div className="absolute inline-flex items-center justify-center w-4 h-4 text-xs font-bold text-white bg-red border-3 border-white rounded-full -top-1 -end-1">
                 <span className="text-sm text-white">
                   {user?.notifications}
                 </span>
