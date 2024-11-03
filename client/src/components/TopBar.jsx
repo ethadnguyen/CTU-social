@@ -1,8 +1,4 @@
-<<<<<<< HEAD
-import { React, useState } from "react";
-=======
-import React, { useEffect, useState } from "react";
->>>>>>> main
+import { React, useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Link, useNavigate } from "react-router-dom";
 import TextInput from "./TextInput";
@@ -22,10 +18,7 @@ const TopBar = ({ friends, searchQuery }) => {
   const { theme } = useSelector((state) => state.theme);
   const { user } = useSelector((state) => state.user);
   const [showMenu, setShowMenu] = useState(false);
-<<<<<<< HEAD
-=======
   const [notificationCount, setNotificationCount] = useState(0);
->>>>>>> main
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const {
@@ -33,9 +26,6 @@ const TopBar = ({ friends, searchQuery }) => {
     handleSubmit,
     formState: { errors },
   } = useForm();
-<<<<<<< HEAD
-  const [inputValue, setInputValue] = useState(searchQuery || "");
-=======
   useEffect(() => {
     if (user && user.notifications) {
       const unreadNotifications = user.notifications.filter((n) => !n.isRead);
@@ -51,7 +41,6 @@ const TopBar = ({ friends, searchQuery }) => {
       socket.off('getNotification');
     };
   }, [user]);
->>>>>>> main
 
   const handleTheme = () => {
     const themeValue = theme === "light" ? "dark" : "light";
@@ -63,6 +52,8 @@ const TopBar = ({ friends, searchQuery }) => {
     if (inputValue.trim() !== '')
       navigate(`/search/${inputValue}`);
   };
+
+  const [inputValue, setInputValue] = useState(searchQuery || "");
 
   return (
     <div className="topbar w-full flex items-center justify-between py-3 md:py-6 px-4 bg-primary">
