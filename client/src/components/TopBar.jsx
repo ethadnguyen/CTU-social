@@ -26,21 +26,21 @@ const TopBar = ({ friends, searchQuery }) => {
     handleSubmit,
     formState: { errors },
   } = useForm();
-  useEffect(() => {
-    if (user && user.notifications) {
-      const unreadNotifications = user.notifications.filter((n) => !n.isRead);
-      setNotificationCount(unreadNotifications.length);
-    }
+  // useEffect(() => {
+  //   if (user && user.notifications) {
+  //     const unreadNotifications = user.notifications.filter((n) => !n.isRead);
+  //     setNotificationCount(unreadNotifications.length);
+  //   }
 
-    socket.on('getNotification', (notification) => {
-      console.log('getNotification', notification);
-      setNotificationCount(prevCount => prevCount + 1);
-    });
+  //   socket.on('getNotification', (notification) => {
+  //     console.log('getNotification', notification);
+  //     setNotificationCount(prevCount => prevCount + 1);
+  //   });
 
-    return () => {
-      socket.off('getNotification');
-    };
-  }, [user]);
+  //   return () => {
+  //     socket.off('getNotification');
+  //   };
+  // }, [user]);
 
   const handleTheme = () => {
     const themeValue = theme === "light" ? "dark" : "light";

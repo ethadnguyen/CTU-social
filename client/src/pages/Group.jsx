@@ -1,51 +1,379 @@
-import React, { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { React, useState, useEffect, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { Loading, PostCard, TopBar } from "../components";
+import {
+  CustomButton,
+  EditProfile,
+  FriendsCard,
+  Loading,
+  PostCard,
+  ProfileCard,
+  TextInput,
+  TopBar,
+} from "../components";
+import { suggest, requests } from "../assets/data";
 import { Posts } from "../assets/home";
-//import { getPostsByGroup } from "../redux/postSlice";
+import { group } from "../assets/group";
+import { Link, useLocation, ScrollRestoration } from "react-router-dom";
+import { NoProfile } from "../assets";
+import { BsPersonFillAdd } from "react-icons/bs";
+import { SiVerizon } from "react-icons/si";
+import { FaDeleteLeft } from "react-icons/fa6";
+import { useForm } from "react-hook-form";
+import axiosInstance from "../api/axiosConfig";
+import {
+  getPosts,
+  likePost,
+  reportPost,
+  updatePosts,
+} from "../redux/postSlice";
+import { toast } from "react-toastify";
+import { updateUser } from "../redux/userSlice";
+import { fetchFaculties } from "../redux/facultySlice";
+import Swal from "sweetalert2";
+import socket, { connectSocket, disconnectSocket } from "../api/socket";
 
 const Group = () => {
-  const { id } = useParams();
-  const dispatch = useDispatch();
-  //const { posts, loading } = useSelector((state) => state.posts);
+  const { user, edit } = useSelector((state) => state.user);
+  const { faculties } = useSelector((state) => state.faculty);
+  const [friendRequest, setFriendRequest] = useState([]);
+  const [suggestedFriends, setSuggestedFriends] = useState(suggest);
+  const [errMsg, setErrMsg] = useState("");
+  const [files, setFiles] = useState([]);
+  const [images, setImages] = useState([]);
+  const [posting, setPosting] = useState(false);
   const [loading, setLoading] = useState(false);
-  const { user } = useSelector((state) => state.user);
 
-  //   useEffect(() => {
-  //     dispatch(getPostsByGroup(id));
-  //   }, [dispatch, id]);
+  const posts = useSelector((state) => state.posts.posts);
 
-  const handleDelete = () => { };
-  const handleLikePost = () => { };
+  const dispatch = useDispatch();
+
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm();
+
+  useEffect(() => {
+    dispatch(getPosts());
+  }, [dispatch]);
+
+  console.log("Posts:", posts);
+
+  useEffect(() => {
+    const getFriendRequests = async () => {
+      try {
+        const res = await axiosInstance.get("/users/friend-requests");
+        console.log("Friend requests:", res.data.requests);
+        setFriendRequest(res.data.requests);
+      } catch (error) {
+        console.error("Error getting friend requests:", error);
+      }
+    };
+
+    getFriendRequests();
+  }, []);
+
+  useEffect(() => {
+    dispatch(fetchFaculties());
+  }, [dispatch]);
+
+  const handleDeletePost = async (postId) => {
+    try {
+      const result = await Swal.fire({
+        title: "Bạn có chắc muốn xóa bài viết này?",
+        text: "Bài viết sẽ bị xóa vĩnh viên",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonColor: "#3085d6",
+        cancelButtonColor: "#d33",
+        confirmButtonText: "Xóa",
+        cancelButtonText: "Hủy",
+      });
+
+      if (result.isConfirmed) {
+        await axiosInstance.delete(`/posts/${postId}`);
+        dispatch(getPosts());
+        Swal.fire(
+          "Xóa thành công",
+          "Bạn đã xóa bài viết thành công!",
+          "success"
+        );
+      }
+    } catch (error) {
+      console.error("Error deleting post:", error);
+      Swal.fire("Xóa thất bại", "Có lỗi xảy ra, vui lòng thử lại", "error");
+    }
+  };
+
+  const handleLikePost = async (post) => {
+    const postId = post._id;
+    const userId = user._id;
+    const senderName = `${user.firstName} ${user.lastName}`;
+    const receiverIds = [post.user._id];
+
+    try {
+      const alreadyLiked = post.likedBy.includes(userId);
+      await dispatch(likePost(postId));
+      const updatedPosts = posts.map((p) => {
+        if (p._id === postId) {
+          const hasLiked = p.likedBy.includes(userId);
+
+          return {
+            ...p,
+            likes: hasLiked ? p.likes - 1 : p.likes + 1,
+            likedBy: hasLiked
+              ? p.likedBy.filter((id) => id !== userId)
+              : [...p.likedBy, userId],
+          };
+        }
+        return p;
+      });
+      dispatch(updatePosts(updatedPosts));
+
+      if (!alreadyLiked && !receiverIds.includes(userId)) {
+        const response = await axiosInstance.post(
+          "/users/create-notification",
+          {
+            receiverIds,
+            sender: user._id,
+            message: `${senderName} đã thích bài viết của bạn`,
+            type: "like",
+            link: `/posts/${postId}`,
+          }
+        );
+
+        if (response.status === 201) {
+          socket.emit("sendNotification", response.data.notification);
+        }
+      }
+    } catch (error) {
+      console.log(error);
+      console.error("Error liking post:", error);
+    }
+  };
+
+  const handleReportPost = async (post) => {
+    const socket = io("http://localhost:5000");
+    const postId = post._id;
+    try {
+      await dispatch(reportPost(postId));
+      const updatedPosts = posts.map((p) => {
+        if (p._id === postId) {
+          const hasReported = p.reportedBy.includes(user._id);
+          return {
+            ...p,
+            reports: hasReported ? p.reports - 1 : p.reports + 1,
+            reportedBy: hasReported
+              ? p.reportedBy.filter((id) => id !== user._id)
+              : [...p.reportedBy, user._id],
+          };
+        }
+        return p;
+      });
+      dispatch(updatePosts(updatedPosts));
+      toast.success(
+        `Đã ${
+          post.reportedBy.includes(user._id) ? "bỏ" : ""
+        } báo cáo bài viết thành công!`
+      );
+      socket.emit("reportPost", { id: postId, reportedBy: user._id });
+    } catch (error) {
+      console.error("Error reporting post:", error);
+    }
+  };
+
+  const fileInputRef = useRef(null);
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      submitBanner(file);
+    }
+  };
+
+  const submitBanner = (file) => {
+    console.log("submit banner", file);
+    // Thực hiện các thao tác upload file ở đây
+    // ...
+  };
 
   return (
-    <div className="home w-full px-0 lg:px-10 pb-20 2xl:px-40 bg-bgColor lg:rounded-lg h-screen overflow-hidden">
-      {/* <TopBar /> */}
-      <div className="w-full flex gap-2 lg:gap-4 pt-5 pb-10 h-full">
-        {/* ... (You can add sidebars or other content here if needed) ... */}
-
-        <div className="flex-1 h-full bg-orimary px-4 flex flex-col gap-6 overflow-y-auto">
-          {loading ? (
-            <Loading />
-          ) : posts?.length > 0 ? (
-            posts.map((post) => (
-              <PostCard
-                key={post._id}
-                post={post}
-                user={user}
-                deletePost={handleDelete}
-                likePost={handleLikePost}
-              />
-            ))
-          ) : (
-            <div className="flex w-full h-full items-center justify-center">
-              <p className="text-lg text-ascent-2">No Posts in this group yet.</p>
+    <>
+      <div className="w-full h-[89vh] px-0 pb-20 overflow-hidden lg:px-10 2xl:px-40 bg-bgColor lg:rounded-lg">
+        {/* <TopBar friends={user?.friends} /> */}
+        <div className="relative">
+          <img
+            src={group.banner ? group.banner : "../src/assets/empty.jpg"}
+            alt="Banner"
+            className="w-full h-48 object-cover rounded-t-lg"
+          />
+          <div className="absolute top-0 left-0 w-full h-48 flex items-center justify-between bg-black bg-opacity-50 rounded-t-lg opacity-0 hover:opacity-100 transition-opacity duration-300">
+            <div className="rounded-xl bg-gray">
+              <span className="text-white font-bold text-lg px-4">
+                {group.name}
+              </span>
             </div>
-          )}
+            <input
+              type="file"
+              accept="image/*"
+              ref={fileInputRef}
+              className="hidden"
+              onChange={handleFileChange}
+            />
+            <div></div>
+            {user._id === group.adminId && (
+              <button
+                onClick={() => fileInputRef.current.click()}
+                className="bg-sky hover:bg-blue text-white font-bold py-2 px-4 rounded"
+              >
+                Chọn ảnh banner
+              </button>
+            )}
+            <div></div>
+            <div></div>
+            <div></div>
+          </div>
+        </div>
+
+        <div className="flex w-full h-full gap-2 pt-5 pb-10 lg:gap-4">
+          {/* LEFT */}
+          <div className="flex-col hidden w-1/3 h-[90%] gap-3 overflow-y-auto lg:w-1/4 md:flex">
+            <ProfileCard user={user} />
+            <FriendsCard friends={user?.friends} />
+          </div>
+
+          {/* CENTER */}
+          <div className="flex flex-col flex-1 h-[90%] gap-6 px-4 overflow-y-auto rounded-lg">
+            {loading ? (
+              <Loading />
+            ) : Posts?.length > 0 ? (
+              Posts?.map((post) => (
+                <PostCard
+                  key={post?._id}
+                  post={post}
+                  user={user}
+                  deletePost={handleDeletePost}
+                  likePost={handleLikePost}
+                  reportPost={handleReportPost}
+                />
+              ))
+            ) : (
+              <div className="flex items-center justify-center w-full h-full">
+                <p className="text-lg text-ascent-2">No Post Available</p>
+              </div>
+            )}
+          </div>
+
+          {/* RIGHT */}
+          <div className="hidden w-1/4 h-[90%] lg:flex flex-col gap-3 overflow-y-auto">
+            {group.description && (
+              <div className="flex-1 h-full px-5 py-5 overflow-y-auto rounded-lg shadow-sm bg-primary">
+                <div className="flex items-center justify-between text-lg text-ascent-1 border-b border-[#66666645]">
+                  <span>Mô tả</span>
+                  {user._id === group.adminId && (
+                    <CustomButton
+                      title="Chỉnh sửa"
+                      containerStyles="text-sm text-ascent-1 mb-2 px-4 md:px-6 py-1 md:py-2 border border-[#666] rounded-full"
+                    />
+                  )}
+                </div>
+                <div className="flex flex-col w-full gap-4 pt-4">
+                  {group.description}
+                </div>
+              </div>
+            )}
+            {/* Join requests */}
+            {user._id === group.adminId && (
+              <div className="flex-1 h-full px-5 py-5 overflow-y-auto rounded-lg shadow-sm bg-primary">
+                <div className="flex items-center justify-between text-lg text-ascent-1 border-b border-[#66666645]">
+                  <span>Yêu cầu tham gia</span>
+                </div>
+                <div className="flex flex-col w-full gap-4 pt-4">
+                  {suggestedFriends?.map((friend) => (
+                    <div
+                      className="flex items-center justify-between"
+                      key={friend._id}
+                    >
+                      <Link
+                        to={"/profile/" + friend?._id}
+                        key={friend?._id}
+                        className="flex items-center w-full gap-4 cursor-pointer"
+                      >
+                        <img
+                          src={friend?.profileUrl ?? NoProfile}
+                          alt={friend?.firstName}
+                          className="object-cover w-10 h-10 rounded-full"
+                        />
+                        <div className="flex-1 ">
+                          <p className="text-base font-medium text-ascent-1">
+                            {friend?.firstName} {friend?.lastName}
+                          </p>
+                        </div>
+                      </Link>
+
+                      <div className="flex gap-1">
+                        <button
+                          className="bg-[#0444a430] text-sm text-white p-1 rounded"
+                          onClick={() => {}}
+                        >
+                          <SiVerizon size={20} className="text-[#0f52b6]" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Members */}
+            <div className="flex-1 h-full px-5 py-5 overflow-y-auto rounded-lg shadow-sm bg-primary">
+              <div className="flex items-center justify-between text-lg text-ascent-1 border-b border-[#66666645]">
+                <span>Thành viên</span>
+              </div>
+              <div className="flex flex-col w-full gap-4 pt-4">
+                {suggestedFriends?.map((friend) => (
+                  <div
+                    className="flex items-center justify-between"
+                    key={friend._id}
+                  >
+                    <Link
+                      to={"/profile/" + friend?._id}
+                      key={friend?._id}
+                      className="flex items-center w-full gap-4 cursor-pointer"
+                    >
+                      <img
+                        src={friend?.profileUrl ?? NoProfile}
+                        alt={friend?.firstName}
+                        className="object-cover w-10 h-10 rounded-full"
+                      />
+                      <div className="flex-1 ">
+                        <p className="text-base font-medium text-ascent-1">
+                          {friend?.firstName} {friend?.lastName}
+                        </p>
+                      </div>
+                    </Link>
+
+                    {user._id === group.adminId && (
+                      <div className="flex gap-1">
+                        <button
+                          className="bg-[#0444a430] text-sm text-white p-1 rounded"
+                          onClick={() => {}}
+                        >
+                          <FaDeleteLeft size={20} className="text-[#0f52b6]" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
-    </div>
+
+      {edit && <EditProfile />}
+    </>
   );
 };
 

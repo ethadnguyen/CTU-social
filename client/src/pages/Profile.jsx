@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useParams, Link } from "react-router-dom";
+import { useForm } from "react-hook-form";
 import {
   CustomButton,
   EditProfile,
@@ -13,10 +14,15 @@ import {
 import { profile } from "../assets/profile";
 import { ChevronDownIcon, ChevronUpIcon } from "@heroicons/react/24/outline";
 import { MdOutlineFileUpload } from "react-icons/md";
-import { getSavedPosts, getUserPosts, likePost, reportPost } from './../redux/postSlice';
-import io from 'socket.io-client';
-import axiosInstance from '../api/axiosConfig';
-import { toast } from 'react-toastify';
+import {
+  getSavedPosts,
+  getUserPosts,
+  likePost,
+  reportPost,
+} from "./../redux/postSlice";
+import io from "socket.io-client";
+import axiosInstance from "../api/axiosConfig";
+import { toast } from "react-toastify";
 
 const Profile = () => {
   const { id } = useParams();
@@ -26,6 +32,12 @@ const Profile = () => {
   const [loading, setLoading] = useState(false);
   const [expandedTags, setExpandedTags] = useState({});
   const dispatch = useDispatch();
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm();
 
   const [showSavedPosts, setShowSavedPosts] = useState(false);
 
@@ -46,40 +58,39 @@ const Profile = () => {
     dispatch(getSavedPosts(id));
   }, [dispatch, id]);
 
-
   const handleDeletePost = async (postId) => {
     try {
       await axiosInstance.delete(`/posts/${postId}`);
       dispatch(getUserPosts(user._id));
-      toast.success('Xóa bài viết thành công!');
+      toast.success("Xóa bài viết thành công!");
     } catch (error) {
-      console.error('Error deleting post:', error);
+      console.error("Error deleting post:", error);
     }
   };
 
   const handleLikePost = async (post) => {
     const postId = post._id;
     const userId = user._id;
-    const socket = io('http://localhost:5000');
+    const socket = io("http://localhost:5000");
 
     try {
       await dispatch(likePost(postId));
       await dispatch(getUserPosts(user._id));
-      socket.emit('likePost', { userId, postId });
+      socket.emit("likePost", { userId, postId });
     } catch (error) {
-      console.error('Error liking post:', error);
+      console.error("Error liking post:", error);
     }
   };
 
   const handleReportPost = async (post) => {
-    const socket = io('http://localhost:5000');
+    const socket = io("http://localhost:5000");
     const postId = post._id;
     try {
       await dispatch(reportPost(postId));
       await dispatch(getUserPosts(user._id));
-      socket.emit('reportPost', { id: postId, reportedBy: user._id });
+      socket.emit("reportPost", { id: postId, reportedBy: user._id });
     } catch (error) {
-      console.error('Error reporting post:', error);
+      console.error("Error reporting post:", error);
     }
   };
 
@@ -87,44 +98,65 @@ const Profile = () => {
     setExpandedTags((prev) => ({ ...prev, [tagId]: !prev[tagId] }));
   };
 
+  const [showCreateGroupForm, setShowCreateGroupForm] = useState(false);
+
+  const handleCreateGroupClick = () => {
+    if (showCreateGroupForm === false) setShowCreateGroupForm(true);
+    else setShowCreateGroupForm(false);
+  };
+
+  const handleCreateGroup = (data) => {
+    console.log("Tên nhóm:", data.name);
+    console.log("Mục đích:", data.description);
+    // ... logic xử lý tạo nhóm ...
+
+    // Reset form fields after submission
+    reset();
+  };
+
   return (
     <>
-      <div className='w-full h-screen px-0 pb-20 overflow-hidden home lg:px-10 2xl:px-40 bg-bgColor lg:rounded-lg'>
+      <div className="w-full h-[89vh] px-0 pb-1 overflow-hidden lg:px-10 2xl:px-40 bg-bgColor lg:rounded-lg">
         {/* <TopBar /> */}
-        <div className='flex w-full h-full gap-2 pt-5 pb-10 lg:gap-4'>
+        <div className="flex w-full h-full pt-5">
           {/* LEFT */}
-          <div className='flex-col hidden w-1/3 gap-4 overflow-y-auto lg:w-1/4 md:flex'>
+          <div className="flex-col h-full hidden w-1/3 gap-4 overflow-y-auto lg:w-1/4 md:flex">
             <ProfileCard user={userInfo} />
             <FriendsCard friends={userInfo?.friends} />
 
-            <div className='block lg:hidden'>
+            <div className="block lg:hidden">
               <FriendsCard friends={userInfo?.friends} />
             </div>
           </div>
 
           {/* CENTER */}
-
-          <div className='flex flex-col flex-1 h-full gap-6 px-4 overflow-y-auto bg-orimary'>
+          <div className="flex flex-col flex-1 h-full px-4 overflow-y-auto bg-orimary">
             {loading ? (
               <Loading />
             ) : (
               <>
-                <div className='flex flex-col gap-6 lg:hidden'>
+                <div className="flex flex-col gap-6 lg:hidden">
                   <ProfileCard user={userInfo} />
-
-                  {/* <div className='block lg:hidden'>
-                      <FriendsCard friends={userInfo?.friends} />
-                    </div> */}
                 </div>
 
                 <div className="">
                   {user?._id === id && (
                     <div className="flex justify-between px-6 py-4 mb-1 shadow-sm bg-primary rounded-xl text-ascent-1">
                       <div className="flex justify-center w-1/2 mb-2 border-r">
-                        <button className="w-full" onClick={() => setShowSavedPosts(false)}>Bài đăng</button>
+                        <button
+                          className="w-full"
+                          onClick={() => setShowSavedPosts(false)}
+                        >
+                          Bài đăng
+                        </button>
                       </div>
                       <div className="flex justify-center w-1/2 mb-2">
-                        <button className="w-full" onClick={() => setShowSavedPosts(true)}>Bài đăng đã lưu</button>
+                        <button
+                          className="w-full"
+                          onClick={() => setShowSavedPosts(true)}
+                        >
+                          Bài đăng đã lưu
+                        </button>
                       </div>
                     </div>
                   )}
@@ -151,38 +183,39 @@ const Profile = () => {
                       />
                     ))
                   ) : showSavedPosts ? (
-                    <div className='flex items-center justify-center w-full h-full'>
-                      <p className='text-lg text-ascent-2'>Chưa có bài viết đã lưu</p>
+                    <div className="flex items-center justify-center w-full h-full">
+                      <p className="text-lg text-ascent-2">
+                        Chưa có bài viết đã lưu
+                      </p>
                     </div>
                   ) : (
-                    <div className='flex items-center justify-center w-full h-full'>
-                      <p className='text-lg text-ascent-2'>Chưa có bài viết nào. Hãy tạo bài đăng nào!</p>
+                    <div className="flex items-center justify-center w-full h-full">
+                      <p className="text-lg text-ascent-2">
+                        Chưa có bài viết nào. Hãy tạo bài đăng nào!
+                      </p>
                     </div>
                   )}
-
                 </div>
               </>
             )}
           </div>
 
-
           {/* RIGHT */}
-          <div className='flex-col hidden w-1/4 h-full gap-3 overflow-y-auto lg:flex'>
+          <div className="flex-col hidden w-1/4 h-full gap-3 overflow-y-auto lg:flex">
             <div className="flex-1 px-5 py-5 mb-1 overflow-y-auto rounded-lg shadow-sm bg-primary">
-              <div className='flex items-center justify-between text-xl text-ascent-1 pb-2 border-b border-[#66666645]'>
+              <div className="flex items-center justify-between text-xl text-ascent-1 pb-2 border-b border-[#66666645]">
                 <span>Tài liệu</span>
-                {user._id === id && <CustomButton
-
-                  title='Thêm thẻ'
-                  containerStyles='text-sm text-ascent-1 px-4 md:px-6 py-1 md:py-2 border border-[#666] rounded-full'
-                />}
+                {user._id === id && (
+                  <CustomButton
+                    title="Thêm thẻ"
+                    containerStyles="text-sm text-ascent-1 px-4 md:px-6 py-1 md:py-2 border border-[#666] rounded-full"
+                  />
+                )}
               </div>
 
               {profile.tags.map((tag) => (
                 <div key={tag.id}>
-                  <div
-                    className="flex items-center justify-between cursor-pointer"
-                  >
+                  <div className="flex items-center justify-between cursor-pointer">
                     <div
                       onClick={() => toggleTag(tag.id)}
                       className="flex items-center cursor-pointer text-ascent-1"
@@ -194,15 +227,24 @@ const Profile = () => {
                         <ChevronDownIcon className="w-5 h-5" />
                       )}
                     </div>
-                    {user._id === id && <MdOutlineFileUpload className="ml-2 text-ascent-1" />}
+                    {user._id === id && (
+                      <MdOutlineFileUpload className="ml-2 text-ascent-1" />
+                    )}
                   </div>
                   {expandedTags[tag.id] && (
                     <ul>
                       {tag.files.map((file) => (
                         <li key={file.id}>
-                          <a href={file.url} target="_blank" rel="noopener noreferrer" className="text-sky hover:underline">
-                            {file.url.split('/').pop()}
-                          </a>
+                          <div className="w-[90%]">
+                            <a
+                              href={file.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-sky hover:underline break-all"
+                            >
+                              {file.url.split("/").pop()}
+                            </a>
+                          </div>
                         </li>
                       ))}
                     </ul>
@@ -211,26 +253,105 @@ const Profile = () => {
               ))}
             </div>
 
-            <div className="flex-1 px-5 py-5 mb-1 overflow-y-auto rounded-lg shadow-sm bg-primary">
-              <div className='flex items-center justify-between text-xl text-ascent-1 pb-2 border-b border-[#66666645]'>
+            <div className="flex-1 px-5 py-5 overflow-y-auto rounded-lg shadow-sm bg-primary">
+              <div className="flex items-center justify-between text-xl text-ascent-1 pb-2 border-b border-[#66666645]">
                 <span>Nhóm</span>
-                {user._id === id && <CustomButton
-
-                  title='Tạo nhóm'
-                  containerStyles='text-sm text-ascent-1 px-4 md:px-6 py-1 md:py-2 border border-[#666] rounded-full'
-                />}
+                {user._id === id && (
+                  <CustomButton
+                    title="Tạo nhóm"
+                    containerStyles="text-sm text-ascent-1 px-4 md:px-6 py-1 md:py-2 border border-[#666] rounded-full"
+                    onClick={handleCreateGroupClick}
+                  />
+                )}
               </div>
 
-              <ul className="gap-2">
-                {profile.user.groups.map((group) => (
-                  <li key={group.id} className="text-ascent-1">
-                    <span className="mr-2">-</span>
-                    <Link to={`/groups/${group.id}`} className="text-ascent-1 hover:underline">
-                      {group.name}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
+              {showCreateGroupForm && (
+                <div className="mt-4 border-b border-[#66666645]">
+                  {/* Form tạo nhóm */}
+                  <form onSubmit={handleSubmit(handleCreateGroup)}>
+                    <div className="mb-2">
+                      <label
+                        htmlFor="name"
+                        className="block text-sm font-medium text-ascent-1"
+                      >
+                        Tên nhóm:
+                      </label>
+                      <input
+                        type="text"
+                        id="name"
+                        {...register("name", {
+                          required: "Vui lòng nhập tên nhóm",
+                        })}
+                        className="mt-1 p-2 w-full border text-ascent-1 rounded-md bg-secondary"
+                      />
+                      {errors.name && (
+                        <span className="text-red-500 text-sm">
+                          {errors.name.message}
+                        </span>
+                      )}
+                    </div>
+                    <div className="mb-2">
+                      <label
+                        htmlFor="description"
+                        className="block text-sm font-medium text-ascent-1"
+                      >
+                        Mục đích:
+                      </label>
+                      <textarea
+                        id="description"
+                        {...register("description")}
+                        className="mt-1 p-2 w-full border text-ascent-1 rounded-md bg-secondary"
+                      />
+                    </div>
+                    <button
+                      type="submit"
+                      className="bg-sky w-full hover:bg-blue text-white font-bold mb-2 py-2 px-4 rounded"
+                    >
+                      Tạo nhóm
+                    </button>
+                  </form>
+                </div>
+              )}
+
+              {profile.user.groups?.length > 0
+                ? profile.user.groups?.map((group) => (
+                    <div
+                      className="rounded-md flex flex-col bg-primary py-3 px-3"
+                      key={group.id}
+                    >
+                      <div className="relative">
+                        <img
+                          src={group?.banner ?? ""}
+                          alt={group?.name}
+                          className="object-cover rounded-md w-full h-20"
+                        />
+                        <Link
+                          to={"/group/" + group?.id}
+                          className="flex absolute h-20 w-full top-0"
+                        >
+                          <div className="flex-grow flex flex-col justify-center bg-gray bg-opacity-70 hover:opacity-0 transition-opacity duration-300">
+                            <p className="ml-1 text-lg font-medium text-white">
+                              {group?.name}
+                            </p>
+                            <p className="ml-1 text-base text-white">
+                              {group?.description
+                                ?.split(" ")
+                                .slice(0, 30)
+                                .join(" ") +
+                                (group?.description?.split(" ").length > 30
+                                  ? "..."
+                                  : "")}
+                            </p>
+                          </div>
+                        </Link>
+                      </div>
+                    </div>
+                  ))
+                : showGroups && (
+                    <div className="flex items-center justify-center w-full h-full">
+                      <p className="text-lg text-ascent-2">Không có nhóm nào</p>
+                    </div>
+                  )}
             </div>
           </div>
         </div>

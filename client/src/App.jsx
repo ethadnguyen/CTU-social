@@ -31,7 +31,7 @@ function App() {
         <Route element={<Layout />}>
           <Route path='/' element={<Home />} />
           <Route path='/profile/:id?' element={<Profile />} />
-          <Route path='/groups/:id?' element={<Group />} />
+          <Route path='/group/:id?' element={<Group />} />
           <Route path='/messages/:id?' element={<Messages />} />
           <Route path='/notifications/:id?' element={<Notifications />} />
           <Route path='/post/:id?' element={<Post />} />

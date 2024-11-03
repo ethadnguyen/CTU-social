@@ -12,7 +12,13 @@ import {
 } from "../components";
 import { suggest, requests } from "../assets/data";
 import { Posts, Users } from "../assets/home";
-import { Link, useParams, useLocation, ScrollRestoration } from "react-router-dom";
+import { groups } from "../assets/groups";
+import {
+  Link,
+  useParams,
+  useLocation,
+  ScrollRestoration,
+} from "react-router-dom";
 import { NoProfile } from "../assets";
 import { BsPersonFillAdd } from "react-icons/bs";
 import { BiImages } from "react-icons/bi";
@@ -200,7 +206,7 @@ const Search = () => {
   return (
     <>
       <div className="w-full h-screen px-0 pb-20 overflow-hidden lg:px-10 2xl:px-40 bg-bgColor lg:rounded-lg">
-        <TopBar friends={user?.friends} searchQuery={searchQuery} />
+        {/* <TopBar friends={user?.friends} searchQuery={searchQuery} /> */}
 
         <div className="flex w-full h-full gap-2 pt-5 pb-10 lg:gap-4">
           {/* LEFT */}
@@ -212,7 +218,11 @@ const Search = () => {
           {/* CENTER */}
           <div className="flex flex-col flex-1 h-full gap-6 px-4 overflow-y-auto rounded-lg">
             <div className="flex justify-between h-fix shadow-sm rounded-xl text-ascent-1">
-              <div className={`flex justify-center w-1/2 h-full mb-2 border rounded-xl bg-primary ${showPosts ? 'bg-sky' : ''}`}>
+              <div
+                className={`flex justify-center w-1/2 h-full mb-2 border rounded-xl bg-primary ${
+                  showPosts ? "bg-sky" : ""
+                }`}
+              >
                 <button
                   className="w-full"
                   onClick={() => {
@@ -224,7 +234,11 @@ const Search = () => {
                   Bài đăng
                 </button>
               </div>
-              <div className={`flex justify-center w-1/2 h-full mb-2 border rounded-xl bg-primary ${showUsers ? 'bg-sky' : ''}`}>
+              <div
+                className={`flex justify-center w-1/2 h-full mb-2 border rounded-xl bg-primary ${
+                  showUsers ? "bg-sky" : ""
+                }`}
+              >
                 <button
                   className="w-full"
                   onClick={() => {
@@ -236,7 +250,11 @@ const Search = () => {
                   Người dùng
                 </button>
               </div>
-              <div className={`flex justify-center w-1/2 h-full mb-2 border rounded-xl bg-primary ${showGroups ? 'bg-sky' : ''}`}>
+              <div
+                className={`flex justify-center w-1/2 h-full mb-2 border rounded-xl bg-primary ${
+                  showGroups ? "bg-sky" : ""
+                }`}
+              >
                 <button
                   className="w-full"
                   onClick={() => {
@@ -295,6 +313,46 @@ const Search = () => {
                     <p className="text-lg text-ascent-2">
                       Không có người dùng nào
                     </p>
+                  </div>
+                )}
+
+            {showGroups && groups?.length > 0
+              ? groups?.map((group) => (
+                  <div
+                    className="rounded-md flex flex-col bg-primary py-3 px-3"
+                    key={group.id}
+                  >
+                    <div className="relative">
+                      <img
+                        src={group?.banner ?? ""}
+                        alt={group?.name}
+                        className="object-cover rounded-md w-full h-20"
+                      />
+                      <Link
+                        to={"/group/" + group?.id}
+                        className="flex absolute h-20 w-full top-0"
+                      >
+                        <div className="flex-grow flex flex-col justify-center bg-gray bg-opacity-70 hover:opacity-0 transition-opacity duration-300">
+                          <p className="ml-1 text-lg font-medium text-white">
+                            {group?.name}
+                          </p>
+                          <p className="ml-1 text-base text-white">
+                            {group?.description
+                              ?.split(" ")
+                              .slice(0, 30)
+                              .join(" ") +
+                              (group?.description?.split(" ").length > 30
+                                ? "..."
+                                : "")}
+                          </p>
+                        </div>
+                      </Link>
+                    </div>
+                  </div>
+                ))
+              : showGroups && (
+                  <div className="flex items-center justify-center w-full h-full">
+                    <p className="text-lg text-ascent-2">Không có nhóm nào</p>
                   </div>
                 )}
           </div>

@@ -15,25 +15,37 @@ export const profile = {
     messages: [
       "64df39704180b81adfe41d0b",
       "64df39704180b81adfe41d0b",
-      "64df39704180b81adfe41d0b"
+      "64df39704180b81adfe41d0b",
     ],
     groups: [
       {
         id: "1",
-        name: "Hội Kín",
+        adminId: "64df3c064180b81adfe41d4b",
+        name: "Hội thánh đức chúa trời",
+        description: "Mọi người nhớ donet cho giáo chủ để tích đức online",
+        banner: "/pictures/1 (1).jpg",
       },
       {
         id: "2",
-        name: "Illuminati",
+        adminId: "64df3c064180b81adfe41d4b",
+        name: "Hội kín",
+        description: "Mọi người nhớ donet cho giáo chủ để tích đức online",
+        banner: "/pictures/1 (2).jpg",
       },
       {
         id: "3",
-        name: "Hội bàn tròn",
+        adminId: "64df3c064180b81adfe41d4b",
+        name: "Illuminati",
+        description: "Mọi người nhớ donet cho giáo chủ để tích đức online",
+        banner: "/pictures/1 (3).jpg",
       },
       {
         id: "4",
-        name: "Hội thánh đức chúa trời"
-      }
+        adminId: "64df3c064180b81adfe41d4b",
+        name: "Hội thánh đức chúa trời",
+        description: "Mọi người nhớ donet cho giáo chủ để tích đức online",
+        banner: "/pictures/1 (1).jpg",
+      },
     ],
     friends: [
       {
@@ -47,8 +59,7 @@ export const profile = {
         createdAt: "2023-08-18T09:33:32.519Z",
         updatedAt: "2023-08-18T09:49:19.475Z",
         __v: 2,
-        profileUrl:
-          "/pictures/Neal_Gaming_avt.png"
+        profileUrl: "/pictures/Neal_Gaming_avt.png",
       },
       {
         _id: "64df39704180b81adfe41d0b",
@@ -117,8 +128,7 @@ export const profile = {
     verified: true,
     createdAt: "2023-08-18T09:38:14.179Z",
     updatedAt: "2023-08-21T06:46:18.258Z",
-    profileUrl:
-      "/pictures/Neal.jpg",
+    profileUrl: "/pictures/Neal.jpg",
     token: "hZWFmZmU3NmMiLCJpYXQiOjE2OTIwMzY5",
   },
 
@@ -128,8 +138,7 @@ export const profile = {
       firstName: "John",
       lastName: "Bruce",
       email: "john@gmail.com",
-      profileUrl:
-        "/pictures/Neal_Gaming_avt.png"
+      profileUrl: "/pictures/Neal_Gaming_avt.png",
     },
     {
       _id: "64df39704180b81adfe41d0b",
@@ -155,24 +164,24 @@ export const profile = {
         {
           id: "1",
           dayUploaded: "25-09-2003",
-          url: "/files/B2110131_NguyenLeHoangLuc_20092024.docx"
+          url: "/files/B2110131_NguyenLeHoangLuc_20092024.docx",
         },
         {
           id: "2",
           dayUploaded: "25-09-2003",
-          url: "/files/B2110131_NguyenLeHoangLuc_20092024.pdf"
+          url: "/files/B2110131_NguyenLeHoangLuc_20092024.pdf",
         },
         {
           id: "3",
           dayUploaded: "25-09-2003",
-          url: "/files/B2110131_NguyenLeHoangLuc_27082024.docx"
+          url: "/files/B2110131_NguyenLeHoangLuc_27082024.docx",
         },
         {
           id: "4",
           dayUploaded: "25-09-2003",
-          url: "/files/B2110131_NguyenLeHoangLuc_27082024.pdf"
-        }
-      ]
+          url: "/files/B2110131_NguyenLeHoangLuc_27082024.pdf",
+        },
+      ],
     },
 
     {
@@ -182,54 +191,54 @@ export const profile = {
         {
           id: "5",
           dayUploaded: "26-09-2003",
-          url: "/files/0 - Mo dau.pdf"
+          url: "/files/0 - Mo dau.pdf",
         },
         {
           id: "6",
           dayUploaded: "26-09-2003",
-          url: "/files/1- Finite Automata.pdf"
+          url: "/files/1- Finite Automata.pdf",
         },
         {
           id: "7",
           dayUploaded: "27-09-2003",
-          url: "/files/2 - Finite automata 2.pdf"
+          url: "/files/2 - Finite automata 2.pdf",
         },
         {
           id: "8",
           dayUploaded: "28-09-2003",
-          url: "/files/4- eNFA.pdf"
+          url: "/files/4- eNFA.pdf",
         },
         {
           id: "9",
           dayUploaded: "28-09-2003",
-          url: "/files/5 - Regular expression.pdf"
+          url: "/files/5 - Regular expression.pdf",
         },
         {
           id: "10",
           dayUploaded: "28-09-2003",
-          url: "/files/6 - Lexical Analysis.pdf"
+          url: "/files/6 - Lexical Analysis.pdf",
         },
         {
           id: "11",
           dayUploaded: "28-09-2003",
-          url: "/files/7 - CFG.pdf"
+          url: "/files/7 - CFG.pdf",
         },
         {
           id: "12",
           dayUploaded: "28-09-2003",
-          url: "/files/8 - Introduction to parsing.pdf"
+          url: "/files/8 - Introduction to parsing.pdf",
         },
         {
           id: "12",
           dayUploaded: "28-09-2003",
-          url: "/files/9 - Syntax Analysis.pdf"
+          url: "/files/9 - Syntax Analysis.pdf",
         },
         {
           id: "12",
           dayUploaded: "28-09-2003",
-          url: "/files/10 - TM.pdf"
-        }
-      ]
-    }
-  ]
-}
+          url: "/files/10 - TM.pdf",
+        },
+      ],
+    },
+  ],
+};
