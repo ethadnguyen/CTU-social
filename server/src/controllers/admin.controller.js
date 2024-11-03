@@ -6,11 +6,29 @@ const Post = require('../models/post.model');
 const GroupRequest = require('../models/groupRequest.model');
 const Group = require('../models/group.model');
 const { getAllAccountsQuerySchema } = require('../validateSchema/query');
-
 const fs = require('fs');
 const util = require('util');
 const upload = require('../utils/upload');
+const { sendOTP } = require('../utils/sendMail');
 const unlinkFile = util.promisify(fs.unlink);
+
+
+const sendSecurityCode = async (req, res) => {
+    const { email } = req.body;
+
+    try {
+        const user = await User.findOne({ email });
+        if (!user) {
+            return res.status(404).json({ message: 'Email không tồn tại' });
+        }
+
+        await sendOTP(user, res);
+    }
+    catch (error) {
+        console.log(error);
+        res.status(500).json({ message: 'Lỗi gửi mã OTP', error: error.message });
+    }
+};
 
 // Activity controller
 
@@ -70,7 +88,7 @@ const createActivity = async (req, res) => {
 
 const updateActivity = async (req, res) => {
     const { activityId } = req.params;
-    const { title, description, link, faculty } = req.body;
+    const { title, description, link, image, faculty } = req.body;
 
     try {
         const activity = await Activity.findById(activityId);
@@ -80,18 +98,19 @@ const updateActivity = async (req, res) => {
         }
 
 
-        if (req.file) {
-            const result = await upload(req.file.path, 'CTU-social/images');
-            await unlinkFile(req.file.path); // Xóa file tạm sau khi upload
+        // if (req.file) {
+        //     const result = await upload(req.file.path, 'CTU-social/images');
+        //     await unlinkFile(req.file.path); // Xóa file tạm sau khi upload
 
 
-            activity.image = result.secure_url;
-        }
+        //     activity.image = result.secure_url;
+        // }
 
 
         if (title !== undefined && title !== null) activity.title = title;
         if (description !== undefined && description !== null) activity.description = description;
         if (link !== undefined && link !== null) activity.link = link;
+        if (image !== undefined && image !== null) activity.image = image;
         if (faculty !== undefined && faculty !== null) activity.faculty = faculty;
 
         const updatedActivity = await activity.save();
@@ -127,7 +146,7 @@ const deleteActivity = async (req, res) => {
 
 const getAllFaculties = async (req, res) => {
     try {
-        const faculties = await Faculty.find().populate('majors');
+        const faculties = await Faculty.find().populate('majors').populate('activities');
         res.json(faculties);
     } catch (error) {
         res.status(500).json({ message: 'Lỗi lấy danh sách khoa' });
@@ -147,18 +166,36 @@ const getFacultyById = async (req, res) => {
 }
 
 const createFaculty = async (req, res) => {
+    const { name } = req.body;
     try {
-        const newFaculty = new Faculty(req.body);
+        const existingFaculty = await Faculty.findOne({
+            name: { $regex: new RegExp(`^${name}$`, 'i') }
+        });
+        if (existingFaculty) {
+            return res.status(400).json({ message: 'Khoa đã tồn tại' });
+        }
+
+        const newFaculty = new Faculty({ name });
         await newFaculty.save();
-        res.status(201).json(newFaculty);
+        res.status(201).json({ message: 'Khoa đã được tạo', faculty: newFaculty });
     } catch (error) {
         res.status(500).json({ message: 'Lỗi tạo khoa' });
     }
 };
 
 const updateFaculty = async (req, res) => {
+    const { facultyId } = req.params;
+    const { name } = req.body;
     try {
-        const updatedFaculty = await Faculty.findByIdAndUpdate(req.params.id, req.body, { new: true });
+        const existingFaculty = await Faculty.findOne({
+            name: { $regex: new RegExp(`^${name}$`, 'i') },
+            _id: { $ne: facultyId }
+        });
+        if (existingFaculty) {
+            return res.status(400).json({ message: 'Khoa đã tồn tại' });
+        }
+
+        const updatedFaculty = await Faculty.findByIdAndUpdate(facultyId, { name }, { new: true });
         if (!updatedFaculty) {
             return res.status(404).json({ message: 'Không tìm thấy khoa' });
         }
@@ -169,21 +206,22 @@ const updateFaculty = async (req, res) => {
 };
 
 const deleteFaculty = async (req, res) => {
-    const { id } = req.params;
+    const { facultyId } = req.params;
     try {
-        const faculty = await Faculty.findById(id);
+        const faculty = await Faculty.findById(facultyId);
         if (!faculty) {
             return res.status(404).json({ message: 'Khoa không tồn tại' });
         }
-        await Faculty.findByIdAndUpdate(id, { isDeleted: true }, { new: true });
+        await Faculty.findByIdAndUpdate(facultyId, { isDeleted: true }, { new: true });
         await Major.updateMany(
             { faculty: facultyId },
             { isFacultyDeleted: true }
         );
 
-        res.status(200).json({ message: 'Faculty đã được đánh dấu là đã xóa và tất cả các Major liên quan cũng đã được cập nhật' });
+        res.status(200).json({ message: 'Khoa đã đã bị xóa', faculty });
     } catch (error) {
-        res.status(500).json({ message: 'Lỗi xóa khoa' });
+        console.log(error);
+        res.status(500).json({ message: 'Lỗi xóa khoa', error: error.message });
     }
 }
 
@@ -198,6 +236,20 @@ const getAllMajors = async (req, res) => {
     }
 };
 
+const getMajorsByFaculty = async (req, res) => {
+    const { facultyId } = req.params;
+
+    try {
+        const majors = await Major.find({ faculty: facultyId });
+        res.json({
+            message: 'Lấy danh sách ngành thành công',
+            majors
+        });
+    } catch (error) {
+        res.status(500).json({ message: 'Lỗi lấy danh sách ngành' });
+    }
+}
+
 const getMajor = async (req, res) => {
     try {
         const major = await Major.findById(req.params.id).populate('faculty');
@@ -211,45 +263,144 @@ const getMajor = async (req, res) => {
 };
 
 const createMajor = async (req, res) => {
+    const { facultyId, majorName } = req.body;
     try {
-        const newMajor = new Major(req.body);
+        const existingMajor = await Major.findOne({
+            majorName: { $regex: new RegExp(`^${majorName}$`, 'i') },
+            faculty: facultyId
+        });
+        if (existingMajor) {
+            return res.status(400).json({ message: 'Ngành đã tồn tại' });
+        }
+
+        const newMajor = new Major({
+            faculty: facultyId,
+            majorName,
+        });
+
         await newMajor.save();
         await Faculty.findByIdAndUpdate(
-            req.body.faculty,
+            facultyId,
             { $push: { majors: newMajor } },
             { new: true }
-        )
-        res.status(201).json(newMajor);
+        );
+        res.status(201).json({ message: 'Ngành đã được tạo', major: newMajor });
     } catch (error) {
         res.status(500).json({ message: 'Lỗi tạo ngành', error: error.message });
     }
 };
 
 const updateMajor = async (req, res) => {
+    const { majorId } = req.params;
+    const { facultyId, majorName } = req.body;
     try {
+        const existingMajor = await Major.findOne({
+            majorName: { $regex: new RegExp(`^${majorName}$`, 'i') },
+            faculty: facultyId,
+            _id: { $ne: majorId }
+        });
+        if (existingMajor) {
+            return res.status(400).json({ message: 'Ngành đã tồn tại' });
+        }
 
-        const updatedMajor = await Major.findByIdAndUpdate(req.params.id, req.body, { new: true });
+        const updatedMajor = await Major.findByIdAndUpdate(majorId, { faculty: facultyId, majorName }, { new: true });
         if (!updatedMajor) {
             return res.status(404).json({ message: 'Ngành không tồn tại' });
         }
-        res.json(updatedMajor);
+        res.json({ message: 'Ngành đã được cập nhật', major: updatedMajor });
     } catch (error) {
         res.status(500).json({ message: 'Lỗi cập nhật ngành', error: error.message });
     }
 };
 
 const deleteMajor = async (req, res) => {
+    const { majorId } = req.params;
     try {
-        const major = await Major.findById(req.params.id);
+        const major = await Major.findById(majorId);
         if (!major) {
             return res.status(404).json({ message: 'Ngành không tồn tại' });
         }
 
-        await major.findByIdAndUpdate(req.params.id, { isDeleted: true }, { new: true });
+        await Major.findByIdAndUpdate(majorId, { isDeleted: true }, { new: true });
 
-        res.json({ message: 'Ngành đã được đánh dấu là đã xóa', major });
+        res.json({ message: 'Ngành đã bị xóa', major });
     } catch (error) {
         res.status(500).json({ message: 'Lỗi xóa ngành', error: error.message });
+    }
+};
+
+// academicYear management
+
+const addCourse = async (req, res) => {
+    const { majorId } = req.params;
+    const { course } = req.body;
+    try {
+        const major = await Major.findById(majorId);
+        if (!major) {
+            return res.status(404).json({ message: 'Ngành không tồn tại' });
+        }
+
+        if (major.academicYear.includes(course)) {
+            return res.status(400).json({ message: 'Niên khóa đã tồn tại' });
+        }
+
+        major.academicYear.push(course);
+        await major.save();
+        res.json({
+            message: 'Niên khóa đã được thêm',
+            major,
+            course
+        });
+    } catch (error) {
+        res.status(500).json({ message: 'Lỗi thêm niên khóa', error: error.message });
+    }
+};
+
+const updateCourse = async (req, res) => {
+    const { majorId } = req.params;
+    const { course } = req.body;
+    try {
+        const major = await Major.findById(majorId);
+        if (!major) {
+            return res.status(404).json({ message: 'Ngành không tồn tại' });
+        }
+
+        if (major.academicYear.includes(course)) {
+            return res.status(400).json({ message: 'Niên khóa đã tồn tại' });
+        }
+
+        major.academicYear.push(course);
+        await major.save();
+        res.json({
+            message: 'Niên khóa đã được cập nhật',
+            major
+        });
+    } catch (error) {
+        res.status(500).json({ message: 'Lỗi cập nhật niên khóa', error: error.message });
+    }
+};
+
+const deleteCourse = async (req, res) => {
+    const { majorId } = req.params;
+    const { course } = req.query;
+    try {
+        const major = await Major.findById(majorId);
+        if (!major) {
+            return res.status(404).json({ message: 'Ngành không tồn tại' });
+        }
+        if (!major.academicYear.includes(course)) {
+            return res.status(400).json({ message: 'Niên khóa không tồn tại' });
+        }
+
+        major.academicYear = major.academicYear.filter(item => item !== course);
+        await major.save();
+        res.json({
+            message: 'Niên khóa đã được xóa',
+            major,
+            course
+        });
+    } catch (error) {
+        res.status(500).json({ message: 'Lỗi xóa niên khóa', error: error.message });
     }
 };
 
@@ -285,7 +436,18 @@ const getAllAccounts = async (req, res) => {
             }
         }
 
-        const accounts = await User.find(query);
+        const accounts = await User.find(query)
+            .populate('faculty')
+            .populate('major')
+            .populate({
+                path: 'posts',
+                populate: [
+                    { path: 'likedBy' },
+                    { path: 'reportedBy' }
+                ]
+            })
+            .populate('friends')
+            .exec();
         res.json(accounts);
     } catch (error) {
         res.status(500).json({ message: 'Lỗi lấy danh sách tài khoản' });
@@ -531,6 +693,7 @@ const deleteGroup = async (req, res) => {
 };
 
 module.exports = {
+    sendSecurityCode,
     getAllActivities,
     getActivity,
     createActivity,
@@ -542,10 +705,14 @@ module.exports = {
     updateFaculty,
     deleteFaculty,
     getAllMajors,
+    getMajorsByFaculty,
     getMajor,
     createMajor,
     updateMajor,
     deleteMajor,
+    addCourse,
+    updateCourse,
+    deleteCourse,
     getAllAccounts,
     getAccountsByFaculty,
     getAccountsByMajor,

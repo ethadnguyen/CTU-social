@@ -42,6 +42,10 @@ router.post('/follow', authMiddleware, UserController.followUser);
 
 router.post('/unfollow', authMiddleware, UserController.unfollowUser);
 
+router.get('/notifications', authMiddleware, UserController.getNotifications);
+
+router.post('/create-notification', authMiddleware, UserController.createNotification);
+
 
 router.get('/verified', (req, res) => {
     res.sendFile(path.join(__dirname, '../views/build', 'index.html'));

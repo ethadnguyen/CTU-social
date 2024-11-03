@@ -1,12 +1,15 @@
 import { React, useState, useEffect, useRef } from 'react';
-import { useSelector } from "react-redux";
-import { faculties } from "../assets/home";
+import { useSelector, useDispatch } from "react-redux";
 import {
     CustomButton,
     ActivityForm,
 } from './index';
 import { MdDelete, MdEdit } from "react-icons/md";
 import { FaSearch, FaTimes } from "react-icons/fa";
+import { fetchFaculties } from '../redux/facultySlice';
+import axiosInstance from '../api/axiosConfig';
+import { toast } from 'react-toastify';
+import Swal from 'sweetalert2';
 
 const ActivitiesCard = () => {
     const { user, edit } = useSelector((state) => state.user);
@@ -17,21 +20,39 @@ const ActivitiesCard = () => {
     const [editingActivity, setEditingActivity] = useState(null);
     const [showAddActivity, setShowAddActivity] = useState(false);
     const [showEditActivity, setShowEditActivity] = useState(false);
+    const { faculties } = useSelector((state) => state.faculty);
+    const dispatch = useDispatch();
+
+    useEffect(() => {
+        dispatch(fetchFaculties());
+    }, [dispatch]);
 
     const handleAddActivityClick = () => {
         setShowAddActivity(true);
     };
 
-    const handleAddActivitySubmit = (newActivityData) => {
+    const handleAddActivitySubmit = async (newActivityData) => {
         console.log("Thêm hoạt động mới:", newActivityData, " cho Khoa: ", selectedFaculty);
-        // Xử lý thêm hoạt động mới
+        const response = await axiosInstance.post(`/admin/create-activity`, {
+            faculty: selectedFaculty,
+            title: newActivityData.title,
+            image: newActivityData.imageUrl,
+            link: newActivityData.url
+        });
+
+        if (response.status === 201) {
+            toast.success("Thêm hoạt động thành công!");
+            dispatch(fetchFaculties());
+        } else {
+            toast.error("Thêm hoạt động thất bại!");
+        }
     };
 
     useEffect(() => {
-        if (user && user.facultyId) {
-        setSelectedFaculty(user.facultyId);
+        if (user && user.faculty._id) {
+            setSelectedFaculty(user.faculty._id);
         } else {
-        setSelectedFaculty('');
+            setSelectedFaculty('');
         }
     }, [user]);
 
@@ -41,15 +62,48 @@ const ActivitiesCard = () => {
         setEditingActivity(null);
     };
 
-    const handleDeleteActivity = (activityId) => {
-        console.log("Xóa hoạt động:", activityId, " của khoa ", selectedFaculty);
-        // logic xóa hoạt động
+
+    const handleUpdateActivity = async (newActivityData) => {
+        console.log("Cập nhật hoạt động", editingActivity._id, "của khoa ", selectedFaculty, ": ", newActivityData);
+        const response = await axiosInstance.put(`/admin/update-activity/${editingActivity._id}`, {
+            faculty: selectedFaculty,
+            title: newActivityData.title,
+            image: newActivityData.imageUrl,
+            link: newActivityData.url
+        });
+        console.log(response);
+        if (response.status === 200) {
+            toast.success("Cập nhật hoạt động thành công!");
+            dispatch(fetchFaculties());
+        } else {
+            toast.error("Cập nhật hoạt động thất bại!");
+        }
     };
 
-    const handleUpdateActivity = (newActivityData) => {
-        console.log("Cập nhật hoạt động", editingActivity.id ,"của khoa ", selectedFaculty,": ", newActivityData);
-        // logic cập nhật hoạt động
-    }
+    const handleDeleteActivity = (activityId) => {
+        console.log("Xóa hoạt động:", activityId, " của khoa ", selectedFaculty);
+        Swal.fire({
+            title: 'Bạn có chắc chắn muốn xóa hoạt động này?',
+            text: "Dữ liệu sẽ không thể khôi phục lại sau khi xóa!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Xóa!',
+            cancelButtonText: 'Hủy'
+        }).then(async (result) => {
+            if (result.isConfirmed) {
+                const response = await axiosInstance.delete(`/admin/delete-activity/${activityId}`);
+                console.log(response);
+                if (response.status === 200) {
+                    toast.success("Xóa hoạt động thành công!");
+                    dispatch(fetchFaculties());
+                } else {
+                    toast.error("Xóa hoạt động thất bại!");
+                }
+            }
+        });
+    };
 
     const handleEditActivity = (activity) => {
         setEditingActivity(activity);
@@ -71,9 +125,9 @@ const ActivitiesCard = () => {
 
     useEffect(() => {
         if (showSearch) {
-          searchInputRef.current.focus();
+            searchInputRef.current.focus();
         }
-      }, [showSearch, selectedFaculty]);
+    }, [showSearch, selectedFaculty]);
 
     return (
         <>
@@ -87,11 +141,11 @@ const ActivitiesCard = () => {
                         />
 
                         {showAddActivity && (
-                            <ActivityForm 
-                                submitActivity={handleAddActivitySubmit} 
-                                onClose={onClose} 
-                                formTitle="Thêm hoạt động" 
-                                submitTitle="Thêm" 
+                            <ActivityForm
+                                submitActivity={handleAddActivitySubmit}
+                                onClose={onClose}
+                                formTitle="Thêm hoạt động"
+                                submitTitle="Thêm"
                             />
                         )}
                     </div>
@@ -107,14 +161,14 @@ const ActivitiesCard = () => {
                                     className="ml-3 border border-gray bg-secondary text-ascent-1 rounded-md px-2 py-1 mb-2 focus:outline-none focus:ring-2 focus:ring-blue"
                                 />
                                 <FaTimes
-                                    className="absolute top-[45%] right-2 transform -translate-y-1/2 cursor-pointer" 
-                                    onClick={handleCloseSearch} 
+                                    className="absolute top-[45%] right-2 transform -translate-y-1/2 cursor-pointer"
+                                    onClick={handleCloseSearch}
                                 />
                             </div>
                         ) : (
-                            <FaSearch 
-                                className="ml-3 mr-3 mb-2 size-8 hover:text-sky cursor-pointer" 
-                                onClick={handleSearchClick} 
+                            <FaSearch
+                                className="ml-3 mr-3 mb-2 size-8 hover:text-sky cursor-pointer"
+                                onClick={handleSearchClick}
                             />
                         )}
                         <label className="w-auto">
@@ -124,9 +178,9 @@ const ActivitiesCard = () => {
                                 className={`bg-secondary border-[#66666690] mb-2 outline-none text-sm text-ascent-2 placeholder:text-[#666] w-full border rounded-md py-3 px-3 mt-1`}
                             >
                                 {faculties.map((faculty) => (
-                                <option key={faculty.id} value={faculty.id}>
-                                    {faculty.name}
-                                </option>
+                                    <option key={faculty._id} value={faculty._id}>
+                                        {faculty.name}
+                                    </option>
                                 ))}
                             </select>
                         </label>
@@ -135,51 +189,51 @@ const ActivitiesCard = () => {
 
                 <div className='w-full flex flex-col gap-4 pt-4 overflow-y-auto h-[90%]'>
                     {faculties
-                        .find((faculty) => faculty.id === selectedFaculty)
-                        ?.activities.filter((activity) => 
+                        .find((faculty) => faculty._id === selectedFaculty)
+                        ?.activities.filter((activity) =>
                             activity.title.toLowerCase().includes(searchTerm.toLowerCase())
                         )
                         .map((activity) => (
-                        <div key={activity.id} className='flex flex-col mb-4 gap-4 relative border-[#66666690] border-b pb-4 transform hover:-translate-y-3 transition-transform duration-300'>
-                             <div className="flex items-center justify-between">
-                                <a
-                                    href={activity.link}
-                                    target='_blank'
-                                    rel='noopener noreferrer'
-                                    className='text-3xl mb-2 font-medium text-ascent-1 hover:underline'
-                                >
-                                    {activity.title}
-                                </a>
+                            <div key={activity._id} className='flex flex-col mb-4 gap-4 relative border-[#66666690] border-b pb-4 transform hover:-translate-y-3 transition-transform duration-300'>
+                                <div className="flex items-center justify-between">
+                                    <a
+                                        href={activity.link}
+                                        target='_blank'
+                                        rel='noopener noreferrer'
+                                        className='text-3xl mb-2 font-medium text-ascent-1 hover:underline'
+                                    >
+                                        {activity.title}
+                                    </a>
 
-                                <div>
-                                    <button 
-                                        onClick={() => handleEditActivity(activity)}
-                                        className="text-ascent-1 p-2 rounded-md mr-2"
-                                    >
-                                        <MdEdit className="h-7 w-7" />
-                                    </button>
-                                    <button 
-                                        onClick={() => handleDeleteActivity(activity.id)}
-                                        className="text-ascent-1 p-2 rounded-md"
-                                    >
-                                        <MdDelete className="h-7 w-7" />
-                                    </button>
+                                    <div>
+                                        <button
+                                            onClick={() => handleEditActivity(activity)}
+                                            className="text-ascent-1 p-2 rounded-md mr-2"
+                                        >
+                                            <MdEdit className="h-7 w-7" />
+                                        </button>
+                                        <button
+                                            onClick={() => handleDeleteActivity(activity._id)}
+                                            className="text-ascent-1 p-2 rounded-md"
+                                        >
+                                            <MdDelete className="h-7 w-7" />
+                                        </button>
+                                    </div>
                                 </div>
+                                <img
+                                    src={activity.image}
+                                    alt={activity.title}
+                                    className='w-full h-full rounded-md'
+                                />
                             </div>
-                            <img
-                                src={activity.image}
-                                alt={activity.title}
-                                className='w-full h-full rounded-md'
-                            />
-                        </div>
-                    ))}
+                        ))}
                 </div>
             </div>
             {showEditActivity && (
-                <ActivityForm 
-                    submitActivity={handleUpdateActivity} 
-                    onClose={onClose} 
-                    formTitle="Chỉnh sửa hoạt động" 
+                <ActivityForm
+                    submitActivity={handleUpdateActivity}
+                    onClose={onClose}
+                    formTitle="Chỉnh sửa hoạt động"
                     submitTitle="Lưu"
                     initialValues={editingActivity}
                 />

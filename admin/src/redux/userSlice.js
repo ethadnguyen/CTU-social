@@ -1,10 +1,11 @@
 import { createSlice } from "@reduxjs/toolkit";
 import axiosInstance from "../api/axiosConfig";
-import { user } from "../assets/data";
+// import { user } from "../assets/data";
 
 const initialState = {
-  user: JSON.parse(window?.localStorage.getItem("user")) ?? user,
+  user: JSON.parse(window?.localStorage.getItem("user")) ?? null,
   edit: false,
+  error: null,
 };
 
 const userSlice = createSlice({
@@ -13,6 +14,7 @@ const userSlice = createSlice({
   reducers: {
     login(state, action) {
       state.user = action.payload;
+      state.error = null;
     },
     logout(state) {
       state.user = null;
@@ -22,23 +24,27 @@ const userSlice = createSlice({
     updateProfile(state, action) {
       state.edit = action.payload;
     },
+    setError(state, action) {
+      state.error = action.payload;
+    }
   },
 });
 export default userSlice.reducer;
 
-export const { login, logout, updateProfile } = userSlice.actions;
+export const { login, logout, updateProfile, setError } = userSlice.actions;
 
-export function UserLogin(credentials) {
-  return async (dispatch, getState) => {
+export function UserAdminLogin(credentials) {
+  return async (dispatch) => {
     try {
-      const response = await axiosInstance.post("/auth/login", credentials);
+      const response = await axiosInstance.post("/auth/admin/login", credentials);
       const { user, token } = response.data;
       console.log(response.data)
       localStorage.setItem("token", token);
       localStorage.setItem("user", JSON.stringify(user));
       dispatch(login(user));
     } catch (error) {
-      const errMess = error.response?.message || "Đăng nhập thất bại";
+      const errMess = error.response?.data.message || "Đăng nhập thất bại";
+      dispatch(setError(errMess));
       console.error(errMess);
     }
   };

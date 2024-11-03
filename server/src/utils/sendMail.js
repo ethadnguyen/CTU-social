@@ -10,11 +10,19 @@ dotenv.config();
 const { AUTH_EMAIL, AUTH_PASSWORD, APP_URL } = process.env;
 
 let transporter = nodemailer.createTransport({
-    host: "smtp-mail.outlook.com",
+    service: "gmail",
     auth: {
         user: AUTH_EMAIL,
         pass: AUTH_PASSWORD,
     },
+});
+
+transporter.verify((error, success) => {
+    if (error) {
+        console.error("SMTP connection error: ", error);
+    } else {
+        console.log("SMTP server is ready to take messages");
+    }
 });
 
 
@@ -79,6 +87,62 @@ const sendVerificationEmail = async (user, res, next) => {
     }
 };
 
+const sendOTP = async (user, res, next) => {
+    const { _id, email, firstName } = user;
+    const otpCode = Math.floor(100000 + Math.random() * 900000); // 6-digit OTP code
+    const expiresAt = Date.now() + 5 * 60 * 1000;
+
+    const mailOptions = {
+        from: AUTH_EMAIL,
+        to: email,
+        subject: 'Mã kích hoạt tài khoản của bạn',
+        html: `<div
+        style='font-family: Arial, sans-serif; font-size: 20px; color: #333; background-color: #f7f7f7; padding: 20px; border-radius: 5px;'>
+        <h3 style="color: rgb(8, 56, 188)">Mã kích hoạt của bạn</h3>
+        <hr>
+        <h4>Xin chào ${firstName},</h4>
+        <p>
+            Dưới đây là mã kích hoạt của bạn để kích hoạt tài khoản quản trị viên:
+            <br><br>
+            <b>${otpCode}</b>
+            <br><br>
+            Mã này sẽ <b>hết hạn sau 5 phút</b>.
+        </p>
+        <div style="margin-top: 20px;">
+            <h5>Thân ái!</h5>
+            <h5>CTU Social</h5>
+        </div>
+    </div>`,
+    };
+
+    try {
+        const newVerification = await Verification.create({
+            userId: _id,
+            token: otpCode,
+            createdAt: Date.now(),
+            expiresAt,
+        });
+
+        if (newVerification) {
+            transporter.sendMail(mailOptions)
+                .then(() => {
+                    res.status(201).send({
+                        success: 'PENDING',
+                        message: 'Mã OTP đã được gửi qua email. Kiểm tra hộp thư của bạn.',
+                        expiresAt,
+                    });
+                })
+                .catch((err) => {
+                    console.log(err);
+                    res.status(404).json({ message: 'Lỗi gửi mã OTP', error: err.message });
+                });
+        }
+    } catch (error) {
+        console.log(error);
+        res.status(404).json({ message: 'Lỗi tạo mã OTP', error: error.message });
+    }
+}
+
 const resetPasswordLink = async (user, res) => {
     const { _id, email } = user;
 
@@ -129,4 +193,4 @@ const resetPasswordLink = async (user, res) => {
     }
 };
 
-module.exports = { sendVerificationEmail, resetPasswordLink };
+module.exports = { sendVerificationEmail, resetPasswordLink, sendOTP };

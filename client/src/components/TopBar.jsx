@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 import { React, useState } from "react";
+=======
+import React, { useEffect, useState } from "react";
+>>>>>>> main
 import { useDispatch, useSelector } from "react-redux";
 import { Link, useNavigate } from "react-router-dom";
 import TextInput from "./TextInput";
@@ -12,11 +16,16 @@ import { Logout } from "../redux/userSlice";
 import { BgImage } from "../assets";
 import { FaRegMessage, FaMessage } from "react-icons/fa6";
 import { IoIosMenu, IoIosNotifications } from "react-icons/io";
+import socket from '../api/socket';
 
 const TopBar = ({ friends, searchQuery }) => {
   const { theme } = useSelector((state) => state.theme);
   const { user } = useSelector((state) => state.user);
   const [showMenu, setShowMenu] = useState(false);
+<<<<<<< HEAD
+=======
+  const [notificationCount, setNotificationCount] = useState(0);
+>>>>>>> main
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const {
@@ -24,7 +33,25 @@ const TopBar = ({ friends, searchQuery }) => {
     handleSubmit,
     formState: { errors },
   } = useForm();
+<<<<<<< HEAD
   const [inputValue, setInputValue] = useState(searchQuery || "");
+=======
+  useEffect(() => {
+    if (user && user.notifications) {
+      const unreadNotifications = user.notifications.filter((n) => !n.isRead);
+      setNotificationCount(unreadNotifications.length);
+    }
+
+    socket.on('getNotification', (notification) => {
+      console.log('getNotification', notification);
+      setNotificationCount(prevCount => prevCount + 1);
+    });
+
+    return () => {
+      socket.off('getNotification');
+    };
+  }, [user]);
+>>>>>>> main
 
   const handleTheme = () => {
     const themeValue = theme === "light" ? "dark" : "light";
@@ -106,15 +133,13 @@ const TopBar = ({ friends, searchQuery }) => {
 
         <div className="flex relative">
           <Link to={`/notifications/${user?._id}`}>
-            {user?.messages?.length > 0 && (
-              <div className="absolute inline-flex items-center justify-center w-4 h-4 text-xs font-bold text-white bg-red border-3 border-white rounded-full -top-1 -end-1">
-                <span className="text-sm text-white">
-                  {user?.notifications}
-                </span>
+            {notificationCount > 0 && (
+              <div className='absolute inline-flex items-center justify-center w-4 h-4 text-xs font-bold text-white bg-red border-3 border-white rounded-full -top-1 -end-1'>
+                <span className='text-sm text-white'>{notificationCount}</span>
               </div>
             )}
-            {user?.notifications > 0 ? (
-              <IoIosNotifications size={24} color="#065ad8" />
+            {notificationCount > 0 ? (
+              <IoIosNotifications size={24} color='#065ad8' />
             ) : (
               <IoNotificationsOutline size={24} />
             )}

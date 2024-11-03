@@ -6,22 +6,22 @@ import { Posts } from "../assets/home";
 //import { getPostsByGroup } from "../redux/postSlice";
 
 const Group = () => {
-  const { id } = useParams(); 
+  const { id } = useParams();
   const dispatch = useDispatch();
   //const { posts, loading } = useSelector((state) => state.posts);
   const [loading, setLoading] = useState(false);
   const { user } = useSelector((state) => state.user);
 
-//   useEffect(() => {
-//     dispatch(getPostsByGroup(id));
-//   }, [dispatch, id]);
+  //   useEffect(() => {
+  //     dispatch(getPostsByGroup(id));
+  //   }, [dispatch, id]);
 
-  const handleDelete = () => {};
-  const handleLikePost = () => {};
+  const handleDelete = () => { };
+  const handleLikePost = () => { };
 
   return (
     <div className="home w-full px-0 lg:px-10 pb-20 2xl:px-40 bg-bgColor lg:rounded-lg h-screen overflow-hidden">
-      <TopBar />
+      {/* <TopBar /> */}
       <div className="w-full flex gap-2 lg:gap-4 pt-5 pb-10 h-full">
         {/* ... (You can add sidebars or other content here if needed) ... */}
 

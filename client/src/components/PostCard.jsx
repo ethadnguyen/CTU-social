@@ -1,21 +1,25 @@
 import React, { useState, useEffect } from "react";
+import axiosInstance from '../api/axiosConfig';
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import moment from "moment";
 import { NoProfile } from "../assets";
 import { BiComment, BiLike, BiSolidLike, BiTrash } from "react-icons/bi";
 import { CiShare2, CiMenuKebab } from "react-icons/ci";
 import { MdOutlineReportProblem, MdGroups } from "react-icons/md";
 import { useForm } from "react-hook-form";
-import TextInput from "./TextInput";
-import Loading from "./Loading";
 import CustomButton from "./CustomButton";
 import { useDispatch, useSelector } from "react-redux";
 import { ImageDetail } from ".";
-import Modal from "react-modal";
 import { savePost, updatePost } from '../redux/postSlice';
-import axiosInstance from '../api/axiosConfig';
+import TextInput from "./TextInput";
+import Loading from "./Loading";
+import Modal from "react-modal";
+import moment from "moment";
+import Swal from "sweetalert2";
 
-const ReplyCard = ({ reply, user, handleLike }) => {
+const ReplyCard = ({ reply, user, handleLike, handleDelete }) => {
+  const [isLiked, setIsLiked] = useState(reply.likedBy.includes(user?._id));
+  const [likes, setLikes] = useState(reply.likes);
+
   return (
     <div className='w-full py-3'>
       <div className='flex items-center gap-3 mb-1'>
@@ -34,9 +38,14 @@ const ReplyCard = ({ reply, user, handleLike }) => {
             </p>
           </Link>
           <span className='text-sm text-ascent-2'>
-            {moment(reply?.createdAt).fromNow()}
+            {moment(reply?.created_At).fromNow()}
           </span>
         </div>
+        {user._id === reply.user._id && (
+          <button onClick={handleDelete}>
+            <BiTrash size={20} color='red' />
+          </button>
+        )}
       </div>
 
       <div className='ml-12'>
@@ -44,14 +53,18 @@ const ReplyCard = ({ reply, user, handleLike }) => {
         <div className='flex gap-6 mt-2'>
           <p
             className='flex items-center gap-2 text-base cursor-pointer text-ascent-2'
-            onClick={handleLike}
+            onClick={() => {
+              handleLike();
+              setIsLiked(!isLiked);
+              setLikes(isLiked ? likes - 1 : likes + 1);
+            }}
           >
-            {reply?.likedBy?.includes(user?._id) ? (
+            {isLiked ? (
               <BiSolidLike size={20} color='blue' />
             ) : (
               <BiLike size={20} />
             )}
-            {reply?.likes}
+            {likes}
           </p>
         </div>
       </div>
@@ -189,21 +202,93 @@ const PostCard = ({ post, user, deletePost, likePost, reportPost }) => {
     }
   };
 
-  const handleLikeComment = async () => {
-    // likePost(post._id);
+  const handleLikeComment = async (commentId) => {
+    try {
+      const response = await axiosInstance.post(`/posts/like-comment/${commentId}`);
+      const updatedComment = response.data.comment;
+      const updatedComments = comments.map(comment =>
+        comment._id === updatedComment._id ? updatedComment : comment
+      );
+      setComments(updatedComments);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  const handleLikeReplyComment = async (commentId, replyId) => {
+    try {
+      const response = await axiosInstance.post(`/posts/like-comment/${commentId}/${replyId}`);
+      const updatedComment = response.data.rComment;
+      const updatedComments = comments.map(comment => {
+        if (comment._id === updatedComment._id) {
+          return updatedComment;
+        }
+        return comment;
+      });
+      setComments(updatedComments);
+    } catch (error) {
+      console.log(error);
+    }
   };
 
   const handleDeleteComment = async (commentId) => {
     try {
-      const res = await axiosInstance.delete(`/posts/comment/${commentId}`);
-      getComments(post._id);
-      const updatedComments = comments.filter(comment => comment._id !== commentId);
-      const updatedPost = { ...post, comments: updatedComments };
-      dispatch(updatePost(updatedPost));
+      const confirmDelete = await Swal.fire({
+        title: 'Bạn có chắc muốn xóa bình luận này?',
+        text: "Bình luận sẽ bị xóa vĩnh viễn",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'Xóa',
+        cancelButtonText: 'Hủy'
+      });
+
+      if (confirmDelete.isConfirmed) {
+        await axiosInstance.delete(`/posts/comment/${commentId}`);
+        getComments(post._id);
+        const updatedComments = comments.filter(comment => comment._id !== commentId);
+        const updatedPost = { ...post, comments: updatedComments };
+        dispatch(updatePost(updatedPost));
+        Swal.fire('Xóa thành công', 'Bạn đã xóa bình luận thành công!', 'success');
+      }
     } catch (error) {
       console.log(error);
+      Swal.fire('Xóa thất bại', 'Có lỗi xảy ra, vui lòng thử lại', 'error');
     }
+  };
 
+  const handleDeleteReplyComment = async (commentId, replyId) => {
+    try {
+      const confirmDelete = await Swal.fire({
+        title: 'Bạn có chắc muốn xóa phản hồi của bình luận này?',
+        text: "Phản hồi sẽ bị xóa vĩnh viễn",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'Xóa',
+        cancelButtonText: 'Hủy'
+      });
+
+      if (confirmDelete.isConfirmed) {
+        await axiosInstance.delete(`/posts/comment/${commentId}/${replyId}`);
+        getComments(post._id);
+        const updatedComments = comments.map(comment => {
+          if (comment._id === commentId) {
+            const updatedReplies = comment.replies.filter(reply => reply._id !== replyId);
+            return { ...comment, replies: updatedReplies };
+          }
+          return comment;
+        });
+        const updatedPost = { ...post, comments: updatedComments };
+        dispatch(updatePost(updatedPost));
+        Swal.fire('Xóa thành công', 'Bạn đã xóa phản hồi thành công!', 'success');
+      }
+    } catch (error) {
+      console.log(error);
+      Swal.fire('Xóa thất bại', 'Có lỗi xảy ra, vui lòng thử lại', 'error');
+    }
   };
 
   const handleSavePost = async () => {
@@ -478,7 +563,7 @@ const PostCard = ({ post, user, deletePost, likePost, reportPost }) => {
                       </p>
                     </Link>
                     <span className='text-sm text-ascent-2'>
-                      {moment(comment?.createdAt ?? "2023-05-25").fromNow()}
+                      {moment(comment?.createdAt ?? "2024-08-13").fromNow()}
                     </span>
                   </div>
                   {user._id === comment.user._id && (
@@ -494,9 +579,9 @@ const PostCard = ({ post, user, deletePost, likePost, reportPost }) => {
                   <div className='flex gap-6 mt-2'>
                     <p className='flex items-center gap-2 text-base cursor-pointer text-ascent-2'>
                       {comment?.likedBy?.includes(user?._id) ? (
-                        <BiSolidLike size={20} color='blue' />
+                        <BiSolidLike size={20} color='blue' onClick={() => handleLikeComment(comment._id)} />
                       ) : (
-                        <BiLike size={20} />
+                        <BiLike size={20} onClick={() => handleLikeComment(comment._id)} />
                       )}
                       {comment?.likes}
                     </p>
@@ -543,12 +628,10 @@ const PostCard = ({ post, user, deletePost, likePost, reportPost }) => {
                         user={user}
                         key={reply?._id}
                         handleLike={() =>
-                          handleLikeComment(
-                            "/posts/like-comment/" +
-                            comment?._id +
-                            "/" +
-                            reply?._id
-                          )
+                          handleLikeReplyComment(comment._id, reply._id)
+                        }
+                        handleDelete={() =>
+                          handleDeleteReplyComment(comment._id, reply._id)
                         }
                       />
                     ))}

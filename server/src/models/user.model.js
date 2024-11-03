@@ -60,6 +60,12 @@ const userSchema = mongoose.Schema({
             ref: 'Tag',
         }
     ],
+    notifications: [
+        {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Notification',
+        }
+    ],
     academicYear: {
         type: String,
         required: true
@@ -85,6 +91,12 @@ const userSchema = mongoose.Schema({
             type: mongoose.Schema.Types.ObjectId,
             ref: 'User',
             isFriend: { type: Boolean, default: false }
+        }
+    ],
+    posts: [
+        {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Post',
         }
     ],
     friends: [
@@ -115,17 +127,6 @@ const userSchema = mongoose.Schema({
     }
 );
 
-userSchema.virtual('name').get(function () {
-    return `${this.firstName} ${this.lastName}`;
-});
-
-userSchema.virtual('followersCount').get(function () {
-    return this.followers.length;
-});
-
-userSchema.virtual('followingCount').get(function () {
-    return this.following.length;
-});
 
 userSchema.pre('save', async function (next) {
     if (!this.isModified('password')) return next();
@@ -137,5 +138,6 @@ userSchema.pre('save', async function (next) {
         next(err);
     }
 });
+
 
 module.exports = mongoose.model('User', userSchema);

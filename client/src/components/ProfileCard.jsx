@@ -143,25 +143,27 @@ const ProfileCard = ({ user }) => {
           </div>
         </div>
 
-        <div className="w-full flex flex-col gap-2 py-4 border-b border-[#66666645]">
-          <p className="text-xl font-semibold text-ascent-1">
-            {user?.friends?.length} Bạn bè
+        <div className='w-full flex flex-col gap-2 py-4 border-b border-[#66666645]'>
+          <p className='text-xl font-semibold text-ascent-1'>
+            <span className='text-blue'> {user?.friends?.length}</span> Bạn bè
+            <span className='mx-4'></span>
+            <span className='text-blue'>{user?.followers?.length}</span>  Người theo dõi
           </p>
 
-          <div className="flex items-center justify-between">
-            <span className="text-ascent-2">Who viewed your profile</span>
-            <span className="text-lg text-ascent-1">{user?.views?.length}</span>
+          <div className='flex items-center justify-between'>
+            <span className='text-ascent-2'>{user?.bio}</span>
+            {/* <span className='text-lg text-ascent-1'>{user?.views?.length}</span> */}
           </div>
 
-          <span className="text-base text-blue">
-            {user?.isVerified
-              ? "Tài khoản đã xác thực"
-              : "Tài khoản chưa xác thực"}
-          </span>
+          {user?._id === data?._id && (
+            <span className='text-base text-blue'>
+              {data?.isVerified ? "Tài khoản đã xác thực" : "Tài khoản chưa xác thực"}
+            </span>
+          )}
 
-          <div className="flex items-center justify-between">
-            <span className="text-ascent-2">Joined</span>
-            <span className="text-base text-ascent-1">
+          <div className='flex items-center justify-between'>
+            <span className='text-ascent-2'>Tham gia</span>
+            <span className='text-base text-ascent-1'>
               {moment(user?.createdAt).fromNow()}
             </span>
           </div>

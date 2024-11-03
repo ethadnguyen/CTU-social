@@ -5,6 +5,7 @@ const { resetPasswordLink } = require('../utils/sendMail');
 const FriendRequest = require('../models/friendRequest.model');
 const PasswordReset = require('../models/PasswordReset.model');
 const GroupRequest = require('../models/groupRequest.model');
+const Notification = require('../models/notification.model');
 // const Fuse = require('fuse.js');
 
 const verifyEmail = async (req, res) => {
@@ -247,6 +248,9 @@ const updateUser = async (req, res, next) => {
                 path: 'friends',
                 select: '-password',
             })
+            .populate({
+                path: 'notifications'
+            });
 
         // Handle case where the user does not exist
         if (!updatedUser) {
@@ -421,6 +425,7 @@ const acceptRequest = async (req, res, next) => {
         );
 
         let updatedUser;
+        let updatedFriend;
         if (status === 'ACCEPTED') {
             const user = await User.findById(userId).populate('faculty').populate('major').populate({
                 path: 'friends',
@@ -436,7 +441,7 @@ const acceptRequest = async (req, res, next) => {
             friend.following.push(user);
             friend.followers.push(user);
 
-            await friend.save();
+            updatedFriend = await friend.save();
             updatedUser = await user.save();
         }
 
@@ -444,6 +449,7 @@ const acceptRequest = async (req, res, next) => {
             status: 'SUCCESS',
             message: 'Yêu cầu đã được xác nhận',
             user: updatedUser,
+            friend: updatedFriend,
         });
     } catch (error) {
         console.log(error);
@@ -646,6 +652,109 @@ const getFollowing = async (req, res) => {
     }
 };
 
+const getNotifications = async (req, res) => {
+    const { userId } = req.body.user;
+
+    try {
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({ status: 'FAILED', message: 'Người dùng không tồn tại' });
+        }
+
+        const notifications = await Notification.find({ receiver: userId })
+            .populate({
+                path: 'receiver',
+                select: '-password',
+                populate: {
+                    path: 'posts',
+                    select: '_id content',
+                }
+            })
+            .populate({
+                path: 'sender',
+                select: '-password',
+            })
+            .sort({ createdAt: -1 });
+
+        res.status(200).json({ status: 'SUCCESS', notifications });
+
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({ message: error.message });
+    }
+};
+
+const createNotification = async (req, res) => {
+    const { receiverIds, sender, type, message, link } = req.body;
+
+    try {
+        const receivers = await User.find({ _id: { $in: receiverIds } });
+        if (receivers.length === 0) {
+            return res.status(404).json({ status: 'FAILED', message: 'Không tìm thấy người dùng nhận thông báo' });
+        }
+
+        // Kiểm tra nếu thông báo đã tồn tại cho tất cả người nhận
+        const existingNotification = await Notification.findOne({
+            receiver: { $all: receiverIds },
+            sender,
+            type,
+            link
+        });
+
+        if (existingNotification) {
+            return res.status(400).json({ status: 'FAILED', message: 'Thông báo đã tồn tại' });
+        }
+
+        const newNotification = new Notification({
+            receiver: receiverIds,
+            sender,
+            type,
+            message,
+            link,
+        });
+
+        await newNotification.save();
+
+        // Thêm thông báo vào danh sách thông báo của từng người dùng nhận
+        await Promise.all(receivers.map(async (receiver) => {
+            receiver.notifications.push(newNotification._id);
+            await receiver.save();
+        }));
+
+        // Populate thông báo với thông tin người gửi và người nhận
+        const populatedNotification = await Notification.findById(newNotification._id)
+            .populate('receiver', '-password')
+            .populate('sender', '-password');
+
+        res.status(201).json({ status: 'SUCCESS', message: 'Thông báo đã được tạo', notification: populatedNotification });
+
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({ message: error.message });
+    }
+};
+
+const markAsAllRead = async (req, res) => {
+    const { userId } = req.body.user;
+    try {
+        const user = await User.findById(userId).populate('notifications');
+        if (!user) {
+            return res.status(404).json({ status: 'FAILED', message: 'Người dùng không tồn tại' });
+        }
+
+        user.notifications.forEach(async (notification) => {
+            notification.isRead = true;
+            await notification.save();
+        });
+
+        res.status(200).json({ status: 'SUCCESS', message: 'Đánh dấu tất cả đã đọc' });
+
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({ message: error.message });
+    }
+};
+
 
 module.exports = {
     verifyEmail,
@@ -666,4 +775,7 @@ module.exports = {
     unfollowUser,
     getFollowers,
     getFollowing,
+    getNotifications,
+    createNotification,
+    markAsAllRead,
 };

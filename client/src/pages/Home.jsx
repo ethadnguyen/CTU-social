@@ -20,10 +20,11 @@ import { CiFileOn } from "react-icons/ci";
 import axiosInstance from '../api/axiosConfig';
 import { getPosts, likePost, reportPost, updatePosts } from '../redux/postSlice';
 import { FaFile } from 'react-icons/fa6';
-import io from 'socket.io-client';
 import { toast } from 'react-toastify';
 import { updateUser } from '../redux/userSlice';
 import { fetchFaculties } from '../redux/facultySlice';
+import Swal from 'sweetalert2';
+import socket, { connectSocket, disconnectSocket } from '../api/socket';
 
 const Home = () => {
   const { user, edit } = useSelector((state) => state.user);
@@ -51,11 +52,7 @@ const Home = () => {
     dispatch(getPosts());
   }, [dispatch]);
 
-  useEffect(() => {
-    //joinUser socket
-    const socket = io('http://localhost:5000');
-    socket.emit('joinUser', user);
-  }, [user]);
+  console.log('Posts:', posts);
 
   useEffect(() => {
     const getFriendRequests = async () => {
@@ -102,6 +99,19 @@ const Home = () => {
       setFiles([]);
       setPosting(false);
       dispatch(getPosts());
+
+
+      const res = await axiosInstance.post('/users/create-notification', {
+        receiverIds: user.friends.map((friend) => friend._id),
+        sender: user._id,
+        message: `${user.firstName} ${user.lastName} đã tạo bài viết mới`,
+        type: 'post',
+        link: `/posts/${post.data.post._id}`,
+      });
+
+      if (res.status === 201) {
+        socket.emit('sendFriendsNotification', { userId: user._id, notification: res.data.notification });
+      }
     } catch (error) {
       reset();
       setImages([]);
@@ -128,41 +138,70 @@ const Home = () => {
 
   const handleDeletePost = async (postId) => {
     try {
-      await axiosInstance.delete(`/posts/${postId}`);
-      dispatch(getPosts());
-      toast.success('Đã xóa bài viết thành công!');
+      const result = await Swal.fire({
+        title: 'Bạn có chắc muốn xóa bài viết này?',
+        text: 'Bài viết sẽ bị xóa vĩnh viên',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'Xóa',
+        cancelButtonText: 'Hủy',
+      });
+
+      if (result.isConfirmed) {
+        await axiosInstance.delete(`/posts/${postId}`);
+        dispatch(getPosts());
+        Swal.fire('Xóa thành công', 'Bạn đã xóa bài viết thành công!', 'success');
+      }
     } catch (error) {
       console.error('Error deleting post:', error);
+      Swal.fire('Xóa thất bại', 'Có lỗi xảy ra, vui lòng thử lại', 'error');
     }
   };
 
   const handleLikePost = async (post) => {
     const postId = post._id;
     const userId = user._id;
-    const socket = io('http://localhost:5000');
+    const senderName = `${user.firstName} ${user.lastName}`;
+    const receiverIds = [post.user._id];
 
     try {
-      await dispatch(likePost(postId));
 
+      const alreadyLiked = post.likedBy.includes(userId);
+      await dispatch(likePost(postId));
       const updatedPosts = posts.map((p) => {
         if (p._id === postId) {
-          // Kiểm tra xem user đã like bài viết hay chưa
           const hasLiked = p.likedBy.includes(userId);
 
           return {
             ...p,
-            likes: hasLiked ? p.likes - 1 : p.likes + 1,  // Tăng hoặc giảm số lượng like
+            likes: hasLiked ? p.likes - 1 : p.likes + 1,
             likedBy: hasLiked
-              ? p.likedBy.filter(id => id !== userId)  // Bỏ userId nếu đã like
-              : [...p.likedBy, userId],  // Thêm userId nếu chưa like
+              ? p.likedBy.filter(id => id !== userId)
+              : [...p.likedBy, userId],
           };
         }
         return p;
       });
       dispatch(updatePosts(updatedPosts));
-      socket.emit('likePost', { userId, postId });
 
+
+      if (!alreadyLiked && !receiverIds.includes(userId)) {
+        const response = await axiosInstance.post('/users/create-notification', {
+          receiverIds,
+          sender: user._id,
+          message: `${senderName} đã thích bài viết của bạn`,
+          type: 'like',
+          link: `/posts/${postId}`,
+        });
+
+        if (response.status === 201) {
+          socket.emit('sendNotification', response.data.notification);
+        }
+      }
     } catch (error) {
+      console.log(error);
       console.error('Error liking post:', error);
     }
   };
@@ -194,11 +233,26 @@ const Home = () => {
   };
 
   const handleAcceptFriendRequest = async (requestId) => {
+    const senderName = `${user.firstName} ${user.lastName}`;
     try {
       const res = await axiosInstance.post('/users/accept-request', { requestId, status: "ACCEPTED" });
-      console.log('Accept friend request:', res.data);
       setFriendRequest((prevRequests) => prevRequests.filter((req) => req._id !== requestId));
       dispatch(updateUser(res.data.user));
+
+      const resNoti = await axiosInstance.post('/users/create-notification', {
+        receiverId: res.data.friend._id,
+        sender: user._id,
+        message: `${senderName} đã chấp nhận lời mời kết bạn`,
+        type: 'accept',
+        link: `/profile/${user._id}`,
+      });
+
+      if (resNoti.status === 201) {
+        socket.emit('sendNotification', {
+          ...resNoti.data.notification,
+          senderName,
+        });
+      }
     } catch (error) {
       console.error('Error accepting friend request:', error);
     }
@@ -218,7 +272,7 @@ const Home = () => {
   return (
     <>
       <div className='w-full h-screen px-0 pb-20 overflow-hidden lg:px-10 2xl:px-40 bg-bgColor lg:rounded-lg'>
-        <TopBar friends={user?.friends} />
+        {/* <TopBar friends={user?.friends} /> */}
 
         <div className='flex w-full h-full gap-2 pt-5 pb-10 lg:gap-4'>
           {/* LEFT */}
@@ -418,7 +472,7 @@ const Home = () => {
                 {faculties
                   .find((faculty) => faculty._id === selectedFaculty)
                   ?.activities.map((activity) => (
-                    <div key={activity.id} className='flex flex-col'>
+                    <div key={activity._id} className='flex flex-col'>
                       <a
                         href={activity.link}
                         target='_blank'
