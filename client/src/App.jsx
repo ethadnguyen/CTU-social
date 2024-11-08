@@ -2,14 +2,14 @@ import { Outlet, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { Home, Login, Profile, Register, ResetPassword, Group, Messages, Notifications, Post, Search } from "./pages";
 import Modal from 'react-modal';
-import useSocket from './hooks/useSocket';
 import { TopBar } from './components';
+import useSocket from './hooks/useSocket';
 
 Modal.setAppElement('#root');
 
 function Layout() {
   const { user } = useSelector((state) => state.user);
-  const token = "ahuawaushd"; //localStorage.getItem("token");
+  const token = localStorage.getItem("token");
   const location = useLocation();
 
   return token ? (
@@ -34,7 +34,7 @@ function App() {
           <Route path='/group/:id?' element={<Group />} />
           <Route path='/messages/:id?' element={<Messages />} />
           <Route path='/notifications/:id?' element={<Notifications />} />
-          <Route path='/post/:id?' element={<Post />} />
+          <Route path='/posts/:id?' element={<Post />} />
           <Route path='/search/:searchQuery' element={<Search />} />
         </Route>
 

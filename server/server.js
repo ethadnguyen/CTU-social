@@ -14,6 +14,7 @@ const userRoute = require('./src/routes/user.route');
 const postRoute = require('./src/routes/post.route');
 const facultyRoute = require('./src/routes/faculty.route');
 const groupRoute = require('./src/routes/group.route');
+const messageRoute = require('./src/routes/message.route');
 const errorMiddleware = require('./src/middlewares/error.middleware');
 const Verification = require('./src/models/emailVerification.model');
 const userModel = require('./src/models/user.model');
@@ -39,6 +40,7 @@ app.use('/auth', authRoute);
 app.use('/users', userRoute);
 app.use('/admin', adminRoute)
 app.use('/posts', postRoute);
+app.use('/chat', messageRoute);
 app.use('/faculties', facultyRoute);
 app.use('/group', groupRoute);
 

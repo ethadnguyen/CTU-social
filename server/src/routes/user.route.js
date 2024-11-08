@@ -46,6 +46,10 @@ router.get('/notifications', authMiddleware, UserController.getNotifications);
 
 router.post('/create-notification', authMiddleware, UserController.createNotification);
 
+router.post('/mark-as-read', authMiddleware, UserController.markAsAllRead);
+
+router.post('/mark-as-read/:notificationId', authMiddleware, UserController.markAsRead);
+
 
 router.get('/verified', (req, res) => {
     res.sendFile(path.join(__dirname, '../views/build', 'index.html'));

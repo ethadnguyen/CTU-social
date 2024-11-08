@@ -13,16 +13,20 @@ const storage = new CloudinaryStorage({
     params: (req, file) => {
         console.log('File:', file);
         let folder = 'CTU-social/';
+        let allowedFormats = ['jpg', 'png', 'jpeg', 'pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'];
         if (file.fieldname === 'images') {
             folder += 'images';
         } else if (file.fieldname === 'files') {
             folder += 'files';
         } else if (file.fieldname === 'avatar') {
             folder += 'avatars';
+        } else if (file.fieldname === 'media') {
+            folder += 'media';
+            allowedFormats = ['jpg', 'png', 'jpeg', 'mp4', 'gif'];
         }
         return {
             folder: folder,
-            allowed_formats: ['jpg', 'png', 'jpeg', 'pdf', 'doc', 'docx', 'xls', 'xlsx'],
+            allowed_formats: allowedFormats,
         };
     }
 });

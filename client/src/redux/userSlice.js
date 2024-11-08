@@ -66,6 +66,7 @@ export function UpdateProfile(val) {
 }
 export function UpdateUser(user) {
   return (dispatch) => {
+    console.log('updated user');
     dispatch(userSlice.actions.updateUser(user));
   }
 }

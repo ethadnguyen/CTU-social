@@ -11,9 +11,8 @@ import {
   TopBar,
 } from "../components";
 import { suggest, requests } from "../assets/data";
-import { Link } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { NoProfile } from "../assets";
-import { post }  from "../assets/post";
 import { BsPersonFillAdd } from "react-icons/bs";
 import { useForm } from "react-hook-form";
 import axiosInstance from '../api/axiosConfig';
@@ -22,6 +21,7 @@ import io from 'socket.io-client';
 import { toast } from 'react-toastify';
 import { updateUser } from '../redux/userSlice';
 import { fetchFaculties } from '../redux/facultySlice';
+import socket from '../api/socket';
 
 const Post = () => {
   const { user, edit } = useSelector((state) => state.user);
@@ -29,29 +29,20 @@ const Post = () => {
   const [friendRequest, setFriendRequest] = useState([]);
   const [suggestedFriends, setSuggestedFriends] = useState(suggest);
   const [errMsg, setErrMsg] = useState("");
-  const [files, setFiles] = useState([]);
-  const [images, setImages] = useState([]);
-  const [posting, setPosting] = useState(false);
   const [loading, setLoading] = useState(false);
+  const { id } = useParams();
 
   const posts = useSelector((state) => state.posts.posts);
-
+  const post = posts.find((p) => p._id === id);
   const dispatch = useDispatch();
 
   const {
-    reset,
     formState: { errors },
   } = useForm();
 
   useEffect(() => {
     dispatch(getPosts());
   }, [dispatch]);
-
-  useEffect(() => {
-    //joinUser socket
-    const socket = io('http://localhost:5000');
-    socket.emit('joinUser', user);
-  }, [user]);
 
   useEffect(() => {
     const getFriendRequests = async () => {
@@ -94,30 +85,45 @@ const Post = () => {
   const handleLikePost = async (post) => {
     const postId = post._id;
     const userId = user._id;
-    const socket = io('http://localhost:5000');
+    const senderName = `${user.firstName} ${user.lastName}`;
+    const receiverIds = [post.user._id];
 
     try {
-      await dispatch(likePost(postId));
 
+      const alreadyLiked = post.likedBy.includes(userId);
+      await dispatch(likePost(postId));
       const updatedPosts = posts.map((p) => {
         if (p._id === postId) {
-          // Kiểm tra xem user đã like bài viết hay chưa
           const hasLiked = p.likedBy.includes(userId);
 
           return {
             ...p,
-            likes: hasLiked ? p.likes - 1 : p.likes + 1,  // Tăng hoặc giảm số lượng like
+            likes: hasLiked ? p.likes - 1 : p.likes + 1,
             likedBy: hasLiked
-              ? p.likedBy.filter(id => id !== userId)  // Bỏ userId nếu đã like
-              : [...p.likedBy, userId],  // Thêm userId nếu chưa like
+              ? p.likedBy.filter(id => id !== userId)
+              : [...p.likedBy, userId],
           };
         }
         return p;
       });
       dispatch(updatePosts(updatedPosts));
-      socket.emit('likePost', { userId, postId });
 
+
+      if (!alreadyLiked && !receiverIds.includes(userId)) {
+        const response = await axiosInstance.post('/users/create-notification', {
+          receiverIds,
+          sender: user._id,
+          message: `${senderName} đã thích bài viết của bạn`,
+          type: 'like',
+          link: `/posts/${postId}`,
+        });
+
+        if (response.status === 201) {
+          socket.emit('sendNotification', { notification: response.data.notification, receiverId: post.user._id });
+        }
+      }
     } catch (error) {
+      console.log(error);
       console.error('Error liking post:', error);
     }
   };
@@ -186,18 +192,18 @@ const Post = () => {
           <div className='flex flex-col flex-1 h-full gap-6 px-4 overflow-y-auto rounded-lg'>
             {loading ? (
               <Loading />
-            ) : post!==null ? (
-                <PostCard
-                  key={post?._id}
-                  post={post}
-                  user={user}
-                  deletePost={handleDeletePost}
-                  likePost={handleLikePost}
-                  reportPost={handleReportPost}
-                />
+            ) : post !== null ? (
+              <PostCard
+                key={post?._id}
+                post={post}
+                user={user}
+                deletePost={handleDeletePost}
+                likePost={handleLikePost}
+                reportPost={handleReportPost}
+              />
             ) : (
               <div className='flex items-center justify-center w-full h-full'>
-                <p className='text-lg text-ascent-2'>Post does not exist</p>
+                <p className='text-lg text-ascent-2'>Không tìm thấy bài viết</p>
               </div>
             )}
           </div>
@@ -306,7 +312,7 @@ const Post = () => {
                       className='flex items-center w-full gap-4 cursor-pointer'
                     >
                       <img
-                        src={friend?.profileUrl ?? NoProfile}
+                        src={friend?.avatar ?? NoProfile}
                         alt={friend?.firstName}
                         className='object-cover w-10 h-10 rounded-full'
                       />

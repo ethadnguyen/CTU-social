@@ -53,6 +53,7 @@ io.on('connection', (socket) => {
         const onlineFriends = users.filter((user) => friendsId.includes(user.id));
 
         onlineFriends.forEach((friend) => {
+            console.log('Gửi thông báo đến:', friend.id);
             socket.to(friend.socketId).emit('getNotification', notification);
         });
     };
@@ -63,28 +64,55 @@ io.on('connection', (socket) => {
     });
 
     // Gửi thông báo
-    socket.on('sendNotification', (notification) => {
-        console.log('sendNotification', notification);
+    socket.on('sendNotification', ({ notification, receiverId }) => {
 
-        notification.receiver.forEach(r => {
-            const receiverSocket = users.find((user) => user.id === r._id);
-            console.log('receiverSocket', receiverSocket);
+        const receiver = users.find((user) => user.id === receiverId);
+        if (receiver && receiver.socketId) {
+            console.log('Gửi thông báo đến:', receiverId);
+            socket.to(receiver.socketId).emit('getNotification', notification);
+        } else {
+            console.error(`Không tìm thấy người dùng với ID: ${receiverId}`);
+        }
+    });
 
-            if (receiverSocket && receiverSocket.socketId) {
-                console.log('Gửi thông báo đến:', receiverSocket.id);
-                socket.to(receiverSocket.socketId).emit('getNotification', notification);
-            } else {
-                console.error(`Không tìm thấy người dùng với ID: ${receiverId}`);
-            }
-        });
+    socket.on('friendRequest', ({ userId, request }) => {
+        const receiver = users.find((user) => user.id === userId);
+        if (receiver && receiver.socketId) {
+            console.log('Gửi yêu cầu kết bạn đến:', userId);
+            socket.to(receiver.socketId).emit('getFriendRequest', request);
+        } else {
+            console.error(`Không tìm thấy người dùng với ID: ${userId}`);
+        }
+    });
+
+    socket.on('unFriend', ({ userId, friendId }) => {
+        const user = users.find((u) => u.id === userId);
+        const friend = users.find((u) => u.id === friendId);
+
+        if (user && friend) {
+            // Xóa friend khỏi danh sách bạn bè của user
+            user.friends = user.friends.filter((f) => f !== friendId);
+
+            // Xóa user khỏi danh sách bạn bè của friend
+            friend.friends = friend.friends.filter((f) => f !== userId);
+
+            console.log(`Đã xóa bạn giữa ${userId} và ${friendId}`);
+
+            // Thông báo cho cả hai người dùng rằng họ không còn là bạn bè
+            socket.to(user.socketId).emit('friendRemoved', friendId);
+            socket.to(friend.socketId).emit('friendRemoved', userId);
+        } else {
+            console.error(`Không tìm thấy người dùng với ID: ${userId} hoặc bạn với ID: ${friendId}`);
+        }
     });
 
     socket.on('sendMessage', (message) => {
-        const receiver = users.find((user) => user.id === message.sender._id);
+        const receiver = users.find((user) => user.id === message.recipient._id);
         if (receiver && receiver.socketId) {
+            console.log('Gửi tin nhắn đến:', receiver.id);
             socket.to(receiver.socketId).emit('getMessage', message);
         } else {
-            console.error(`Không tìm thấy người dùng với ID: ${receiverId}`);
+            console.error(`Không tìm thấy người dùng với ID: ${receiver.id}`);
         }
     });
 

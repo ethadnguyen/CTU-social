@@ -304,9 +304,23 @@ const friendRequest = async (req, res, next) => {
 
         await newRequest.save();
 
+        const updatedUser = await User.findById(userId)
+            .populate('faculty')
+            .populate('major')
+            .populate({
+                path: 'friends',
+                select: '-password',
+            });
+
+        const populatedRequest = await FriendRequest.findById(newRequest._id)
+            .populate('requestTo', '-password')
+            .populate('requestFrom', '-password');
+
         res.status(201).json({
             status: 'SUCCESS',
-            message: 'Gửi yêu cầu kết bạn thành công'
+            message: 'Gửi yêu cầu kết bạn thành công',
+            user: updatedUser,
+            request: populatedRequest,
         });
 
     } catch (error) {
@@ -474,9 +488,18 @@ const cancelRequest = async (req, res, next) => {
 
         await FriendRequest.findByIdAndDelete(requestExist._id);
 
+        const updatedUser = await User.findById(userId)
+            .populate('faculty')
+            .populate('major')
+            .populate({
+                path: 'friends',
+                select: '-password',
+            });
+
         res.status(200).json({
             status: 'SUCCESS',
-            message: 'Yêu cầu đã bị hủy'
+            message: 'Yêu cầu đã bị hủy',
+            user: updatedUser
         });
     } catch (error) {
         console.log(error);
@@ -497,14 +520,11 @@ const rejectRequest = async (req, res, next) => {
             });
         }
 
-        await FriendRequest.findByIdAndUpdate(
-            { _id: requestId },
-            { requestStatus: 'REJECTED' },
-        );
+        await FriendRequest.findByIdAndDelete(requestId);
 
         res.status(200).json({
             status: 'SUCCESS',
-            message: 'Yêu cầu đã bị từ chối'
+            message: 'Yêu cầu đã bị từ chối và đã bị xóa'
         });
     } catch (error) {
         console.log(error);
@@ -544,6 +564,13 @@ const unFriend = async (req, res) => {
         friend.following.splice(friendFollowingIndex, 1);
         friend.friends.splice(friendIndex, 1);
         await friend.save();
+
+        await FriendRequest.findOneAndDelete({
+            $or: [
+                { requestFrom: userId, requestTo: friendId },
+                { requestFrom: friendId, requestTo: userId }
+            ]
+        });
 
         const updatedUser = await User.findById(userId).populate('faculty').populate('major').populate({
             path: 'friends',
@@ -693,13 +720,15 @@ const createNotification = async (req, res) => {
             return res.status(404).json({ status: 'FAILED', message: 'Không tìm thấy người dùng nhận thông báo' });
         }
 
-        // Kiểm tra nếu thông báo đã tồn tại cho tất cả người nhận
-        const existingNotification = await Notification.findOne({
-            receiver: { $all: receiverIds },
-            sender,
-            type,
-            link
-        });
+        let existingNotification;
+        if (type === 'like') {
+            existingNotification = await Notification.findOne({
+                receiver: { $all: receiverIds },
+                sender,
+                type,
+                link
+            });
+        }
 
         if (existingNotification) {
             return res.status(400).json({ status: 'FAILED', message: 'Thông báo đã tồn tại' });
@@ -742,12 +771,43 @@ const markAsAllRead = async (req, res) => {
             return res.status(404).json({ status: 'FAILED', message: 'Người dùng không tồn tại' });
         }
 
-        user.notifications.forEach(async (notification) => {
+        const updatedNotifications = await Promise.all(user.notifications.map(async (notification) => {
             notification.isRead = true;
             await notification.save();
-        });
+            return Notification.findById(notification._id).populate('sender', '-password').populate('receiver', '-password');
+        }));
 
-        res.status(200).json({ status: 'SUCCESS', message: 'Đánh dấu tất cả đã đọc' });
+        updatedNotifications.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+        res.status(200).json({ status: 'SUCCESS', message: 'Marked all as read', notifications: updatedNotifications });
+
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({ message: error.message });
+    }
+};
+
+const markAsRead = async (req, res) => {
+    const { userId } = req.body.user;
+    const { notificationId } = req.params;
+
+    try {
+        const user = await User.findById(userId).populate('notifications');
+        if (!user) {
+            return res.status(404).json({ status: 'FAILED', message: 'Người dùng không tồn tại' });
+        }
+
+        const notification = await Notification.findById(notificationId);
+        if (!notification) {
+            return res.status(404).json({ status: 'FAILED', message: 'Thông báo không tồn tại' });
+        }
+
+        notification.isRead = true;
+        await notification.save();
+
+        const updatedNotification = await Notification.findById(notificationId).populate('sender', '-password').populate('receiver', '-password');
+
+        res.status(200).json({ status: 'SUCCESS', message: 'Marked as read', notification: updatedNotification });
 
     } catch (error) {
         console.log(error);
@@ -778,4 +838,5 @@ module.exports = {
     getNotifications,
     createNotification,
     markAsAllRead,
+    markAsRead
 };

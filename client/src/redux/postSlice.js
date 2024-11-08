@@ -18,7 +18,7 @@ export const getSavedPosts = createAsyncThunk('post/getSavedPosts', async (userI
 
 export const likePost = createAsyncThunk('post/likePost', async (postId) => {
   const response = await axiosInstance.post(`/posts/like/${postId}`);
-  return { postId, data: response.data };
+  return { postId, data: response.data.post };
 });
 
 export const savePost = createAsyncThunk('post/savePost', async (postId) => {
@@ -104,7 +104,9 @@ const postSlice = createSlice({
         const post = state.posts.find((p) => p.id === postId);
         if (post) {
           post.likes = data.likes;
+          post.likedBy = data.likedBy;
         }
+        state.status = 'succeeded';
       })
       .addCase(likePost.rejected, (state, action) => {
         state.status = 'failed';

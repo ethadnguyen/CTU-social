@@ -6,9 +6,19 @@ const conversationSchema = new mongoose.Schema(
         recipients: [{ type: mongoose.Types.ObjectId, ref: 'User' }],
         name: {
             type: String,
-            required: true,
+            default: ''
         },
         avatar: {
+            type: String,
+            default: ''
+        },
+        messages: [
+            {
+                type: mongoose.Types.ObjectId,
+                ref: 'Message'
+            }
+        ],
+        lastMessage: {
             type: String,
             default: ''
         },

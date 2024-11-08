@@ -17,7 +17,7 @@ import { BsPersonFillAdd } from "react-icons/bs";
 import { GoDotFill } from "react-icons/go";
 import { fetchFaculties } from '../redux/facultySlice';
 import axiosInstance from '../api/axiosConfig';
-import { updateUser } from '../redux/userSlice';
+import { UpdateUser, updateUser } from '../redux/userSlice';
 import socket from '../api/socket';
 import moment from 'moment';
 import { BiCheckCircle, BiGroup, BiLike, BiMessage, BiNews } from 'react-icons/bi';
@@ -83,25 +83,23 @@ const NotificationsPage = () => {
     }, []);
 
     const handleAcceptFriendRequest = async (requestId) => {
-        const senderName = `${user.firstName} ${user.lastName}`;
+        const request = friendRequest.find((req) => req._id === requestId);
+        const receiverId = request.requestFrom._id;
         try {
             const res = await axiosInstance.post('/users/accept-request', { requestId, status: "ACCEPTED" });
             setFriendRequest((prevRequests) => prevRequests.filter((req) => req._id !== requestId));
             dispatch(updateUser(res.data.user));
 
             const resNoti = await axiosInstance.post('/users/create-notification', {
-                receiverId: res.data.friend._id,
+                receiverIds: [receiverId],
                 sender: user._id,
-                message: `${senderName} đã chấp nhận lời mời kết bạn`,
+                message: `${user.firstName} ${user.lastName} đã chấp nhận lời mời kết bạn`,
                 type: 'accept',
                 link: `/profile/${user._id}`,
             });
 
             if (resNoti.status === 201) {
-                socket.emit('sendNotification', {
-                    ...resNoti.data.notification,
-                    senderName,
-                });
+                socket.emit('sendNotification', { receiverId, notification: resNoti.data.notification });
             }
         } catch (error) {
             console.error('Error accepting friend request:', error);
@@ -118,21 +116,58 @@ const NotificationsPage = () => {
         }
     };
 
+    const handleMarkAsAllRead = async () => {
+        try {
+            const res = await axiosInstance.post('/users/mark-as-read');
+            console.log('Mark as all read:', res.data);
+            setNotifications(res.data.notifications);
+            dispatch(UpdateUser({ ...user, notifications: res.data.notifications }));
+            localStorage.setItem('notificationCount', 0);
+        } catch (error) {
+            console.error('Error marking as all read:', error);
+        }
+    };
+
+    const handleMarkAsRead = async (notificationId) => {
+        const notification = notifications.find(noti => noti._id === notificationId);
+        if (!notification || notification.isRead) return;
+        try {
+            const res = await axiosInstance.post(`/users/mark-as-read/${notificationId}`);
+            console.log('Mark as read:', res.data);
+
+            const updatedNotifications = notifications.map((notification) =>
+                notification._id === notificationId ? res.data.notification : notification
+            );
+            setNotifications(updatedNotifications);
+
+            dispatch(UpdateUser({ ...user, notifications: updatedNotifications }));
+            localStorage.setItem('notificationCount', parseInt(localStorage.getItem('notificationCount')) - 1);
+        } catch (error) {
+            console.error('Error marking as read:', error);
+        }
+    };
+
     return (
-        <div className='w-full text-ascent-1 px-0 lg:px-10 pb-20 2xl:px-40 bg-bgColor lg:rounded-lg h-screen overflow-hidden'>
+        <div className='w-full h-screen px-0 pb-20 overflow-hidden text-ascent-1 lg:px-10 2xl:px-40 bg-bgColor lg:rounded-lg'>
             {/* <TopBar friends={user?.friends} /> */}
 
-            <div className='w-full flex gap-2 lg:gap-4 pt-5 pb-10 h-full'>
+            <div className='flex w-full h-full gap-2 pt-5 pb-10 lg:gap-4'>
                 {/* LEFT */}
-                <div className='hidden w-1/3 lg:w-1/4 h-full md:flex flex-col gap-3 overflow-y-auto'>
+                <div className='flex-col hidden w-1/3 h-full gap-3 overflow-y-auto lg:w-1/4 md:flex'>
                     <ProfileCard user={user} />
                     <FriendsCard friends={user?.friends} />
                 </div>
 
 
-                <div className="flex-1 text-ascent-1 bg-primary h-full px-4 flex flex-col gap-6 overflow-y-auto rounded-lg">
+                <div className="flex flex-col flex-1 h-full gap-6 px-4 overflow-y-auto rounded-lg text-ascent-1 bg-primary">
                     <div className='flex items-center mt-3 mb-3 justify-between text-xl text-ascent-1 pb-2 border-b border-[#66666645]'>
                         <span>Thông báo</span>
+                        <span
+                            className='text-sm cursor-pointer text-ascent-2 hover:text-blue hover:underline'
+                            onClick={handleMarkAsAllRead}
+                        >
+                            Đánh dấu là đã đọc tất cả
+                        </span>
                     </div>
 
                     <ul className="divide-y divide-gray-200">
@@ -141,6 +176,7 @@ const NotificationsPage = () => {
                                 <Link
                                     to={notification?.link ? `${import.meta.env.VITE_APP_URL ?? 'http://localhost:5173'}${notification.link}` : '#'}
                                     className={`flex items-center space-x-3 ${notification.link ? 'hover:bg-gray' : ''} px-2 py-2 rounded-lg`}
+                                    onClick={() => handleMarkAsRead(notification._id)}
                                 >
                                     <div className={`text-sm text-red font-medium ${!notification?.isRead ? '' : 'hidden'}`}>
                                         <GoDotFill />
@@ -152,19 +188,22 @@ const NotificationsPage = () => {
                                                 {notification.message}
                                             </p>
                                             {notification.message && notification.type === 'like' && (
-                                                <BiLike className='text-blue font-bold' size={30} />
+                                                <BiLike className='font-bold text-blue' size={30} />
                                             )}
                                             {notification.message && notification.type === 'comment' && (
-                                                <BiMessage className='text-blue font-bold' size={30} />
+                                                <BiMessage className='font-bold text-blue' size={30} />
                                             )}
                                             {notification.message && notification.type === 'post' && (
-                                                <BiNews className='text-blue font-bold' size={30} />
+                                                <BiNews className='font-bold text-blue' size={30} />
                                             )}
                                             {notification.message && notification.type === 'accept' && (
-                                                <BiCheckCircle className='text-blue font-bold' size={30} />
+                                                <BiCheckCircle className='font-bold text-blue' size={30} />
                                             )}
                                             {notification.message && notification.type === 'joinGroupRequest' && (
-                                                <BiGroup className='text-blue font-bold' size={30} />
+                                                <BiGroup className='font-bold text-blue' size={30} />
+                                            )}
+                                            {notification.message && notification.type === 'friendRequest' && (
+                                                <BsPersonFillAdd className='font-bold text-blue' size={30} />
                                             )}
                                         </div>
 
@@ -181,7 +220,7 @@ const NotificationsPage = () => {
                 {/* RIGHT */}
                 <div className='hidden w-1/4 h-[100%] lg:flex flex-col gap-3 overflow-y-auto'>
                     {/* Activities */}
-                    <div className='flex-1 bg-primary shadow-sm rounded-lg px-5 py-5 mb-1 overflow-y-auto' style={{ maxHeight: '300px' }}>
+                    <div className='flex-1 px-5 py-5 mb-1 overflow-y-auto rounded-lg shadow-sm bg-primary' style={{ maxHeight: '300px' }}>
                         <div className='flex items-center justify-between text-lg text-ascent-1 border-b border-[#66666645]'>
                             <span>Hoạt Động</span>
                             <label>
@@ -199,7 +238,7 @@ const NotificationsPage = () => {
                             </label>
                         </div>
 
-                        <div className='w-full flex flex-col gap-4 pt-4'>
+                        <div className='flex flex-col w-full gap-4 pt-4'>
                             {faculties
                                 .find((faculty) => faculty._id === selectedFaculty)
                                 ?.activities.map((activity) => (
@@ -215,7 +254,7 @@ const NotificationsPage = () => {
                                         <img
                                             src={activity.image}
                                             alt={activity.title}
-                                            className='w-full h-48 object-cover rounded-md'
+                                            className='object-cover w-full h-48 rounded-md'
                                         />
                                     </div>
                                 ))}
@@ -266,11 +305,11 @@ const NotificationsPage = () => {
                     </div>
 
                     {/* SUGGESTED FRIENDS */}
-                    <div className='flex-1 bg-primary shadow-sm rounded-lg px-5 py-5 overflow-y-auto' style={{ maxHeight: '300px' }}>
+                    <div className='flex-1 px-5 py-5 overflow-y-auto rounded-lg shadow-sm bg-primary' style={{ maxHeight: '300px' }}>
                         <div className='flex items-center justify-between text-lg text-ascent-1 border-b border-[#66666645]'>
                             <span>Gợi Ý Kết Bạn</span>
                         </div>
-                        <div className='w-full flex flex-col gap-4 pt-4'>
+                        <div className='flex flex-col w-full gap-4 pt-4'>
                             {suggestedFriends?.map((friend) => (
                                 <div
                                     className='flex items-center justify-between'
@@ -279,12 +318,12 @@ const NotificationsPage = () => {
                                     <Link
                                         to={"/profile/" + friend?._id}
                                         key={friend?._id}
-                                        className='w-full flex gap-4 items-center cursor-pointer'
+                                        className='flex items-center w-full gap-4 cursor-pointer'
                                     >
                                         <img
                                             src={friend?.profileUrl ?? NoProfile}
                                             alt={friend?.firstName}
-                                            className='w-10 h-10 object-cover rounded-full'
+                                            className='object-cover w-10 h-10 rounded-full'
                                         />
                                         <div className='flex-1 '>
                                             <p className='text-base font-medium text-ascent-1'>

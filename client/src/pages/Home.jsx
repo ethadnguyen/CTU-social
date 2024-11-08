@@ -18,13 +18,13 @@ import { BiImages } from "react-icons/bi";
 import { useForm } from "react-hook-form";
 import { CiFileOn } from "react-icons/ci";
 import axiosInstance from '../api/axiosConfig';
-import { getPosts, likePost, reportPost, updatePosts } from '../redux/postSlice';
+import { getPosts, likePost, reportPost, updatePost, updatePosts } from '../redux/postSlice';
 import { FaFile } from 'react-icons/fa6';
 import { toast } from 'react-toastify';
 import { updateUser } from '../redux/userSlice';
 import { fetchFaculties } from '../redux/facultySlice';
 import Swal from 'sweetalert2';
-import socket, { connectSocket, disconnectSocket } from '../api/socket';
+import socket from '../api/socket';
 
 const Home = () => {
   const { user, edit } = useSelector((state) => state.user);
@@ -66,6 +66,16 @@ const Home = () => {
     }
 
     getFriendRequests();
+  }, []);
+
+  useEffect(() => {
+    socket.on('getFriendRequest', (request) => {
+      setFriendRequest((prevRequests) => [...prevRequests, request]);
+    });
+
+    return () => {
+      socket.off('getFriendRequest');
+    }
   }, []);
 
   useEffect(() => {
@@ -170,21 +180,13 @@ const Home = () => {
 
       const alreadyLiked = post.likedBy.includes(userId);
       await dispatch(likePost(postId));
-      const updatedPosts = posts.map((p) => {
-        if (p._id === postId) {
-          const hasLiked = p.likedBy.includes(userId);
 
-          return {
-            ...p,
-            likes: hasLiked ? p.likes - 1 : p.likes + 1,
-            likedBy: hasLiked
-              ? p.likedBy.filter(id => id !== userId)
-              : [...p.likedBy, userId],
-          };
-        }
-        return p;
-      });
-      dispatch(updatePosts(updatedPosts));
+      const updatedPost = {
+        ...post, likedBy: alreadyLiked ? post.likedBy.filter(id => id !== userId)
+          : [...post.likedBy, userId], likes: alreadyLiked ? post.likes - 1 : post.likes + 1
+      };
+
+      dispatch(updatePost(updatedPost));
 
 
       if (!alreadyLiked && !receiverIds.includes(userId)) {
@@ -197,7 +199,7 @@ const Home = () => {
         });
 
         if (response.status === 201) {
-          socket.emit('sendNotification', response.data.notification);
+          socket.emit('sendNotification', { notification: response.data.notification, receiverId: post.user._id });
         }
       }
     } catch (error) {
@@ -233,25 +235,23 @@ const Home = () => {
   };
 
   const handleAcceptFriendRequest = async (requestId) => {
-    const senderName = `${user.firstName} ${user.lastName}`;
+    const request = friendRequest.find((req) => req._id === requestId);
+    const receiverId = request.requestFrom._id;
     try {
       const res = await axiosInstance.post('/users/accept-request', { requestId, status: "ACCEPTED" });
       setFriendRequest((prevRequests) => prevRequests.filter((req) => req._id !== requestId));
       dispatch(updateUser(res.data.user));
 
       const resNoti = await axiosInstance.post('/users/create-notification', {
-        receiverId: res.data.friend._id,
+        receiverIds: [receiverId],
         sender: user._id,
-        message: `${senderName} đã chấp nhận lời mời kết bạn`,
+        message: `${user.firstName} ${user.lastName} đã chấp nhận lời mời kết bạn`,
         type: 'accept',
         link: `/profile/${user._id}`,
       });
 
       if (resNoti.status === 201) {
-        socket.emit('sendNotification', {
-          ...resNoti.data.notification,
-          senderName,
-        });
+        socket.emit('sendNotification', { receiverId, notification: resNoti.data.notification });
       }
     } catch (error) {
       console.error('Error accepting friend request:', error);
@@ -519,12 +519,12 @@ const Home = () => {
 
                     <div className='flex gap-1'>
                       <CustomButton
-                        title='Accept'
+                        title='Chấp nhận'
                         containerStyles='bg-[#0444a4] text-xs text-white px-1.5 py-1 rounded-full'
                         onClick={() => handleAcceptFriendRequest(_id)}
                       />
                       <CustomButton
-                        title='Deny'
+                        title='Từ chối'
                         containerStyles='border border-[#666] text-xs text-ascent-1 px-1.5 py-1 rounded-full'
                         onClick={() => handleRejectFriendRequest(_id)}
                       />

@@ -15,6 +15,7 @@ import Loading from "./Loading";
 import Modal from "react-modal";
 import moment from "moment";
 import Swal from "sweetalert2";
+import socket from '../api/socket';
 
 const ReplyCard = ({ reply, user, handleLike, handleDelete }) => {
   const [isLiked, setIsLiked] = useState(reply.likedBy.includes(user?._id));
@@ -107,6 +108,19 @@ const CommentForm = ({ user, id, replyAt, getComments }) => {
         if (res.data.post) {
           const post = res.data.post;
           dispatch(updatePost(post));
+
+          const notiRes = await axiosInstance.post('/users/create-notification', {
+            receiverIds: [post.user._id],
+            sender: user?._id,
+            message: `${user?.firstName} ${user?.lastName} đã bình luận bài viết của bạn`,
+            type: 'comment',
+            link: `/posts/${post._id}`,
+          });
+
+          if (notiRes.status === 201) {
+            console.log('send notification to:', post.user._id);
+            socket.emit('sendNotification', { receiverId: post.user._id, notification: notiRes.data.notification });
+          }
         }
       }
     } catch (error) {
@@ -357,7 +371,7 @@ const PostCard = ({ post, user, deletePost, likePost, reportPost }) => {
               <CiMenuKebab className='h-full text-lg cursor-pointer text-ascent-1' onClick={() => setShowMenu(!showMenu)} />
               {showMenu && (
                 <div className="absolute top-0 z-50 border border-gray-300 rounded-md end-5 bg-primary">
-                  <ul className="px-2 py-1 cursor-pointer text-ascent-1 items-center">
+                  <ul className="items-center px-2 py-1 cursor-pointer text-ascent-1">
                     <li className={`${isSaved ? 'text-red' : ''} py-1`} onClick={handleSavePost}>{isSaved ? 'Bỏ lưu' : 'Lưu'}</li>
                     <li className='py-1' onClick={() => { }}><span>Chia&nbsp;sẻ</span></li>
                     {user?._id === post?.user?._id && (

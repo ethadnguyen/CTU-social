@@ -15,17 +15,34 @@ import { CiLocationOn } from "react-icons/ci";
 import moment from "moment";
 
 import { NoProfile } from "../assets";
-import { UpdateProfile } from "../redux/userSlice";
+import { UpdateProfile, UpdateUser } from "../redux/userSlice";
 import axiosInstance from "../api/axiosConfig";
+import Swal from "sweetalert2";
+import { toast } from 'react-toastify';
+import socket from '../api/socket';
 
 const ProfileCard = ({ user }) => {
   const { user: data, edit } = useSelector((state) => state.user);
   const dispatch = useDispatch();
   const location = useLocation();
-  const [friendStatus, setFriendStatus] = useState("");
+  const [requestStatus, setRequestStatus] = useState("");
   const isFriend = user?.friends?.some((friend) => friend._id === data?._id);
 
-  console.log("is friend:", isFriend);
+
+  useEffect(() => {
+    const handleFriendRemoved = (removedUserId) => {
+      console.log('removedUserId:', removedUserId);
+      if (removedUserId === data._id || removedUserId === user._id) {
+        setRequestStatus("");
+      }
+    };
+
+    socket.on("friendRemoved", handleFriendRemoved);
+
+    return () => {
+      socket.off("friendRemoved", handleFriendRemoved);
+    };
+  }, [user, data]);
 
   useEffect(() => {
     if (!user?._id || user._id === data?._id) return;
@@ -36,11 +53,10 @@ const ProfileCard = ({ user }) => {
           `/users/friend-requests/${user._id}`
         );
         const requestList = requests.data.requests || [];
-        // console.log("Friend requests:", requestList);
         const request = requestList.find(
           (req) => req.requestFrom._id === data._id
         );
-        setFriendStatus(request?.requestStatus);
+        setRequestStatus(request?.requestStatus);
       } catch (error) {
         console.error("Lỗi khi lấy yêu cầu kết bạn:", error);
       }
@@ -53,6 +69,29 @@ const ProfileCard = ({ user }) => {
       const res = await axiosInstance.post("/users/friend-request", {
         requestTo: userId,
       });
+      if (res.status === 201) {
+        toast.success('Đã gửi yêu cầu kết bạn!');
+        // dispatch(UpdateUser(res.data.user));
+        setRequestStatus("PENDING");
+        const notiRes = await axiosInstance.post("/users/create-notification", {
+          receiverIds: [userId],
+          sender: data._id,
+          type: "friendRequest",
+          message: `${data?.firstName} ${data?.lastName} đã gửi yêu cầu kết bạn!`,
+          link: `/profile/${data?._id}`,
+        });
+
+        if (notiRes.status === 201) {
+          socket.emit('sendNotification', {
+            notification: notiRes.data.notification,
+            receiverId: userId,
+          });
+          socket.emit('friendRequest', {
+            userId,
+            request: res.data.request,
+          });
+        }
+      }
     } catch (error) {
       console.error("Lỗi khi gửi yêu cầu kết bạn:", error);
     }
@@ -61,19 +100,45 @@ const ProfileCard = ({ user }) => {
   const handleCancelRequest = async () => {
     const res = await axiosInstance.post("/users/cancel-request");
     console.log("Cancel request response:", res.data);
-    // setFriendStatus("not_friends");
+
+    if (res.status === 200) {
+      setRequestStatus("");
+      toast.success('Đã hủy yêu cầu kết bạn!');
+    }
   };
 
   const handleUnFriend = async (userId) => {
     try {
-      const res = await axiosInstance.post("/users/unfriend", {
-        friendId: userId,
+      const result = await Swal.fire({
+        title: 'Bạn có chắc chắn muốn hủy kết bạn?',
+        text: "Hành động này không thể hoàn tác!",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'Có, hủy kết bạn!',
+        cancelButtonText: 'Hủy'
       });
-      console.log("Unfriend response:", res.data);
+
+      if (result.isConfirmed) {
+        const res = await axiosInstance.post("/users/unfriend", {
+          friendId: userId,
+        });
+
+        if (res.status === 200) {
+          dispatch(UpdateUser(res.data.user));
+          setRequestStatus("");
+          socket.emit('unFriend', { userId: data._id, friendId: userId });
+          toast.success('Đã hủy kết bạn!');
+        }
+      }
     } catch (error) {
       console.error("Lỗi khi hủy kết bạn:", error);
+      toast.error('Lỗi khi hủy kết bạn!');
     }
   };
+
+  console.log('requestStatus:', requestStatus);
 
   return (
     <div>
@@ -106,7 +171,7 @@ const ProfileCard = ({ user }) => {
               <button
                 className="bg-[#0444a430] text-sm text-white p-1 rounded"
                 onClick={() => {
-                  if (!isFriend && friendStatus === "PENDING") {
+                  if (!isFriend && requestStatus === "PENDING") {
                     handleCancelRequest();
                   } else if (!isFriend) {
                     handleAddFriend(user?._id);
@@ -115,10 +180,10 @@ const ProfileCard = ({ user }) => {
                   }
                 }}
               >
-                {!isFriend && friendStatus !== "PENDING" && (
-                  <BsPersonFillAdd size={30} className="text-[#0f52b6]" />
+                {!isFriend && requestStatus !== "PENDING" && (
+                  <BsPersonFillAdd size={30} className='text-[#0f52b6]' />
                 )}
-                {friendStatus === "PENDING" && (
+                {requestStatus === "PENDING" && (
                   <BsPersonDash size={30} className="text-[#0552b6]" />
                 )}
                 {isFriend && (
@@ -129,7 +194,7 @@ const ProfileCard = ({ user }) => {
           </div>
         </div>
 
-        <div className="w-full flex flex-col gap-2 py-4 border-b border-[#66666645]">
+        <div className="w-fulflex flex-col gap-2 py-4 border-b border-[#66666645]">
           <div className="flex items-center gap-2 text-ascent-2">
             <FaRegBuilding className="text-xl text-ascent-1" />
             <span>{user?.faculty?.name ?? ""}</span>
