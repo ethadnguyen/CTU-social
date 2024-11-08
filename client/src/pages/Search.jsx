@@ -324,7 +324,7 @@ const Search = () => {
                   >
                     <div className="relative">
                       <img
-                        src={group?.banner ?? ""}
+                        src={group?.banner ?? '../src/assets/empty.jpg'}
                         alt={group?.name}
                         className="object-cover rounded-md w-full h-20"
                       />
@@ -332,11 +332,11 @@ const Search = () => {
                         to={"/group/" + group?.id}
                         className="flex absolute h-20 w-full top-0"
                       >
-                        <div className="flex-grow flex flex-col justify-center bg-gray bg-opacity-70 hover:opacity-0 transition-opacity duration-300">
-                          <p className="ml-1 text-lg font-medium text-white">
+                        <div className="flex-grow flex flex-col justify-center bg-secondary bg-opacity-70 hover:opacity-0 transition-opacity duration-300">
+                          <p className="ml-1 text-lg font-medium text-ascent-1">
                             {group?.name}
                           </p>
-                          <p className="ml-1 text-base text-white">
+                          <p className="ml-1 text-base text-ascent-2">
                             {group?.description
                               ?.split(" ")
                               .slice(0, 30)

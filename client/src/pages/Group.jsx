@@ -198,6 +198,34 @@ const Group = () => {
     // ...
   };
 
+  const [isEditingDescription, setIsEditingDescription] = useState(false);
+  const [editedDescription, setEditedDescription] = useState(group.description);
+  const textAreaRef = useRef(null); // Create a ref for the textarea
+
+  const handleEditDescriptionClick = () => {
+    setIsEditingDescription(true);
+    // Focus on the textarea after it renders
+    setTimeout(() => {
+      if (textAreaRef.current) {
+        textAreaRef.current.focus();
+      }
+    }, 0);
+  };
+
+  const handleDescriptionChange = (event) => {
+    setEditedDescription(event.target.value);
+  };
+
+  const handleSaveDescription = async () => {
+    console.log("Nội dung mô tả đã sửa:", editedDescription);
+
+    // Update the group description in the UI
+    group.description = editedDescription;
+
+    // Hide the input field
+    setIsEditingDescription(false);
+  };
+
   return (
     <>
       <div className="w-full h-[89vh] px-0 pb-20 overflow-hidden lg:px-10 2xl:px-40 bg-bgColor lg:rounded-lg">
@@ -272,14 +300,46 @@ const Group = () => {
                 <div className="flex items-center justify-between text-lg text-ascent-1 border-b border-[#66666645]">
                   <span>Mô tả</span>
                   {user._id === group.adminId && (
-                    <CustomButton
-                      title="Chỉnh sửa"
-                      containerStyles="text-sm text-ascent-1 mb-2 px-4 md:px-6 py-1 md:py-2 border border-[#666] rounded-full"
-                    />
+                    <>
+                      {!isEditingDescription && (
+                      <CustomButton
+                        title={isEditingDescription ? "Lưu" : "Chỉnh sửa"}
+                        containerStyles="text-sm text-ascent-1 mb-2 px-4 md:px-6 py-1 md:py-2 border border-[#666] rounded-full"
+                        onClick={
+                          isEditingDescription
+                            ? handleSaveDescription
+                            : handleEditDescriptionClick
+                        }
+                      />
+                      )}
+                      {isEditingDescription && (
+                        <CustomButton
+                          title={isEditingDescription ? "Hủy" : "Lưu"}
+                          containerStyles="text-sm text-ascent-1 mb-2 px-4 md:px-6 py-1 md:py-2 border border-[#666] rounded-full"
+                          onClick={() => setIsEditingDescription(false)}
+                        />
+                      )}
+                    </>
                   )}
                 </div>
-                <div className="flex flex-col w-full gap-4 pt-4">
-                  {group.description}
+                <div className="flex flex-col text-ascent-1 w-full gap-4 pt-4">
+                  {isEditingDescription ? (
+                    <div>
+                      <textarea
+                        ref={textAreaRef}
+                        value={editedDescription}
+                        onChange={handleDescriptionChange}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            handleSaveDescription();
+                          }
+                        }}
+                        className="w-full p-2 rounded-md resize-none"
+                      />
+                    </div>
+                  ) : (
+                    <p>{group.description}</p>
+                  )}
                 </div>
               </div>
             )}

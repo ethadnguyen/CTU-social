@@ -13,7 +13,12 @@ import {
 } from "../components";
 import { profile } from "../assets/profile";
 import { ChevronDownIcon, ChevronUpIcon } from "@heroicons/react/24/outline";
-import { MdOutlineFileUpload } from "react-icons/md";
+import {
+  MdOutlineFileUpload,
+  MdDeleteForever,
+  MdDeleteOutline,
+} from "react-icons/md";
+import { IoMdAddCircleOutline } from "react-icons/io";
 import {
   getSavedPosts,
   getUserPosts,
@@ -114,6 +119,30 @@ const Profile = () => {
     reset();
   };
 
+  const [showAddTagForm, setShowAddTagForm] = useState(false);
+
+  const {
+    register: registerTag,
+    handleSubmit: handleSubmitTag,
+    reset: resetTag,
+    formState: { errors: tagErrors },
+  } = useForm();
+
+  const handleAddTagClick = () => {
+    setShowAddTagForm(!showAddTagForm);
+  };
+
+  const handleAddTag = (data) => {
+    if (data.tagName !== null) {
+      console.log("Tên thẻ:", data.tagName);
+      // ... logic xử lý thêm thẻ ...
+
+      // Reset form fields after submission
+      resetTag();
+      setShowAddTagForm(false);
+    }
+  };
+
   return (
     <>
       <div className="w-full h-[89vh] px-0 pb-1 overflow-hidden lg:px-10 2xl:px-40 bg-bgColor lg:rounded-lg">
@@ -141,23 +170,20 @@ const Profile = () => {
 
                 <div className="">
                   {user?._id === id && (
-                    <div className="flex justify-between px-6 py-4 mb-1 shadow-sm bg-primary rounded-xl text-ascent-1">
-                      <div className="flex justify-center w-1/2 mb-2 border-r">
-                        <button
-                          className="w-full"
-                          onClick={() => setShowSavedPosts(false)}
-                        >
-                          Bài đăng
-                        </button>
-                      </div>
-                      <div className="flex justify-center w-1/2 mb-2">
-                        <button
-                          className="w-full"
-                          onClick={() => setShowSavedPosts(true)}
-                        >
-                          Bài đăng đã lưu
-                        </button>
-                      </div>
+                    <div className="flex justify-between mb-1 shadow-sm bg-bgColor text-ascent-1">
+                      <button
+                        className={`w-full rounded-xl bg-primary  ${!showSavedPosts ? "bg-sky text-white" : ""}`}
+                        onClick={() => setShowSavedPosts(false)}
+                      >
+                        Bài đăng
+                      </button>
+
+                      <button
+                        className={`w-full rounded-xl bg-primary  ${showSavedPosts ? "bg-sky text-white" : ""}`}
+                        onClick={() => setShowSavedPosts(true)}
+                      >
+                        Bài đăng đã lưu
+                      </button>
                     </div>
                   )}
 
@@ -209,7 +235,47 @@ const Profile = () => {
                   <CustomButton
                     title="Thêm thẻ"
                     containerStyles="text-sm text-ascent-1 px-4 md:px-6 py-1 md:py-2 border border-[#666] rounded-full"
+                    onClick={handleAddTagClick}
                   />
+                )}
+              </div>
+
+              {/* Form thêm thẻ */}
+              <div className="sticky top-0 z-10 bg-primary">
+                {" "}
+                {/* Add sticky positioning here */}
+                {showAddTagForm && (
+                  <form
+                    onSubmit={handleSubmitTag(handleAddTag)}
+                    className="mt-4 border-b border-[#66666645]"
+                  >
+                    <div className="mb-2">
+                      <label
+                        htmlFor="tagName"
+                        className="block text-sm font-medium text-ascent-1"
+                      >
+                        Tên thẻ:
+                      </label>
+                      <div className="flex items-center">
+                        <div className="flex-grow mr-2">
+                          <input
+                            type="text"
+                            id="tagName"
+                            {...registerTag("tagName", {
+                              required: "Vui lòng nhập tên thẻ",
+                            })}
+                            className="mt-1 p-2 w-full border text-ascent-1 rounded-md bg-secondary"
+                          />
+                        </div>
+                        <button
+                          type="submit"
+                          className="hover:bg-sky hover:text-white text-ascent-1 font-bold rounded"
+                        >
+                          <IoMdAddCircleOutline className="size-10" />
+                        </button>
+                      </div>
+                    </div>
+                  </form>
                 )}
               </div>
 
@@ -228,13 +294,19 @@ const Profile = () => {
                       )}
                     </div>
                     {user._id === id && (
-                      <MdOutlineFileUpload className="ml-2 text-ascent-1" />
+                      <div className="flex items-center">
+                        <MdDeleteForever className="ml-2 size-5 text-ascent-1" />
+                        <MdOutlineFileUpload className="ml-2 size-5 text-ascent-1" />
+                      </div>
                     )}
                   </div>
                   {expandedTags[tag.id] && (
                     <ul>
                       {tag.files.map((file) => (
-                        <li key={file.id}>
+                        <li
+                          key={file.id}
+                          className="flex items-center hover:bg-gray"
+                        >
                           <div className="w-[90%]">
                             <a
                               href={file.url}
@@ -245,6 +317,7 @@ const Profile = () => {
                               {file.url.split("/").pop()}
                             </a>
                           </div>
+                          <MdDeleteOutline className="ml-2 size-5 text-ascent-1" />
                         </li>
                       ))}
                     </ul>
@@ -321,7 +394,7 @@ const Profile = () => {
                     >
                       <div className="relative">
                         <img
-                          src={group?.banner ?? ""}
+                          src={group?.banner ?? "../src/assets/empty.jpg"}
                           alt={group?.name}
                           className="object-cover rounded-md w-full h-20"
                         />
@@ -329,11 +402,11 @@ const Profile = () => {
                           to={"/group/" + group?.id}
                           className="flex absolute h-20 w-full top-0"
                         >
-                          <div className="flex-grow flex flex-col justify-center bg-gray bg-opacity-70 hover:opacity-0 transition-opacity duration-300">
-                            <p className="ml-1 text-lg font-medium text-white">
+                          <div className="flex-grow flex flex-col justify-center bg-secondary bg-opacity-70 hover:opacity-0 transition-opacity duration-300">
+                            <p className="ml-1 text-lg font-medium text-ascent-1">
                               {group?.name}
                             </p>
-                            <p className="ml-1 text-base text-white">
+                            <p className="ml-1 text-base text-ascent-2">
                               {group?.description
                                 ?.split(" ")
                                 .slice(0, 30)
