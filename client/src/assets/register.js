@@ -1,10 +1,10 @@
 export const faculties = [
   {
-    id: 1,
+    id: "1",
     name: "CNTT&TT",
     majors: [
       {
-        id: 1,
+        id: "1",
         name: "Kỹ thuật phần mềm",
         courses: [
           {
@@ -54,7 +54,7 @@ export const faculties = [
         ]
       },
       {
-        id: 2,
+        id: "2",
         name: "công nghệ thông tin",
         courses: [
           {
@@ -68,7 +68,7 @@ export const faculties = [
         ]
       },
       {
-        id: 3,
+        id: "3",
         name: "Tin học ứng dụng",
         courses: [
           {
@@ -88,11 +88,11 @@ export const faculties = [
     ],
   },
   {
-    id: 2,
+    id: "2",
     name: "Kinh tế",
     majors: [
       {
-        id: 4,
+        id: "4",
         name: "Kinh tế 1",
         courses: [
           {
@@ -114,7 +114,7 @@ export const faculties = [
         ]
       },
       {
-        id: 5,
+        id: "5",
         name: "Kinh tế 2",
         courses: [
           {
@@ -140,7 +140,7 @@ export const faculties = [
         ]
       },
       {
-        id: 6,
+        id: "6",
         name: "Kinh tế 3",
         courses: [
           {

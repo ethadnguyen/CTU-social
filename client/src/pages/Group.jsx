@@ -16,6 +16,7 @@ import { NoProfile } from "../assets";
 import { BsPersonFillAdd } from "react-icons/bs";
 import { SiVerizon } from "react-icons/si";
 import { FaDeleteLeft } from "react-icons/fa6";
+import { FaEdit } from "react-icons/fa";
 import { useForm } from "react-hook-form";
 import axiosInstance from "../api/axiosConfig";
 import {
@@ -203,12 +204,11 @@ const Group = () => {
   };
 
   const [isEditingDescription, setIsEditingDescription] = useState(false);
-  const [editedDescription, setEditedDescription] = useState(group?.description);
+  const [editedDescription, setEditedDescription] = useState(group.description);
   const textAreaRef = useRef(null); // Create a ref for the textarea
 
   const handleEditDescriptionClick = () => {
     setIsEditingDescription(true);
-    // Focus on the textarea after it renders
     setTimeout(() => {
       if (textAreaRef.current) {
         textAreaRef.current.focus();
@@ -222,12 +222,33 @@ const Group = () => {
 
   const handleSaveDescription = async () => {
     console.log("Nội dung mô tả đã sửa:", editedDescription);
-
-    // Update the group description in the UI
     group.description = editedDescription;
-
-    // Hide the input field
     setIsEditingDescription(false);
+  };
+
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [editedGroupName, setEditedGroupName] = useState(group.name);
+  const groupNameInputRef = useRef(null);
+
+  const handleEditGroupNameClick = () => {
+    setIsEditingName(true);
+    setTimeout(() => {
+      if (groupNameInputRef.current) {
+        groupNameInputRef.current.focus();
+      }
+    }, 0);
+  };
+
+  const handleGroupNameChange = (event) => {
+    setEditedGroupName(event.target.value);
+  };
+
+  const handleSaveGroupName = () => {
+    console.log("Tên nhóm đã đổi:", editedGroupName);
+    // Thêm logic đổi tên nhóm ở đây
+
+    // Reset the editing state
+    setIsEditingName(false);
   };
 
   return (
@@ -241,11 +262,42 @@ const Group = () => {
             className="w-full h-48 object-cover rounded-t-lg"
           />
           <div className="absolute top-0 left-0 w-full h-48 flex items-center justify-between bg-black bg-opacity-50 rounded-t-lg opacity-0 hover:opacity-100 transition-opacity duration-300">
-            <div className="rounded-xl bg-gray">
-              <span className="text-white font-bold text-lg px-4">
-                {group?.name}
-              </span>
-            </div>
+            {user._id === group.adminId ? (
+              <div className="rounded-xl bg-gray flex items-center">
+                {isEditingName ? (
+                  <input
+                    ref={groupNameInputRef}
+                    type="text"
+                    value={editedGroupName}
+                    onChange={handleGroupNameChange}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        handleSaveGroupName();
+                      }
+                    }}
+                    className="text-white font-bold text-lg px-4 py-2 rounded-lg bg-gray focus:outline-none"
+                  />
+                ) : (
+                  <span className="text-white font-bold text-lg px-4">
+                    {group.name}
+                  </span>
+                )}
+                {!isEditingName && (
+                  <button
+                    onClick={handleEditGroupNameClick}
+                    className="text-white focus:outline-none"
+                  >
+                    <FaEdit className="mr-3" />
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div className="rounded-xl bg-gray flex items-center">
+                <span className="text-white font-bold text-lg px-4">
+                  {group.name}
+                </span>
+              </div>
+            )}
             <input
               type="file"
               accept="image/*"

@@ -12,7 +12,6 @@ import {
 } from "react-icons/bs";
 import { FaRegBuilding, FaLinkedin, FaGithub } from "react-icons/fa";
 import { CiLocationOn } from "react-icons/ci";
-import moment from "moment";
 
 import { NoProfile } from "../assets";
 import { UpdateProfile, UpdateUser } from "../redux/userSlice";
@@ -139,7 +138,23 @@ const ProfileCard = ({ user }) => {
     }
   };
 
-  console.log('requestStatus:', requestStatus);
+  const [isFollowing, setIsFollowing] = useState(false);
+
+  useEffect(() => {
+    if (data?._id && user?._id !== data?._id) {
+      setIsFollowing(user?.followers?.includes(data?._id));
+    }
+  }, [user, data]);
+
+  const handleFollow = async (userId) => {
+    console.log("Theo dõi:", userId);
+    // Thêm logic xử lý theo dõi ở đây
+  };
+
+  const handleUnfollow = async (userId) => {
+    console.log("Bỏ theo dõi:", userId);
+    // Thêm logic xử lý bỏ theo dõi ở đây
+  };
 
   return (
     <div>
@@ -209,31 +224,40 @@ const ProfileCard = ({ user }) => {
           </div>
         </div>
 
-        <div className='w-full flex flex-col gap-2 py-4 border-b border-[#66666645]'>
-          <p className='text-xl font-semibold text-ascent-1'>
-            <span className='text-blue'> {user?.friends?.length}</span> Bạn bè
-            <span className='mx-4'></span>
-            <span className='text-blue'>{user?.followers?.length}</span>  Người theo dõi
+        <div className="w-full flex flex-col gap-2 py-4 border-b border-[#66666645]">
+          <p className="text-xl font-semibold text-ascent-1">
+            <span className="text-blue"> {user?.friends?.length}</span> Bạn bè
+            <span className="mx-4"></span>
+            <span className="text-blue">{user?.followers?.length}</span> Người
+            theo dõi
           </p>
 
-          <div className='flex items-center justify-between'>
-            <span className='text-ascent-2'>{user?.bio}</span>
+          <div className="flex items-center justify-between">
+            <span className="text-ascent-2">{user?.bio}</span>
             {/* <span className='text-lg text-ascent-1'>{user?.views?.length}</span> */}
           </div>
 
-          {user?._id === data?._id && (
-            <span className='text-base text-blue'>
-              {data?.isVerified ? "Tài khoản đã xác thực" : "Tài khoản chưa xác thực"}
-            </span>
-          )}
-
-          <div className='flex items-center justify-between'>
-            <span className='text-ascent-2'>Tham gia</span>
-            <span className='text-base text-ascent-1'>
-              {/* {moment(user?.createdAt).fromNow()} */}
+          <div className="flex items-center justify-between">
+            <span className="text-ascent-2">Tham gia</span>
+            <span className="text-base text-ascent-1">
               {formatDate(user?.createdAt)}
             </span>
           </div>
+
+          {user?._id !== data?._id && (
+            <button
+              onClick={() => {
+                if (isFollowing) {
+                  handleUnfollow(user._id);
+                } else {
+                  handleFollow(user._id);
+                }
+              }}
+              className="bg-blue hover:bg-sky text-sm text-white p-2 rounded"
+            >
+              {isFollowing ? "Bỏ theo dõi" : "Theo dõi"}
+            </button>
+          )}
         </div>
 
         <div className="flex flex-col w-full gap-4 py-4 pb-6">

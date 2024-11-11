@@ -1,10 +1,13 @@
 export const Posts = [
   {
     _id: "64e2fe620d7868ecff1a6a86",
+    sharedBy: "Nguyễn Lê Hoàng Lực",
+    sharedById: "64df39704180b81adfe41d0",
+    sharedByAvatar: "/pictures/Neal.jpg",
     groupId: "4",
     groupName: "Hội thánh đức chúa trời",
     userId: {
-      _id: "64df39704180b81adfe41d0b",
+      _id: "64df3c064180b81adfe41d4b",
       firstName: "Lực",
       lastName: "Nguyễn",
       profileUrl: "/pictures/Neal.jpg",
@@ -12,7 +15,7 @@ export const Posts = [
       major: "Kỹ thuật phần mềm K47",
     },
     description: "Nice pic!",
-    image: [
+    images: [
       "/pictures/1 (1).jpg",
       "/pictures/1 (2).jpg",
       "/pictures/Neal.jpg",
@@ -27,7 +30,7 @@ export const Posts = [
     ],
     share: [
       "64df3aec4180b81adfe41d32",
-      "64df39704180b81adfe41d0b",
+      "64df3c064180b81adfe41d4b",
       "64df424b4a4c0d47b5369f65",
     ],
     likes: ["64df3c064180b81adfe41d4b"],
