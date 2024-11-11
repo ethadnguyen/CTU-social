@@ -76,6 +76,10 @@ const login = async (req, res) => {
             .populate({
                 path: 'notifications'
             })
+            .populate({
+                path: 'groups'
+            });
+
         if (!user) {
             return res.status(400).json({ message: 'Người dùng không tồn tại' });
         }
@@ -171,6 +175,9 @@ const loginAdmin = async (req, res) => {
             })
             .populate({
                 path: 'notifications'
+            })
+            .populate({
+                path: 'groups'
             });
 
         if (!user) {

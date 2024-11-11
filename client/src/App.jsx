@@ -35,7 +35,7 @@ function App() {
           <Route path='/messages/:id?' element={<Messages />} />
           <Route path='/notifications/:id?' element={<Notifications />} />
           <Route path='/posts/:id?' element={<Post />} />
-          <Route path='/search/:searchQuery' element={<Search />} />
+          <Route path='/search/:searchQuery?' element={<Search />} />
         </Route>
 
         <Route path='/register' element={<Register />} />

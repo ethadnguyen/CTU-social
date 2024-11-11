@@ -23,7 +23,11 @@ const storage = new CloudinaryStorage({
         } else if (file.fieldname === 'media') {
             folder += 'media';
             allowedFormats = ['jpg', 'png', 'jpeg', 'mp4', 'gif'];
+        } else if (file.fieldname === 'tags') {
+            folder += 'tags';
+            allowedFormats = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'];
         }
+
         return {
             folder: folder,
             allowed_formats: allowedFormats,

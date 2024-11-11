@@ -10,18 +10,15 @@ const GroupSchema = new mongoose.Schema({
         type: String,
         default: ''
     },
+    banner: {
+        type: String,
+        default: ''
+    },
     owner: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
         required: true
     },
-    admin: [
-        {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: 'User',
-            required: true
-        }
-    ],
     members: [
         {
             type: mongoose.Schema.Types.ObjectId,
@@ -39,9 +36,11 @@ const GroupSchema = new mongoose.Schema({
         enum: ['public', 'private'],
         default: 'private'
     }
-}, {
-    timestamps: true
-});
+},
+    {
+        timestamps: true
+    }
+);
 
 const Group = mongoose.model('Group', GroupSchema);
 

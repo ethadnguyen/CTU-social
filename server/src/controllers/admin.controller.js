@@ -10,6 +10,7 @@ const fs = require('fs');
 const util = require('util');
 const upload = require('../utils/upload');
 const { sendOTP } = require('../utils/sendMail');
+const userModel = require('../models/user.model');
 const unlinkFile = util.promisify(fs.unlink);
 
 
@@ -522,9 +523,9 @@ const deleteAccount = async (req, res) => {
 
 const getAllGroupRequests = async (req, res) => {
     try {
-        const groupRequests = await GroupRequest.find().populate({
-            path: 'userId',
-            select: 'firstName lastName',
+        const groupRequests = await GroupRequest.find({ status: 'PENDING' }).populate({
+            path: 'user',
+            select: '-password',
             populate: [
                 {
                     path: 'faculty',
@@ -536,7 +537,7 @@ const getAllGroupRequests = async (req, res) => {
                 }
             ]
         });
-        res.json(groupRequests);
+        res.json({ message: 'Lấy danh sách yêu cầu thành công', groupRequests });
     } catch (error) {
         res.status(500).json({ message: 'Lỗi lấy danh sách yêu cầu' });
     }
@@ -578,9 +579,8 @@ const acceptGroupRequest = async (req, res) => {
 
         const newGroup = new Group({
             name: groupRequest.name,
-            owner: groupRequest.userId,
-            admin: [groupRequest.userId],
-            members: [groupRequest.userId],
+            owner: groupRequest.user._id,
+            members: [groupRequest.user._id],
         });
 
         await newGroup.save();
@@ -588,9 +588,19 @@ const acceptGroupRequest = async (req, res) => {
         groupRequest.status = status;
         await groupRequest.save();
 
+        const user = await userModel.findById(groupRequest.user._id);
+
+        user.groups.push(newGroup._id);
+        await user.save();
+
+        const populatedGroup = await Group.findById(newGroup._id).populate({
+            path: 'owner members',
+            select: '-password',
+        });
+
         res.status(201).json({
             message: 'Yêu cầu đã được chấp nhận và nhóm đã được tạo',
-            group: newGroup
+            group: populatedGroup
         });
     } catch (error) {
         res.status(500).json({ message: 'Lỗi chấp nhận yêu cầu', error: error.message });

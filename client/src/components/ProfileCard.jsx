@@ -20,6 +20,7 @@ import axiosInstance from "../api/axiosConfig";
 import Swal from "sweetalert2";
 import { toast } from 'react-toastify';
 import socket from '../api/socket';
+import { formatDate } from './../utils/formatDate';
 
 const ProfileCard = ({ user }) => {
   const { user: data, edit } = useSelector((state) => state.user);
@@ -229,7 +230,8 @@ const ProfileCard = ({ user }) => {
           <div className='flex items-center justify-between'>
             <span className='text-ascent-2'>Tham gia</span>
             <span className='text-base text-ascent-1'>
-              {moment(user?.createdAt).fromNow()}
+              {/* {moment(user?.createdAt).fromNow()} */}
+              {formatDate(user?.createdAt)}
             </span>
           </div>
         </div>

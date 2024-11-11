@@ -72,8 +72,7 @@ const User = require('../models/user.model');
 const getPosts = async (req, res) => {
     try {
         const { search } = req.query;
-
-        // Tạo điều kiện tìm kiếm dựa trên nội dung bài viết nếu có từ khóa tìm kiếm
+        console.log('search:', search);
         const searchPostQuery = {
             $or: [
                 {
@@ -82,7 +81,6 @@ const getPosts = async (req, res) => {
             ],
         };
 
-        // Lấy tất cả các bài viết từ CSDL, có thể có hoặc không có từ khóa tìm kiếm
         const posts = await Post.find(search ? searchPostQuery : {})
             .populate({
                 path: 'user',
@@ -100,9 +98,12 @@ const getPosts = async (req, res) => {
                 },
             })
             .populate({
+                path: 'group',
+            })
+            .populate({
                 path: 'comments',
             })
-            .sort({ _id: -1 }); // Sắp xếp bài viết theo thứ tự mới nhất
+            .sort({ _id: -1 });
 
         // Render tất cả các bài viết
         res.status(200).json({

@@ -16,6 +16,7 @@ import Modal from "react-modal";
 import moment from "moment";
 import Swal from "sweetalert2";
 import socket from '../api/socket';
+import { formatDate } from './../utils/formatDate';
 
 const ReplyCard = ({ reply, user, handleLike, handleDelete }) => {
   const [isLiked, setIsLiked] = useState(reply.likedBy.includes(user?._id));
@@ -366,7 +367,8 @@ const PostCard = ({ post, user, deletePost, likePost, reportPost }) => {
           </div>
 
           <span className='flex gap-4 item-centers text-ascent-2'>
-            {moment(post?.createdAt ?? "2024-05-25").fromNow()}
+            {formatDate(post?.createdAt)}
+            {/* {moment(post?.createdAt ?? "2024-05-25").fromNow()} */}
             <div className='relative'>
               <CiMenuKebab className='h-full text-lg cursor-pointer text-ascent-1' onClick={() => setShowMenu(!showMenu)} />
               {showMenu && (
@@ -654,7 +656,7 @@ const PostCard = ({ post, user, deletePost, likePost, reportPost }) => {
             ))
           ) : (
             <span className='flex py-4 text-sm text-center text-ascent-2'>
-              No Comments, be first to comment
+              Chưa có bình luận nào. Hãy là người đầu tiên bình luận
             </span>
           )}
         </div>

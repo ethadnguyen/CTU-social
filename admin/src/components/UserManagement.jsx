@@ -164,7 +164,7 @@ const UserManagement = () => {
                 ${selectedUser?._id === User._id ? 'bg-sky text-white' : ''}`}
             >
               <>
-                <a href={`http://localhost:5173/profile/${User.id}`} target="_blank" className="hover:underline">{User.firstName} {User.lastName}</a>
+                <a href={`http://localhost:5173/profile/${User._id}`} target="_blank" className="hover:underline">{User.firstName} {User.lastName}</a>
                 <div className={`absolute right-2 top-1/2 transform -translate-y-1/2 
                   ${selectedUser?._id === User._id ? '' : 'hidden'}`}>
                   <button className="mr-3" onClick={(event) => {

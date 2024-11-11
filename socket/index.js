@@ -6,7 +6,7 @@ const port = process.env.PORT || 5000;
 const server = http.createServer();
 const io = new Server(server, {
     cors: {
-        origin: 'http://localhost:5173', // Địa chỉ frontend
+        origin: ['http://localhost:5173', 'http://localhost:8443'],
         credentials: true,
     },
 });
@@ -16,7 +16,8 @@ let admins = [];
 
 io.on('connection', (socket) => {
     console.log('New socket connection established');
-
+    console.log('users', users.length);
+    console.log('admins', admins.length);
     // Tham gia người dùng
     socket.on('joinUser', (user) => {
         console.log('User joined:');
@@ -29,15 +30,12 @@ io.on('connection', (socket) => {
     });
 
     // Tham gia admin
-    socket.on('joinAdmin', (id) => {
-        const existingAdmin = admins.find((a) => a.id === id);
+    socket.on('joinAdmin', (user) => {
+        const existingAdmin = admins.find((a) => a.id === user._id);
+        console.log('Admin joined:', user.firstName);
         if (!existingAdmin) {
-            admins.push({ id, socketId: socket.id });
+            admins.push({ id: user._id, socketId: socket.id });
         }
-        const admin = admins.find((admin) => admin.id === id);
-        let totalActiveAdmins = admins.length;
-
-        socket.to(`${admin.socketId}`).emit('activeAdmins', totalActiveAdmins);
     });
 
     // Gửi thông báo cho bạn bè
@@ -65,7 +63,7 @@ io.on('connection', (socket) => {
 
     // Gửi thông báo
     socket.on('sendNotification', ({ notification, receiverId }) => {
-
+        console.log('sendNotification:', notification);
         const receiver = users.find((user) => user.id === receiverId);
         if (receiver && receiver.socketId) {
             console.log('Gửi thông báo đến:', receiverId);
@@ -114,6 +112,14 @@ io.on('connection', (socket) => {
         } else {
             console.error(`Không tìm thấy người dùng với ID: ${receiver.id}`);
         }
+    });
+
+    // group request
+    socket.on('groupRequest', (groupRequest) => {
+        console.log('admins:', admins.length);
+        admins.forEach((admin) => {
+            socket.to(admin.socketId).emit('receiveGroupRequest', groupRequest);
+        });
     });
 
 

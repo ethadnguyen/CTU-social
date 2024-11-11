@@ -1,6 +1,5 @@
 import { createSlice } from "@reduxjs/toolkit";
 import axiosInstance from "../api/axiosConfig";
-// import { user } from "../assets/data";
 
 const initialState = {
   user: JSON.parse(window?.localStorage.getItem("user")) ?? null,
@@ -24,6 +23,10 @@ const userSlice = createSlice({
     updateProfile(state, action) {
       state.edit = action.payload;
     },
+    updateUser(state, action) {
+      state.user = action.payload;
+      localStorage.setItem("user", JSON.stringify(action.payload));
+    },
     setError(state, action) {
       state.error = action.payload;
     }
@@ -31,14 +34,13 @@ const userSlice = createSlice({
 });
 export default userSlice.reducer;
 
-export const { login, logout, updateProfile, setError } = userSlice.actions;
+export const { login, logout, updateProfile, setError, updateUser } = userSlice.actions;
 
 export function UserAdminLogin(credentials) {
   return async (dispatch) => {
     try {
       const response = await axiosInstance.post("/auth/admin/login", credentials);
       const { user, token } = response.data;
-      console.log(response.data)
       localStorage.setItem("token", token);
       localStorage.setItem("user", JSON.stringify(user));
       dispatch(login(user));
@@ -61,4 +63,11 @@ export function UpdateProfile(val) {
   return (dispatch, getState) => {
     dispatch(userSlice.actions.updateProfile(val));
   };
+}
+
+export function UpdateUser(user) {
+  return (dispatch) => {
+    console.log('updated user');
+    dispatch(userSlice.actions.updateUser(user));
+  }
 }

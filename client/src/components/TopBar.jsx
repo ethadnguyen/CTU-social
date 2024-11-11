@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { Link } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import TextInput from "./TextInput";
 import CustomButton from "./CustomButton";
 import Menu from "./Menu";
@@ -13,20 +13,38 @@ import { BgImage } from "../assets";
 import { FaRegMessage, FaMessage } from "react-icons/fa6";
 import { IoIosMenu, IoIosNotifications } from "react-icons/io";
 import socket from '../api/socket';
+import { debounce } from 'lodash';
+
+const debouncedSearch = debounce((query, navigate) => {
+  navigate(`/search?search=${query}`);
+}, 500);
 
 const TopBar = (friends) => {
   const { theme } = useSelector((state) => state.theme);
   const { user } = useSelector((state) => state.user);
   const [showMenu, setShowMenu] = useState(false);
+
   const [notificationCount, setNotificationCount] = useState(
     () => parseInt(localStorage.getItem("notificationCount")) || user?.notifications.length
   );
   const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const location = useLocation();
   const {
     register,
     handleSubmit,
     formState: { errors },
   } = useForm();
+
+
+
+  const handleInputChange = (e) => {
+    const searchQuery = e.target.value;
+    if (location.pathname === "/search") {
+      debouncedSearch(searchQuery, navigate);
+    }
+  };
+
   useEffect(() => {
     if (user && user.notifications) {
       const unreadNotifications = user.notifications.filter((n) => !n.isRead);
@@ -60,7 +78,13 @@ const TopBar = (friends) => {
     dispatch(SetTheme(themeValue));
   };
 
-  const handleSearch = async (data) => { };
+  const handleSearch = async (data) => {
+    const searchQuery = data.search;
+
+    if (!searchQuery) return;
+
+    navigate(`/search?search=${searchQuery}`);
+  };
 
   return (
     <div className='flex items-center justify-between w-full px-4 py-3 topbar md:py-6 bg-primary'>
@@ -97,10 +121,18 @@ const TopBar = (friends) => {
         <TextInput
           placeholder='Tìm kiếm...'
           styles='w-[10rem] lg:w-[30rem]  rounded-l-full py-3 '
-          register={register("search")}
+          {...register("search", {
+            onKeyDown: (e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                handleSubmit(handleSearch)();
+              }
+            },
+            onChange: handleInputChange,
+          })}
         />
         <CustomButton
-          title='Search'
+          title='Tìm kiếm'
           type='submit'
           containerStyles='bg-blue hover:bg-sky text-white px-3 py-2.5 mt-2 rounded-r-full'
         />

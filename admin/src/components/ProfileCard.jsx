@@ -14,6 +14,7 @@ import moment from "moment";
 
 import { NoProfile } from "../assets";
 import { UpdateProfile } from "../redux/userSlice";
+import { formatDate } from './../utils/formatDate';
 
 const ProfileCard = ({ user }) => {
   const { user: data, edit } = useSelector((state) => state.user);
@@ -74,29 +75,31 @@ const ProfileCard = ({ user }) => {
         </div>
 
         <div className='w-full flex flex-col gap-2 py-4 border-b border-[#66666645]'>
-          <p className='text-xl text-ascent-1 font-semibold'>
-            {user?.friends?.length} Friends
+          <p className='text-xl font-semibold text-ascent-1'>
+            <span className='text-blue'> {user?.friends?.length}</span> Bạn bè
+            <span className='mx-4'></span>
+            <span className='text-blue'>{user?.followers?.length}</span>  Người theo dõi
           </p>
 
           <div className='flex items-center justify-between'>
-            <span className='text-ascent-2'>Who viewed your profile</span>
-            <span className='text-ascent-1 text-lg'>{user?.views?.length}</span>
+            <span className='text-ascent-2'>{user?.bio}</span>
           </div>
 
           <span className='text-base text-blue'>
-            {user?.verified ? "Verified Account" : "Not Verified"}
+            {user?.isVerified ? "Tài khoản đã xác thực" : "Tài khoản chưa xác thực"}
           </span>
 
           <div className='flex items-center justify-between'>
-            <span className='text-ascent-2'>Joined</span>
+            <span className='text-ascent-2'>Tham gia</span>
             <span className='text-ascent-1 text-base'>
-              {moment(user?.createdAt).fromNow()}
+              {/* {moment(user?.createdAt).fromNow()} */}
+              {formatDate(user?.createdAt)}
             </span>
           </div>
         </div>
 
         <div className='w-full flex flex-col gap-4 py-4 pb-6'>
-          <p className='text-ascent-1 text-lg font-semibold'>Social Profile</p>
+          <p className='text-ascent-1 text-lg font-semibold'>Mạng xã hội khác</p>
 
           <div className='flex gap-2 items-center text-ascent-2'>
             <BsFacebook className=' text-xl text-ascent-1' />

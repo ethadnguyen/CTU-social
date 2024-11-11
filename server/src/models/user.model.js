@@ -35,9 +35,6 @@ const userSchema = mongoose.Schema({
         enum: ['Male', 'Female', 'Other'],
         default: 'Male'
     },
-    phone: {
-        type: String,
-    },
     dateOfBirth: {
         type: Date,
     },
@@ -117,6 +114,11 @@ const userSchema = mongoose.Schema({
             ref: 'Post',
         }
     ],
+    privacy: {
+        type: String,
+        enum: ['public', 'private'],
+        default: 'public'
+    },
     isVerified: {
         type: Boolean,
         default: false
@@ -138,6 +140,5 @@ userSchema.pre('save', async function (next) {
         next(err);
     }
 });
-
 
 module.exports = mongoose.model('User', userSchema);

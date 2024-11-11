@@ -16,11 +16,23 @@ const getGroups = async (req, res) => {
 const getGroup = async (req, res) => {
     const { groupId } = req.params;
     try {
-        const group = await Group.findById(groupId).select('name description posts');
+        const group = await Group.findById(groupId)
+            .populate({
+                path: 'owner',
+                select: '-password',
+            })
+            .populate({
+                path: 'members',
+                select: '-password',
+            })
+
         if (!group) {
             return res.status(404).json({ message: 'Nhóm không tồn tại' });
         }
-        return res.status(200).json(group);
+        return res.status(200).json({
+            message: 'Lấy thông tin nhóm thành công',
+            group,
+        });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
@@ -31,7 +43,7 @@ const getGroupPosts = async (req, res) => {
         const { groupId } = req.params;
         const { search } = req.query;
 
-        const group = await Group.findById(groupId).select('name description posts').populate('posts');
+        const group = await Group.findById(groupId).populate('posts');
 
         if (!group) {
             return res.status(404).json({ message: 'Nhóm không tồn tại' });
@@ -49,7 +61,7 @@ const getGroupPosts = async (req, res) => {
         const posts = await Post.find(searchPostQuery)
             .populate({
                 path: 'user',
-                select: 'firstName lastName avatar -password',
+                select: '-password',
                 populate: {
                     path: 'faculty',
                     select: 'name'

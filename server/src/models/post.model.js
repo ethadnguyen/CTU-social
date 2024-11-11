@@ -39,6 +39,10 @@ const PostSchema = new mongoose.Schema({
         enum: ['public', 'private'],
         default: 'public'
     },
+    group: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Group'
+    }
 },
     {
         timestamps: true

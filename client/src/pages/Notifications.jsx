@@ -20,7 +20,7 @@ import axiosInstance from '../api/axiosConfig';
 import { UpdateUser, updateUser } from '../redux/userSlice';
 import socket from '../api/socket';
 import moment from 'moment';
-import { BiCheckCircle, BiGroup, BiLike, BiMessage, BiNews } from 'react-icons/bi';
+import { BiCheckCircle, BiGroup, BiLike, BiMessage, BiNews, BiSolidGroup } from 'react-icons/bi';
 
 const NotificationsPage = () => {
     const { user, edit } = useSelector((state) => state.user);
@@ -74,6 +74,7 @@ const NotificationsPage = () => {
 
     useEffect(() => {
         socket.on('getNotification', (notification) => {
+            console.log('getNotification:', notification);
             setNotifications((prevNotifications) => [notification, ...prevNotifications]);
         });
 
@@ -204,6 +205,9 @@ const NotificationsPage = () => {
                                             )}
                                             {notification.message && notification.type === 'friendRequest' && (
                                                 <BsPersonFillAdd className='font-bold text-blue' size={30} />
+                                            )}
+                                            {notification.message && notification.type === 'acceptGroupRequest' && (
+                                                <BiSolidGroup className='font-bold text-blue' size={30} />
                                             )}
                                         </div>
 

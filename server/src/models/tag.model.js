@@ -7,10 +7,16 @@ const tagSchema = mongoose.Schema({
     },
     files: [
         {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: 'File',
+            id: { type: Number },
+            name: { type: String },
+            url: { type: String },
+            uploadedAt: { type: Date, default: Date.now }
         }
     ]
-});
+},
+    {
+        timestamps: true
+    }
+);
 
 module.exports = mongoose.model('Tag', tagSchema);

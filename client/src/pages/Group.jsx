@@ -11,9 +11,7 @@ import {
   TopBar,
 } from "../components";
 import { suggest, requests } from "../assets/data";
-import { Posts } from "../assets/home";
-import { group } from "../assets/group";
-import { Link, useLocation, ScrollRestoration } from "react-router-dom";
+import { Link, useLocation, ScrollRestoration, useParams } from "react-router-dom";
 import { NoProfile } from "../assets";
 import { BsPersonFillAdd } from "react-icons/bs";
 import { SiVerizon } from "react-icons/si";
@@ -21,9 +19,11 @@ import { FaDeleteLeft } from "react-icons/fa6";
 import { useForm } from "react-hook-form";
 import axiosInstance from "../api/axiosConfig";
 import {
+  getGroupPosts,
   getPosts,
   likePost,
   reportPost,
+  updatePost,
   updatePosts,
 } from "../redux/postSlice";
 import { toast } from "react-toastify";
@@ -42,9 +42,10 @@ const Group = () => {
   const [images, setImages] = useState([]);
   const [posting, setPosting] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [group, setGroup] = useState(null);
+  const { id: groupId } = useParams();
 
-  const posts = useSelector((state) => state.posts.posts);
-
+  const groupPosts = useSelector((state) => state.posts.posts);
   const dispatch = useDispatch();
 
   const {
@@ -55,10 +56,22 @@ const Group = () => {
   } = useForm();
 
   useEffect(() => {
-    dispatch(getPosts());
-  }, [dispatch]);
+    const getGroup = async () => {
+      try {
+        const res = await axiosInstance.get(`/group/${groupId}`);
+        console.log("Group:", res.data.group);
+        setGroup(res.data.group);
+      } catch (error) {
+        console.error("Error getting group:", error);
+      }
+    };
 
-  console.log("Posts:", posts);
+    getGroup();
+  }, [groupId]);
+
+  useEffect(() => {
+    dispatch(getGroupPosts(groupId));
+  }, [dispatch, groupId]);
 
   useEffect(() => {
     const getFriendRequests = async () => {
@@ -74,6 +87,9 @@ const Group = () => {
     getFriendRequests();
   }, []);
 
+  console.log('group', group);
+  console.log("Group posts:", groupPosts);
+
   useEffect(() => {
     dispatch(fetchFaculties());
   }, [dispatch]);
@@ -81,28 +97,24 @@ const Group = () => {
   const handleDeletePost = async (postId) => {
     try {
       const result = await Swal.fire({
-        title: "Bạn có chắc muốn xóa bài viết này?",
-        text: "Bài viết sẽ bị xóa vĩnh viên",
-        icon: "warning",
+        title: 'Bạn có chắc muốn xóa bài viết này?',
+        text: 'Bài viết sẽ bị xóa vĩnh viên',
+        icon: 'warning',
         showCancelButton: true,
-        confirmButtonColor: "#3085d6",
-        cancelButtonColor: "#d33",
-        confirmButtonText: "Xóa",
-        cancelButtonText: "Hủy",
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'Xóa',
+        cancelButtonText: 'Hủy',
       });
 
       if (result.isConfirmed) {
         await axiosInstance.delete(`/posts/${postId}`);
         dispatch(getPosts());
-        Swal.fire(
-          "Xóa thành công",
-          "Bạn đã xóa bài viết thành công!",
-          "success"
-        );
+        Swal.fire('Xóa thành công', 'Bạn đã xóa bài viết thành công!', 'success');
       }
     } catch (error) {
-      console.error("Error deleting post:", error);
-      Swal.fire("Xóa thất bại", "Có lỗi xảy ra, vui lòng thử lại", "error");
+      console.error('Error deleting post:', error);
+      Swal.fire('Xóa thất bại', 'Có lỗi xảy ra, vui lòng thử lại', 'error');
     }
   };
 
@@ -113,73 +125,65 @@ const Group = () => {
     const receiverIds = [post.user._id];
 
     try {
+
       const alreadyLiked = post.likedBy.includes(userId);
       await dispatch(likePost(postId));
-      const updatedPosts = posts.map((p) => {
-        if (p._id === postId) {
-          const hasLiked = p.likedBy.includes(userId);
 
-          return {
-            ...p,
-            likes: hasLiked ? p.likes - 1 : p.likes + 1,
-            likedBy: hasLiked
-              ? p.likedBy.filter((id) => id !== userId)
-              : [...p.likedBy, userId],
-          };
-        }
-        return p;
-      });
-      dispatch(updatePosts(updatedPosts));
+      const updatedPost = {
+        ...post, likedBy: alreadyLiked ? post.likedBy.filter(id => id !== userId)
+          : [...post.likedBy, userId], likes: alreadyLiked ? post.likes - 1 : post.likes + 1
+      };
+
+      dispatch(updatePost(updatedPost));
+
 
       if (!alreadyLiked && !receiverIds.includes(userId)) {
-        const response = await axiosInstance.post(
-          "/users/create-notification",
-          {
-            receiverIds,
-            sender: user._id,
-            message: `${senderName} đã thích bài viết của bạn`,
-            type: "like",
-            link: `/posts/${postId}`,
-          }
-        );
+        const response = await axiosInstance.post('/users/create-notification', {
+          receiverIds,
+          sender: user._id,
+          message: `${senderName} đã thích bài viết của bạn`,
+          type: 'like',
+          link: `/posts/${postId}`,
+        });
 
         if (response.status === 201) {
-          socket.emit("sendNotification", response.data.notification);
+          socket.emit('sendNotification', { notification: response.data.notification, receiverId: post.user._id });
         }
       }
     } catch (error) {
       console.log(error);
-      console.error("Error liking post:", error);
+      console.error('Error liking post:', error);
     }
   };
 
   const handleReportPost = async (post) => {
-    const socket = io("http://localhost:5000");
-    const postId = post._id;
     try {
-      await dispatch(reportPost(postId));
-      const updatedPosts = posts.map((p) => {
-        if (p._id === postId) {
-          const hasReported = p.reportedBy.includes(user._id);
-          return {
-            ...p,
-            reports: hasReported ? p.reports - 1 : p.reports + 1,
-            reportedBy: hasReported
-              ? p.reportedBy.filter((id) => id !== user._id)
-              : [...p.reportedBy, user._id],
-          };
-        }
-        return p;
-      });
-      dispatch(updatePosts(updatedPosts));
-      toast.success(
-        `Đã ${
-          post.reportedBy.includes(user._id) ? "bỏ" : ""
-        } báo cáo bài viết thành công!`
-      );
-      socket.emit("reportPost", { id: postId, reportedBy: user._id });
+      await dispatch(reportPost(post._id));
+      // const updatedPosts = posts.map((p) => {
+      //   if (p._id === postId) {
+      //     const hasReported = p.reportedBy.includes(user._id);
+      //     return {
+      //       ...p,
+      //       reports: hasReported ? p.reports - 1 : p.reports + 1,
+      //       reportedBy: hasReported
+      //         ? p.reportedBy.filter(id => id !== user._id)
+      //         : [...p.reportedBy, user._id],
+      //     }
+      //   }
+      //   return p;
+      // });
+      // dispatch(updatePosts(updatedPosts));
+      const updatedPost = {
+        ...post, reports: post.reportedBy.includes(user._id)
+          ? post.reports - 1
+          : post.reports + 1, reportedBy: post.reportedBy.includes(user._id)
+            ? post.reportedBy.filter(id => id !== user._id)
+            : [...post.reportedBy, user._id]
+      };
+      dispatch(updatePost(updatedPost));
+      toast.success(`Đã ${post.reportedBy.includes(user._id) ? 'bỏ' : ''} báo cáo bài viết thành công!`);
     } catch (error) {
-      console.error("Error reporting post:", error);
+      console.error('Error reporting post:', error);
     }
   };
 
@@ -199,7 +203,7 @@ const Group = () => {
   };
 
   const [isEditingDescription, setIsEditingDescription] = useState(false);
-  const [editedDescription, setEditedDescription] = useState(group.description);
+  const [editedDescription, setEditedDescription] = useState(group?.description);
   const textAreaRef = useRef(null); // Create a ref for the textarea
 
   const handleEditDescriptionClick = () => {
@@ -232,14 +236,14 @@ const Group = () => {
         {/* <TopBar friends={user?.friends} /> */}
         <div className="relative">
           <img
-            src={group.banner ? group.banner : "../src/assets/empty.jpg"}
+            src={group?.banner === '' ? "../src/assets/empty.jpg" : group?.banner}
             alt="Banner"
             className="w-full h-48 object-cover rounded-t-lg"
           />
           <div className="absolute top-0 left-0 w-full h-48 flex items-center justify-between bg-black bg-opacity-50 rounded-t-lg opacity-0 hover:opacity-100 transition-opacity duration-300">
             <div className="rounded-xl bg-gray">
               <span className="text-white font-bold text-lg px-4">
-                {group.name}
+                {group?.name}
               </span>
             </div>
             <input
@@ -250,7 +254,7 @@ const Group = () => {
               onChange={handleFileChange}
             />
             <div></div>
-            {user._id === group.adminId && (
+            {user._id === group?.owner._id && (
               <button
                 onClick={() => fileInputRef.current.click()}
                 className="bg-sky hover:bg-blue text-white font-bold py-2 px-4 rounded"
@@ -275,8 +279,8 @@ const Group = () => {
           <div className="flex flex-col flex-1 h-[90%] gap-6 px-4 overflow-y-auto rounded-lg">
             {loading ? (
               <Loading />
-            ) : Posts?.length > 0 ? (
-              Posts?.map((post) => (
+            ) : groupPosts?.length > 0 ? (
+              groupPosts?.map((post) => (
                 <PostCard
                   key={post?._id}
                   post={post}
@@ -288,29 +292,29 @@ const Group = () => {
               ))
             ) : (
               <div className="flex items-center justify-center w-full h-full">
-                <p className="text-lg text-ascent-2">No Post Available</p>
+                <p className="text-lg text-ascent-2">Nhóm chưa co bài viết nào</p>
               </div>
             )}
           </div>
 
           {/* RIGHT */}
           <div className="hidden w-1/4 h-[90%] lg:flex flex-col gap-3 overflow-y-auto">
-            {group.description && (
+            {group?.description && (
               <div className="flex-1 h-full px-5 py-5 overflow-y-auto rounded-lg shadow-sm bg-primary">
                 <div className="flex items-center justify-between text-lg text-ascent-1 border-b border-[#66666645]">
                   <span>Mô tả</span>
-                  {user._id === group.adminId && (
+                  {user._id === group?.owner._id && (
                     <>
                       {!isEditingDescription && (
-                      <CustomButton
-                        title={isEditingDescription ? "Lưu" : "Chỉnh sửa"}
-                        containerStyles="text-sm text-ascent-1 mb-2 px-4 md:px-6 py-1 md:py-2 border border-[#666] rounded-full"
-                        onClick={
-                          isEditingDescription
-                            ? handleSaveDescription
-                            : handleEditDescriptionClick
-                        }
-                      />
+                        <CustomButton
+                          title={isEditingDescription ? "Lưu" : "Chỉnh sửa"}
+                          containerStyles="text-sm text-ascent-1 mb-2 px-4 md:px-6 py-1 md:py-2 border border-[#666] rounded-full"
+                          onClick={
+                            isEditingDescription
+                              ? handleSaveDescription
+                              : handleEditDescriptionClick
+                          }
+                        />
                       )}
                       {isEditingDescription && (
                         <CustomButton
@@ -334,17 +338,17 @@ const Group = () => {
                             handleSaveDescription();
                           }
                         }}
-                        className="w-full p-2 rounded-md resize-none"
+                        className="w-full p-2 rounded-md resize-none bg-primary text-ascent-1"
                       />
                     </div>
                   ) : (
-                    <p>{group.description}</p>
+                    <p className='text-ascent-1'>{group?.description}</p>
                   )}
                 </div>
               </div>
             )}
             {/* Join requests */}
-            {user._id === group.adminId && (
+            {user._id === group?.owner._id && (
               <div className="flex-1 h-full px-5 py-5 overflow-y-auto rounded-lg shadow-sm bg-primary">
                 <div className="flex items-center justify-between text-lg text-ascent-1 border-b border-[#66666645]">
                   <span>Yêu cầu tham gia</span>
@@ -375,7 +379,7 @@ const Group = () => {
                       <div className="flex gap-1">
                         <button
                           className="bg-[#0444a430] text-sm text-white p-1 rounded"
-                          onClick={() => {}}
+                          onClick={() => { }}
                         >
                           <SiVerizon size={20} className="text-[#0f52b6]" />
                         </button>
@@ -414,11 +418,11 @@ const Group = () => {
                       </div>
                     </Link>
 
-                    {user._id === group.adminId && (
+                    {user._id === group?.owner._id && (
                       <div className="flex gap-1">
                         <button
                           className="bg-[#0444a430] text-sm text-white p-1 rounded"
-                          onClick={() => {}}
+                          onClick={() => { }}
                         >
                           <FaDeleteLeft size={20} className="text-[#0f52b6]" />
                         </button>

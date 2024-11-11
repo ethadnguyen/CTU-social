@@ -11,7 +11,6 @@ import {
   TopBar,
 } from "../components";
 import { suggest, requests } from "../assets/data";
-import { Posts, Users } from "../assets/home";
 import { groups } from "../assets/groups";
 import {
   Link,
@@ -29,17 +28,18 @@ import {
   getPosts,
   likePost,
   reportPost,
-  updatePosts,
+  updatePost,
 } from "../redux/postSlice";
-import { FaFile } from "react-icons/fa6";
-import io from "socket.io-client";
 import { toast } from "react-toastify";
-import { updateUser } from "../redux/userSlice";
+import { getUsersByQuery, updateUser } from "../redux/userSlice";
 import { fetchFaculties } from "../redux/facultySlice";
+import Swal from "sweetalert2";
+import socket from '../api/socket';
 
 const Search = () => {
-  const { user, edit } = useSelector((state) => state.user);
+  const { user, users, edit } = useSelector((state) => state.user);
   const { faculties } = useSelector((state) => state.faculty);
+  const posts = useSelector((state) => state.posts.posts);
   const [friendRequest, setFriendRequest] = useState([]);
   const [suggestedFriends, setSuggestedFriends] = useState(suggest);
   const [errMsg, setErrMsg] = useState("");
@@ -47,11 +47,17 @@ const Search = () => {
   const [images, setImages] = useState([]);
   const [posting, setPosting] = useState(false);
   const [loading, setLoading] = useState(false);
-  const { searchQuery } = useParams();
 
-  const posts = useSelector((state) => state.posts.posts);
 
   const dispatch = useDispatch();
+  const location = useLocation();
+
+  const getQueryParams = () => {
+    const searchParams = new URLSearchParams(location.search);
+    return searchParams.get("search");
+  }
+
+  const searchQuery = getQueryParams();
 
   const {
     register,
@@ -61,14 +67,9 @@ const Search = () => {
   } = useForm();
 
   useEffect(() => {
-    dispatch(getPosts());
-  }, [dispatch]);
-
-  useEffect(() => {
-    //joinUser socket
-    const socket = io("http://localhost:5000");
-    socket.emit("joinUser", user);
-  }, [user]);
+    dispatch(getPosts(searchQuery));
+    dispatch(getUsersByQuery(searchQuery));
+  }, [dispatch, searchQuery]);
 
   useEffect(() => {
     const getFriendRequests = async () => {
@@ -100,71 +101,80 @@ const Search = () => {
 
   const handleDeletePost = async (postId) => {
     try {
-      await axiosInstance.delete(`/posts/${postId}`);
-      dispatch(getPosts());
-      toast.success("Đã xóa bài viết thành công!");
+      const result = await Swal.fire({
+        title: 'Bạn có chắc muốn xóa bài viết này?',
+        text: 'Bài viết sẽ bị xóa vĩnh viên',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'Xóa',
+        cancelButtonText: 'Hủy',
+      });
+
+      if (result.isConfirmed) {
+        await axiosInstance.delete(`/posts/${postId}`);
+        dispatch(getPosts());
+        Swal.fire('Xóa thành công', 'Bạn đã xóa bài viết thành công!', 'success');
+      }
     } catch (error) {
-      console.error("Error deleting post:", error);
+      console.error('Error deleting post:', error);
+      Swal.fire('Xóa thất bại', 'Có lỗi xảy ra, vui lòng thử lại', 'error');
     }
   };
 
   const handleLikePost = async (post) => {
     const postId = post._id;
     const userId = user._id;
-    const socket = io("http://localhost:5000");
+    const senderName = `${user.firstName} ${user.lastName}`;
+    const receiverIds = [post.user._id];
 
     try {
+
+      const alreadyLiked = post.likedBy.includes(userId);
       await dispatch(likePost(postId));
 
-      const updatedPosts = posts.map((p) => {
-        if (p._id === postId) {
-          // Kiểm tra xem user đã like bài viết hay chưa
-          const hasLiked = p.likedBy.includes(userId);
+      const updatedPost = {
+        ...post, likedBy: alreadyLiked ? post.likedBy.filter(id => id !== userId)
+          : [...post.likedBy, userId], likes: alreadyLiked ? post.likes - 1 : post.likes + 1
+      };
 
-          return {
-            ...p,
-            likes: hasLiked ? p.likes - 1 : p.likes + 1, // Tăng hoặc giảm số lượng like
-            likedBy: hasLiked
-              ? p.likedBy.filter((id) => id !== userId) // Bỏ userId nếu đã like
-              : [...p.likedBy, userId], // Thêm userId nếu chưa like
-          };
+      dispatch(updatePost(updatedPost));
+
+
+      if (!alreadyLiked && !receiverIds.includes(userId)) {
+        const response = await axiosInstance.post('/users/create-notification', {
+          receiverIds,
+          sender: user._id,
+          message: `${senderName} đã thích bài viết của bạn`,
+          type: 'like',
+          link: `/posts/${postId}`,
+        });
+
+        if (response.status === 201) {
+          socket.emit('sendNotification', { notification: response.data.notification, receiverId: post.user._id });
         }
-        return p;
-      });
-      dispatch(updatePosts(updatedPosts));
-      socket.emit("likePost", { userId, postId });
+      }
     } catch (error) {
-      console.error("Error liking post:", error);
+      console.log(error);
+      console.error('Error liking post:', error);
     }
   };
 
   const handleReportPost = async (post) => {
-    const socket = io("http://localhost:5000");
-    const postId = post._id;
     try {
-      await dispatch(reportPost(postId));
-      const updatedPosts = posts.map((p) => {
-        if (p._id === postId) {
-          const hasReported = p.reportedBy.includes(user._id);
-          return {
-            ...p,
-            reports: hasReported ? p.reports - 1 : p.reports + 1,
-            reportedBy: hasReported
-              ? p.reportedBy.filter((id) => id !== user._id)
-              : [...p.reportedBy, user._id],
-          };
-        }
-        return p;
-      });
-      dispatch(updatePosts(updatedPosts));
-      toast.success(
-        `Đã ${
-          post.reportedBy.includes(user._id) ? "bỏ" : ""
-        } báo cáo bài viết thành công!`
-      );
-      socket.emit("reportPost", { id: postId, reportedBy: user._id });
+      await dispatch(reportPost(post._id));
+      const updatedPost = {
+        ...post, reports: post.reportedBy.includes(user._id)
+          ? post.reports - 1
+          : post.reports + 1, reportedBy: post.reportedBy.includes(user._id)
+            ? post.reportedBy.filter(id => id !== user._id)
+            : [...post.reportedBy, user._id]
+      };
+      dispatch(updatePost(updatedPost));
+      toast.success(`Đã ${post.reportedBy.includes(user._id) ? 'bỏ' : ''} báo cáo bài viết thành công!`);
     } catch (error) {
-      console.error("Error reporting post:", error);
+      console.error('Error reporting post:', error);
     }
   };
 
@@ -200,14 +210,12 @@ const Search = () => {
   };
 
   const [showUsers, setShowUsers] = useState(false);
-  const [showPosts, setshowPosts] = useState(true);
-  const [showGroups, setshowGroups] = useState(false);
+  const [showPosts, setShowPosts] = useState(true);
+  const [showGroups, setShowGroups] = useState(false);
 
   return (
     <>
       <div className="w-full h-screen px-0 pb-20 overflow-hidden lg:px-10 2xl:px-40 bg-bgColor lg:rounded-lg">
-        {/* <TopBar friends={user?.friends} searchQuery={searchQuery} /> */}
-
         <div className="flex w-full h-full gap-2 pt-5 pb-10 lg:gap-4">
           {/* LEFT */}
           <div className="flex-col hidden w-1/3 h-full gap-3 overflow-y-auto lg:w-1/4 md:flex">
@@ -219,48 +227,45 @@ const Search = () => {
           <div className="flex flex-col flex-1 h-full gap-6 px-4 overflow-y-auto rounded-lg">
             <div className="flex justify-between h-fix shadow-sm rounded-xl text-ascent-1">
               <div
-                className={`flex justify-center w-1/2 h-full mb-2 border rounded-xl bg-primary ${
-                  showPosts ? "bg-sky" : ""
-                }`}
+                className={`flex justify-center w-1/2 h-full mb-2 border rounded-xl bg-primary ${showPosts ? "bg-sky" : ""
+                  }`}
               >
                 <button
                   className="w-full"
                   onClick={() => {
                     setShowUsers(false);
-                    setshowPosts(true);
-                    setshowGroups(false);
+                    setShowPosts(true);
+                    setShowGroups(false);
                   }}
                 >
                   Bài đăng
                 </button>
               </div>
               <div
-                className={`flex justify-center w-1/2 h-full mb-2 border rounded-xl bg-primary ${
-                  showUsers ? "bg-sky" : ""
-                }`}
+                className={`flex justify-center w-1/2 h-full mb-2 border rounded-xl bg-primary ${showUsers ? "bg-sky" : ""
+                  }`}
               >
                 <button
                   className="w-full"
                   onClick={() => {
                     setShowUsers(true);
-                    setshowPosts(false);
-                    setshowGroups(false);
+                    setShowPosts(false);
+                    setShowGroups(false);
                   }}
                 >
                   Người dùng
                 </button>
               </div>
               <div
-                className={`flex justify-center w-1/2 h-full mb-2 border rounded-xl bg-primary ${
-                  showGroups ? "bg-sky" : ""
-                }`}
+                className={`flex justify-center w-1/2 h-full mb-2 border rounded-xl bg-primary ${showGroups ? "bg-sky" : ""
+                  }`}
               >
                 <button
                   className="w-full"
                   onClick={() => {
                     setShowUsers(false);
-                    setshowPosts(false);
-                    setshowGroups(true);
+                    setShowPosts(false);
+                    setShowGroups(true);
                   }}
                 >
                   Nhóm
@@ -268,93 +273,93 @@ const Search = () => {
               </div>
             </div>
 
-            {showPosts && Posts?.length > 0
-              ? Posts?.map((post) => (
-                  <PostCard
-                    post={post}
-                    key={post?._id}
-                    user={user}
-                    deletePost={handleDeletePost}
-                    likePost={handleLikePost}
-                    reportPost={handleReportPost}
-                  />
-                ))
+            {showPosts && posts?.length > 0
+              ? posts?.map((post) => (
+                <PostCard
+                  post={post}
+                  key={post?._id}
+                  user={user}
+                  deletePost={handleDeletePost}
+                  likePost={handleLikePost}
+                  reportPost={handleReportPost}
+                />
+              ))
               : showPosts && (
-                  <div className="flex items-center justify-center w-full h-full">
-                    <p className="text-lg text-ascent-2">
-                      Không có bài viết nào
-                    </p>
-                  </div>
-                )}
+                <div className="flex items-center justify-center w-full h-full">
+                  <p className="text-lg text-ascent-2">
+                    Không có bài viết nào
+                  </p>
+                </div>
+              )}
 
-            {showUsers && Users?.length > 0
-              ? Users?.map((user) => (
-                  <div className="rounded-md flex flex-col bg-primary py-3 px-3">
-                    <Link to={"/profile/" + user?.id} className="flex gap-2">
-                      <img
-                        src={user?.avatar ?? NoProfile}
-                        alt={user?.email}
-                        className="object-cover rounded-full w-14 h-14"
-                      />
+            {showUsers && users?.length > 0
+              ? users?.map((user) => (
+                <div key={user._id} className="rounded-md flex flex-col bg-primary py-3 px-3">
+                  <Link to={"/profile/" + user?._id} className="flex gap-2">
+                    <img
+                      src={user?.avatar ?? NoProfile}
+                      alt={user?.email}
+                      className="object-cover rounded-full w-14 h-14"
+                    />
 
-                      <div className="flex flex-col justify-center">
-                        <p className="text-lg font-medium text-ascent-1">
-                          {user?.lastName} {user?.firstName}
+                    <div className="flex flex-col justify-center">
+                      <p className="text-lg font-medium text-ascent-1">
+                        {user?.lastName} {user?.firstName}
+                      </p>
+                      <p className="text-base text-ascent-2">
+                        {user?.faculty?.name} - {user?.major?.majorName}
+                      </p>
+                    </div>
+                  </Link>
+                </div>
+              ))
+              : showUsers && (
+                <div className="flex items-center justify-center w-full h-full">
+                  <p className="text-lg text-ascent-2">
+                    Không có người dùng nào
+                  </p>
+                </div>
+              )}
+
+            {showGroups && groups?.length > 0
+              ? groups?.map((group) => (
+                <div
+                  className="rounded-md flex flex-col bg-primary py-3 px-3"
+                  key={group.id}
+                >
+                  <div className="relative">
+                    <img
+                      src={group?.banner ?? '../src/assets/empty.jpg'}
+                      alt={group?.name}
+                      className="object-cover rounded-md w-full h-20"
+                    />
+                    <Link
+                      to={"/group/" + group?.id}
+                      className="flex absolute h-20 w-full top-0"
+                    >
+                      <div className="flex-grow flex flex-col justify-center bg-secondary bg-opacity-70 hover:opacity-0 transition-opacity duration-300">
+                        <p className="ml-1 text-lg font-medium text-ascent-1">
+                          {group?.name}
                         </p>
-                        <p className="text-base text-ascent-2">
-                          {user?.faculty} - {user?.major}
+                        <p className="ml-1 text-base text-ascent-2">
+                          {group?.description
+                            ?.split(" ")
+                            .slice(0, 30)
+                            .join(" ") +
+                            (group?.description?.split(" ").length > 30
+                              ? "..."
+                              : "")}
                         </p>
                       </div>
                     </Link>
                   </div>
-                ))
-              : showUsers && (
-                  <div className="flex items-center justify-center w-full h-full">
-                    <p className="text-lg text-ascent-2">
-                      Không có người dùng nào
-                    </p>
-                  </div>
-                )}
-
-            {showGroups && groups?.length > 0
-              ? groups?.map((group) => (
-                  <div
-                    className="rounded-md flex flex-col bg-primary py-3 px-3"
-                    key={group.id}
-                  >
-                    <div className="relative">
-                      <img
-                        src={group?.banner ?? '../src/assets/empty.jpg'}
-                        alt={group?.name}
-                        className="object-cover rounded-md w-full h-20"
-                      />
-                      <Link
-                        to={"/group/" + group?.id}
-                        className="flex absolute h-20 w-full top-0"
-                      >
-                        <div className="flex-grow flex flex-col justify-center bg-secondary bg-opacity-70 hover:opacity-0 transition-opacity duration-300">
-                          <p className="ml-1 text-lg font-medium text-ascent-1">
-                            {group?.name}
-                          </p>
-                          <p className="ml-1 text-base text-ascent-2">
-                            {group?.description
-                              ?.split(" ")
-                              .slice(0, 30)
-                              .join(" ") +
-                              (group?.description?.split(" ").length > 30
-                                ? "..."
-                                : "")}
-                          </p>
-                        </div>
-                      </Link>
-                    </div>
-                  </div>
-                ))
+                </div>
+              ))
               : showGroups && (
-                  <div className="flex items-center justify-center w-full h-full">
-                    <p className="text-lg text-ascent-2">Không có nhóm nào</p>
-                  </div>
-                )}
+                <div className="flex items-center justify-center w-full h-full">
+                  <p className="text-lg text-ascent-2">Không có nhóm nào</p>
+                </div>
+              )}
           </div>
 
           {/* RIGHT */}
@@ -484,7 +489,7 @@ const Search = () => {
                     <div className="flex gap-1">
                       <button
                         className="bg-[#0444a430] text-sm text-white p-1 rounded"
-                        onClick={() => {}}
+                        onClick={() => { }}
                       >
                         <BsPersonFillAdd size={20} className="text-[#0f52b6]" />
                       </button>

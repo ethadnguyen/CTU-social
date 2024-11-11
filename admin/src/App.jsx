@@ -1,6 +1,7 @@
 import { Outlet, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { Home, Login, Register, ResetPassword, Messages, Notifications } from "./pages";
+import useSocket from './hooks/useSocket';
 
 function Layout() {
   // const { user } = useSelector((state) => state.user);
@@ -17,6 +18,7 @@ function Layout() {
 function App() {
   const { theme } = useSelector((state) => state.theme);
 
+  useSocket();
   return (
     <div data-theme={theme} className='w-full min-h-[100vh]'>
       <Routes>

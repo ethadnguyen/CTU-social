@@ -9,7 +9,7 @@ const useSocket = () => {
         if (user) {
             connectSocket();
             if (!socket.hasJoined) {
-                socket.emit("joinUser", user);
+                socket.emit("joinAdmin", user);
                 socket.hasJoined = true;
             }
 

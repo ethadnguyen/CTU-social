@@ -6,6 +6,8 @@ const FriendRequest = require('../models/friendRequest.model');
 const PasswordReset = require('../models/PasswordReset.model');
 const GroupRequest = require('../models/groupRequest.model');
 const Notification = require('../models/notification.model');
+const tagModel = require('../models/tag.model');
+const userModel = require('../models/user.model');
 // const Fuse = require('fuse.js');
 
 const verifyEmail = async (req, res) => {
@@ -175,6 +177,12 @@ const getUser = async (req, res, next) => {
             .populate({
                 path: 'major',
                 select: 'majorName academicYear',
+            })
+            .populate({
+                path: 'notifications'
+            })
+            .populate({
+                path: 'groups',
             });
 
         if (!user) {
@@ -196,6 +204,53 @@ const getUser = async (req, res, next) => {
             status: 'FAILED',
             error: error.message
         });
+    }
+};
+
+const getUsersByQuery = async (req, res) => {
+    const { search } = req.query;
+    try {
+
+        if (!search) {
+            return res.status(200).json({ status: 'SUCCESS', users: [] });
+        }
+
+        const users = await userModel.find({
+            $or: [
+                { firstName: { $regex: search, $options: 'i' } },
+                { lastName: { $regex: search, $options: 'i' } },
+                { student_id: { $regex: search, $options: 'i' } },
+                {
+                    $expr: {
+                        $regexMatch: {
+                            input: { $concat: ["$firstName", " ", "$lastName"] },
+                            regex: search,
+                            options: "i"
+                        }
+                    }
+                },
+                {
+                    $expr: {
+                        $regexMatch: {
+                            input: { $concat: ["$lastName", " ", "$firstName"] },
+                            regex: search,
+                            options: "i"
+                        }
+                    }
+                }
+            ]
+        })
+            .populate({ path: 'faculty', select: 'name' })
+            .populate({ path: 'major', select: 'majorName academicYear' })
+            .populate({ path: 'friends', select: '-password' })
+            .populate({ path: 'notifications' })
+            .populate({ path: 'groups' });
+
+        res.status(200).json({ status: 'SUCCESS', users });
+
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({ message: error.message });
     }
 };
 
@@ -250,6 +305,9 @@ const updateUser = async (req, res, next) => {
             })
             .populate({
                 path: 'notifications'
+            })
+            .populate({
+                path: 'groups',
             });
 
         // Handle case where the user does not exist
@@ -346,14 +404,17 @@ const createGroupRequest = async (req, res) => {
                 });
             }
         }
+        const user = await userModel.findById(userId);
 
-        const newGroupRequest = new GroupRequest({ userId, name, description });
+        const newGroupRequest = new GroupRequest({ user, name, description });
 
         await newGroupRequest.save();
 
+        const populatedRequest = await GroupRequest.findById(newGroupRequest._id).populate('user', '-password');
+
         res.status(201).json({
             message: 'Yêu cầu mở nhóm đã được gửi thành công',
-            groupRequest: newGroupRequest
+            groupRequest: populatedRequest,
         });
     } catch (error) {
         console.log(error);
@@ -815,6 +876,118 @@ const markAsRead = async (req, res) => {
     }
 };
 
+const createTag = async (req, res) => {
+    const { userId } = req.body.user;
+    const { name } = req.body;
+    try {
+
+        const tag = new tagModel({ name });
+        await tag.save();
+
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({ status: 'FAILED', message: 'Người dùng không tồn tại' });
+        }
+        user.tags.push(tag);
+        await user.save();
+        res.status(200).json({ status: 'SUCCESS', message: 'Tạo thẻ thành công', user, tag });
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({ message: error.message });
+    }
+};
+
+const getTags = async (req, res) => {
+    const { userId } = req.params;
+    try {
+        const user = await User.findById(userId).populate('tags');
+        if (!user) {
+            return res.status(404).json({ status: 'FAILED', message: 'Người dùng không tồn tại' });
+        }
+        res.status(200).json({ status: 'SUCCESS', tags: user.tags });
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({ message: error.message });
+    }
+};
+
+const deleteTag = async (req, res) => {
+    const { userId } = req.body.user;
+    const { tagId } = req.params;
+    try {
+        const user = await User.findById(userId).populate('tags');
+        if (!user) {
+            return res.status(404).json({ status: 'FAILED', message: 'Người dùng không tồn tại' });
+        }
+
+        const tag = await tagModel.findById(tagId);
+        if (!tag) {
+            return res.status(404).json({ status: 'FAILED', message: 'Thẻ không tồn tại' });
+        }
+
+        const index = user.tags.indexOf(tagId);
+        user.tags.splice(index, 1);
+        await user.save();
+        await tagModel.findByIdAndDelete(tagId);
+        res.status(200).json({ status: 'SUCCESS', message: 'Xóa thẻ thành công', user });
+
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({ message: error.message });
+    }
+};
+
+const uploadFileToTag = async (req, res) => {
+    const { tagId } = req.params;
+
+    try {
+        const tag = await tagModel.findById(tagId);
+        if (!tag) {
+            return res.status(404).json({ status: 'FAILED', message: 'Thẻ không tồn tại' });
+        }
+
+        const uploadedFiles = req.files.map((file) => ({
+            id: Math.floor(Math.random() * 1000),
+            name: file.originalname,
+            url: file.path,
+            uploadedAt: new Date(),
+        }));
+
+        tag.files.push(...uploadedFiles);
+
+        await tag.save();
+
+        res.status(200).json({ status: 'SUCCESS', message: 'Tải lên tệp thành công', tag, files: uploadedFiles });
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({ message: error.message });
+    }
+};
+
+const deleteFileFromTag = async (req, res) => {
+    const { tagId, fileId } = req.params;
+
+    try {
+        const tag = await tagModel.findById(tagId);
+        if (!tag) {
+            return res.status(404).json({ status: 'FAILED', message: 'Thẻ không tồn tại' });
+        }
+
+        const fileIndex = tag.files.findIndex((file) => file.id === fileId);
+        if (fileIndex === -1) {
+            return res.status(404).json({ status: 'FAILED', message: 'Tệp không tồn tại' });
+        }
+
+        tag.files.splice(fileIndex, 1);
+        await tag.save();
+
+        res.status(200).json({ status: 'SUCCESS', message: 'Xóa tệp thành công', tag });
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({ message: error.message });
+    }
+};
+
 
 module.exports = {
     verifyEmail,
@@ -822,6 +995,7 @@ module.exports = {
     resetPassword,
     changePassword,
     getUser,
+    getUsersByQuery,
     updateUser,
     friendRequest,
     createGroupRequest,
@@ -838,5 +1012,10 @@ module.exports = {
     getNotifications,
     createNotification,
     markAsAllRead,
-    markAsRead
+    markAsRead,
+    createTag,
+    getTags,
+    deleteTag,
+    uploadFileToTag,
+    deleteFileFromTag
 };

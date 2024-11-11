@@ -1,8 +1,9 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import axiosInstance from '../api/axiosConfig';
 
-export const getPosts = createAsyncThunk('post/getPosts', async () => {
-  const response = await axiosInstance.get('/posts');
+export const getPosts = createAsyncThunk('post/getPosts', async (searchQuery) => {
+  const query = searchQuery ? `?search=${searchQuery}` : '';
+  const response = await axiosInstance.get(`/posts${query}`);
   return response.data.posts;
 });
 
@@ -14,6 +15,11 @@ export const getUserPosts = createAsyncThunk('post/getUserPosts', async (userId)
 export const getSavedPosts = createAsyncThunk('post/getSavedPosts', async (userId) => {
   const response = await axiosInstance.get(`/posts/saved/${userId}`);
   return response.data.savedPosts;
+});
+
+export const getGroupPosts = createAsyncThunk('post/getGroupPosts', async (groupId) => {
+  const response = await axiosInstance.get(`/group/${groupId}/posts`);
+  return response.data.posts;
 });
 
 export const likePost = createAsyncThunk('post/likePost', async (postId) => {
@@ -40,6 +46,7 @@ const initialState = {
   posts: [],
   userPosts: [],
   savedPosts: [],
+  groupPosts: [],
   status: 'idle',
   error: null
 };
@@ -92,6 +99,18 @@ const postSlice = createSlice({
         state.savedPosts = action.payload;
       })
       .addCase(getSavedPosts.rejected, (state, action) => {
+        state.status = 'failed';
+        state.error = action.error.message;
+      })
+      // group posts
+      .addCase(getGroupPosts.pending, (state) => {
+        state.status = 'loading';
+      })
+      .addCase(getGroupPosts.fulfilled, (state, action) => {
+        state.status = 'succeeded';
+        state.groupPosts = action.payload;
+      })
+      .addCase(getGroupPosts.rejected, (state, action) => {
         state.status = 'failed';
         state.error = action.error.message;
       })

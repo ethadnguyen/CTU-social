@@ -209,26 +209,31 @@ const Home = () => {
   };
 
   const handleReportPost = async (post) => {
-    const socket = io('http://localhost:5000');
-    const postId = post._id;
     try {
-      await dispatch(reportPost(postId));
-      const updatedPosts = posts.map((p) => {
-        if (p._id === postId) {
-          const hasReported = p.reportedBy.includes(user._id);
-          return {
-            ...p,
-            reports: hasReported ? p.reports - 1 : p.reports + 1,
-            reportedBy: hasReported
-              ? p.reportedBy.filter(id => id !== user._id)
-              : [...p.reportedBy, user._id],
-          }
-        }
-        return p;
-      });
-      dispatch(updatePosts(updatedPosts));
+      await dispatch(reportPost(post._id));
+      // const updatedPosts = posts.map((p) => {
+      //   if (p._id === postId) {
+      //     const hasReported = p.reportedBy.includes(user._id);
+      //     return {
+      //       ...p,
+      //       reports: hasReported ? p.reports - 1 : p.reports + 1,
+      //       reportedBy: hasReported
+      //         ? p.reportedBy.filter(id => id !== user._id)
+      //         : [...p.reportedBy, user._id],
+      //     }
+      //   }
+      //   return p;
+      // });
+      // dispatch(updatePosts(updatedPosts));
+      const updatedPost = {
+        ...post, reports: post.reportedBy.includes(user._id)
+          ? post.reports - 1
+          : post.reports + 1, reportedBy: post.reportedBy.includes(user._id)
+            ? post.reportedBy.filter(id => id !== user._id)
+            : [...post.reportedBy, user._id]
+      };
+      dispatch(updatePost(updatedPost));
       toast.success(`Đã ${post.reportedBy.includes(user._id) ? 'bỏ' : ''} báo cáo bài viết thành công!`);
-      socket.emit('reportPost', { id: postId, reportedBy: user._id });
     } catch (error) {
       console.error('Error reporting post:', error);
     }
@@ -376,7 +381,7 @@ const Home = () => {
                     accept='.jpg, .png, .jpeg'
                   />
                   <BiImages />
-                  <span>Image</span>
+                  <span>Hình ảnh</span>
                 </label>
 
                 <label
@@ -397,7 +402,7 @@ const Home = () => {
                     accept='*'
                   />
                   <CiFileOn />
-                  <span>File</span>
+                  <span>Tệp</span>
                 </label>
 
                 <label>
@@ -407,9 +412,9 @@ const Home = () => {
                     onChange={handleScopeChange}
                     className={`bg-secondary border-[#66666690] mb-2 outline-none text-sm text-ascent-2 placeholder:text-[#666] w-full border rounded-md py-2 px-3 mt-1`}
                   >
-                    <option value="Private">Private</option>
-                    <option value="Public">Public</option>
-                    <option value="Groups">Groups</option>
+                    <option value="Private">Cá nhân</option>
+                    <option value="Public">Công khai</option>
+                    <option value="Groups">Nhóm</option>
                   </select>
                 </label>
 
@@ -419,7 +424,7 @@ const Home = () => {
                   ) : (
                     <CustomButton
                       type='submit'
-                      title='Post'
+                      title='Đăng bài'
                       containerStyles='bg-blue hover:bg-sky text-white py-1 px-6 rounded-full font-semibold text-sm'
                     />
                   )}
