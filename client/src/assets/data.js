@@ -8,6 +8,7 @@ export const user = {
   faculty: "CNTT&TT",
   facultyId: "1",
   majorId: "1",
+  courseId: "8",
   facebook: "https://www.facebook.com",
   linkedin: "https://www.linkedin.com/",
   github: "https://github.com/Neal005",

@@ -33,7 +33,6 @@ const EditProfile = () => {
   });
 
   const onSubmit = async (data) => {
-    // In ra thông tin người dùng khi submit
     console.log("Thông tin người dùng:", {
       ...data,
       gender: selectedGender,
@@ -58,6 +57,7 @@ const EditProfile = () => {
       formData.append("github", data.github); // Thêm URL Github
       formData.append("faculty", selectedFaculty); // Thêm khoa
       formData.append("major", selectedMajor); // Thêm ngành
+      formData.append("course", selectedCourse); // Thêm khóa học
       formData.append("isProfileHidden", isProfileHidden); // Thêm trạng thái ẩn hồ sơ
 
       if (picture) {
@@ -117,30 +117,48 @@ const EditProfile = () => {
   const [availableMajors, setAvailableMajors] = useState([]);
 
   useEffect(() => {
-    console.log("faculty: ",selectedFacultyId);
-    console.log("major: ",selectedMajorId);
+    console.log("faculty: ", selectedFacultyId);
+    console.log("major: ", selectedMajorId);
     const selectedFaculty = faculties.find(
       (faculty) => faculty.id === selectedFacultyId
     );
-    
+
     if (selectedFaculty) {
       setAvailableMajors(selectedFaculty.majors);
-      console.log("Major",availableMajors)
+      console.log("Major", availableMajors);
     } else {
       setAvailableMajors([]);
     }
   }, [user, selectedFacultyId]);
 
-  // Xử lý khi chọn khoa
   const handleFacultyChange = (event) => {
     setSelectedFacultyId(parseInt(event.target.value, 10));
-    setSelectedMajorId(""); // Reset ngành đã chọn khi chọn khoa mới
+    setSelectedMajorId("");
   };
 
-  // Xử lý khi chọn ngành
   const handleMajorChange = (event) => {
     setSelectedMajorId(parseInt(event.target.value, 10));
   };
+
+  const [selectedCourseId, setSelectedCourseId] = useState(
+    user?.courseId || ""
+  );
+  const [availableCourses, setAvailableCourses] = useState([]);
+
+  const handleCourseChange = (event) => {
+    setSelectedCourseId(parseInt(event.target.value, 10));
+  };
+
+  useEffect(() => {
+    const selectedMajor = availableMajors.find(
+      (major) => major.id === selectedMajorId
+    );
+    if (selectedMajor) {
+      setAvailableCourses(selectedMajor.courses);
+    } else {
+      setAvailableCourses([]);
+    }
+  }, [selectedMajorId, availableMajors]);
 
   return (
     <>
@@ -333,6 +351,30 @@ const EditProfile = () => {
                   {availableMajors.map((major) => (
                     <option key={major.id} value={major.id}>
                       {major.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label>
+                <span
+                  className={`font-bold text-ascent-2 text-sm mb-2 ${
+                    theme === "dark" ? "text-gray" : "text-black"
+                  }`}
+                >
+                  Khóa học
+                </span>
+                <select
+                  id="course"
+                  value={selectedCourseId}
+                  onChange={handleCourseChange}
+                  className={`bg-secondary border-[#66666690] mb-2 outline-none text-sm text-ascent-2 placeholder:text-[#666] w-full border rounded-md py-2 px-3 mt-1`}
+                  disabled={!selectedMajorId}
+                >
+                  <option value="">Chọn khóa học</option>
+                  {availableCourses.map((course) => (
+                    <option key={course.id} value={course.id}>
+                      {course.name}
                     </option>
                   ))}
                 </select>

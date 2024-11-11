@@ -11,6 +11,7 @@ import {
   TopBar,
 } from "../components";
 import { suggest, requests } from "../assets/data";
+import { Posts } from "../assets/home";
 import { groups } from "../assets/groups";
 import { Link, useLocation, ScrollRestoration } from "react-router-dom";
 import { NoProfile } from "../assets";
@@ -462,12 +463,6 @@ const Home = () => {
                   </select>
                 </label>
 
-                {selectedScope === "Groups" && (
-                  <button onClick={() => setChoosingGroup(true)} className="bg-gray text-white hover:text-gray hover:bg-primary rounded-md py-1 px-1">
-                    Nhóm
-                  </button>
-                )}
-
                 <div>
                   {posting ? (
                     <Loading />
@@ -480,12 +475,60 @@ const Home = () => {
                   )}
                 </div>
               </div>
+              <div className="flex w-full mb-2 items-center">
+                {/* Container for button and group name */}
+                {selectedScope === "Groups" && (
+                  <button
+                    onClick={() => setChoosingGroup(true)}
+                    className="bg-gray text-white hover:text-gray hover:bg-primary rounded-md px-1"
+                    type="button"
+                  >
+                    Chọn nhóm
+                  </button>
+                )}
+                {selectedScope === "Groups" && (
+                  <div className="rounded-md flex flex-col w-full bg-primary py-3 px-3 mb-2 hover:bg-gray-100">
+                    {selectedGroup ? ( // Display selected group if available
+                      <div className="rounded-md flex flex-col bg-primary py-3 px-3">
+                        <div className="relative">
+                          <img
+                            src={
+                              selectedGroup?.banner ?? "../src/assets/empty.jpg"
+                            }
+                            alt={selectedGroup?.name}
+                            className="object-cover rounded-md w-full h-20"
+                          />
+                          <div className="flex absolute h-20 w-full top-0">
+                            <div className="flex-grow flex flex-col justify-center bg-secondary bg-opacity-70 hover:opacity-0 transition-opacity duration-300">
+                              <p className="ml-1 text-lg font-medium text-ascent-1">
+                                {selectedGroup?.name}
+                              </p>
+                              <p className="ml-1 text-base text-ascent-2">
+                                {selectedGroup?.description
+                                  ?.split(" ")
+                                  .slice(0, 30)
+                                  .join(" ") +
+                                  (selectedGroup?.description?.split(" ")
+                                    .length > 30
+                                    ? "..."
+                                    : "")}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-red">Bạn chưa chọn nhóm!</p>
+                    )}
+                  </div>
+                )}
+              </div>
             </form>
 
             {loading ? (
               <Loading />
-            ) : posts?.length > 0 ? (
-              posts?.map((post) => (
+            ) : Posts?.length > 0 ? (
+              Posts?.map((post) => (
                 <PostCard
                   key={post?._id}
                   post={post}
@@ -668,13 +711,15 @@ const Home = () => {
               aria-modal="true"
               aria-labelledby="modal-headline"
             >
-              <div className="px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-                <h3
-                  className="text-lg leading-6 font-medium text-gray-900"
-                  id="modal-headline"
-                >
-                  Chọn Nhóm
-                </h3>
+              <div className="px-4 pt-5 pb-4 sm:p-6 sm:pb-4 h-[35rem] overflow-y-auto">
+                <div className="border-b border-[#66666645]">
+                  <h3
+                    className="text-lg leading-6 font-medium text-ascent-1 mb-3"
+                    id="modal-headline"
+                  >
+                    Chọn Nhóm
+                  </h3>
+                </div>
 
                 {groups?.length > 0 ? (
                   <div className="mt-4">
