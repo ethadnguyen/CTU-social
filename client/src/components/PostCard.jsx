@@ -10,7 +10,7 @@ import { useForm } from "react-hook-form";
 import CustomButton from "./CustomButton";
 import { useDispatch, useSelector } from "react-redux";
 import { ImageDetail } from ".";
-import { savePost, updatePost } from "../redux/postSlice";
+import { savePost, sharePost, updatePost } from "../redux/postSlice";
 import TextInput from "./TextInput";
 import Loading from "./Loading";
 import Modal from "react-modal";
@@ -18,6 +18,7 @@ import moment from "moment";
 import Swal from "sweetalert2";
 import socket from '../api/socket';
 import { formatDate } from './../utils/formatDate';
+import { toast } from 'react-toastify';
 
 const ReplyCard = ({ reply, user, handleLike, handleDelete }) => {
   const [isLiked, setIsLiked] = useState(reply.likedBy.includes(user?._id));
@@ -338,6 +339,24 @@ const PostCard = ({ post, user, deletePost, likePost, reportPost }) => {
     dispatch(updatePost(updatedPost));
   };
 
+  const handleSharePost = async (postId) => {
+    try {
+      const hasShared = post.sharedBy.some((share) => share._id === user._id);
+      await dispatch(sharePost(postId));
+      const updatedPost = {
+        ...post,
+        shares: !hasShared ? post.shares + 1 : post.shares - 1,
+        sharedBy: !hasShared ? [...post.sharedBy, user] : post.sharedBy.filter((share) => share._id !== user._id),
+      };
+      dispatch(updatePost(updatedPost));
+      toast.success(`${hasShared ? 'Bỏ chia' : 'Chia'} sẻ bài viết thành công`);
+    } catch (error) {
+      console.log(error);
+      toast.error("Có lỗi xảy ra, vui lòng thử lại");
+    }
+
+  }
+
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -348,8 +367,9 @@ const PostCard = ({ post, user, deletePost, likePost, reportPost }) => {
   const [showMenu, setShowMenu] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editPostData, setEditPostData] = useState({
-    content: post?.description || "",
+    content: post?.content || "",
     images: post?.images || [],
+    privacy: post?.privacy || "public",
   });
 
   const handleEditChange = (e) => {
@@ -366,69 +386,82 @@ const PostCard = ({ post, user, deletePost, likePost, reportPost }) => {
   };
 
   const handleSaveEdit = async () => {
-    handleCloseEdit();
-    const originalImages = post.images || [];
-    const originalFiles = post.files || [];
 
-    const remainingImages = editPostData.images.filter(
-      (image) => typeof image === "string"
-    );
-    const newImages = editPostData.images.filter(
-      (image) => typeof image !== "string"
-    );
+    const remainingImages = editPostData.images.filter(image => typeof image === "string");
+    const newImages = editPostData.images.filter(image => typeof image !== "string");
 
-    console.log("Original Images:", originalImages);
-    console.log("Remaining Images:", remainingImages);
-    console.log("New Images:", newImages);
-    console.log("Original Files:", originalFiles);
-    console.log("Edited Content:", editPostData.content);
 
-    // xử lý chỉnh sửa bài post...
+    const formData = new FormData();
+    formData.append("userId", user._id);
+    formData.append("content", editPostData.content);
+    formData.append("privacy", editPostData.privacy);
+
+    // Gửi danh sách hình ảnh và tệp tin còn giữ lại
+    remainingImages.forEach(image => formData.append("remainingImages[]", image));
+
+    // Thêm các hình ảnh và tệp tin mới nếu có
+    newImages.forEach(image => formData.append("images", image));
+
+    try {
+      const res = await axiosInstance.put(`/posts/${post._id}`, formData);
+
+      dispatch(updatePost(res.data.post));
+      handleCloseEdit();
+      toast.success("Cập nhật bài viết thành công");
+    } catch (error) {
+      toast.error("Có lỗi xảy ra, vui lòng thử lại");
+      console.error("Lỗi khi gọi API cập nhật:", error);
+    }
   };
 
   const handleOpenEdit = () => {
     setShowMenu(false);
     setEditPostData({
-      content: post?.description || "",
+      content: post?.content || "",
       images: post?.images || [],
+      privacy: post?.privacy || "public"
     });
     setIsEditing(true);
   };
 
   const handleCloseEdit = () => {
     setEditPostData({
-      content: post?.description || "",
+      content: post?.content || "",
       images: post?.images || [],
+      privacy: post?.privacy || "public"
     });
     setIsEditing(false);
   };
 
   return (
     <div className="p-4 mb-2 bg-primary rounded-xl">
-      {post?.sharedBy.length > 0 && (
-        <div className="mb-4 border-b border-[#66666645]">
-          {post.sharedBy
-            .filter(user => friendIds.includes(user._id))
-            .map(user => (
-              <Link
-                key={user._id}
-                to={`/profile/${user._id}`}
-                className="flex items-center mb-2"
-              >
-                <img
-                  src={user.avatar ?? NoProfile}
-                  alt={user.firstName}
-                  className="object-cover w-8 h-8 rounded-full mr-2"
-                />
-                <span className="text-ascent-1">
-                  <span className="text-sky">
-                    {user.lastName} {user.firstName}
-                  </span> đã chia sẻ
-                </span>
-              </Link>
-            ))}
-        </div>
-      )}
+      {post?.sharedBy.length > 0 &&
+        user?._id !== post?.user?._id &&
+        post?.sharedBy.some(user => friendIds.includes(user._id)) &&
+        (
+          <div className="mb-4 border-b border-[#66666645]">
+            {post?.sharedBy
+              .filter(user => friendIds.includes(user._id))
+              .map(user => (
+                <Link
+                  key={user._id}
+                  to={`/profile/${user._id}`}
+                  className="flex items-center mb-2"
+                >
+                  <img
+                    src={user.avatar ?? NoProfile}
+                    alt={user.firstName}
+                    className="object-cover w-8 h-8 mr-2 rounded-full"
+                  />
+                  <span className="text-ascent-1">
+                    <span className="text-sky">
+                      {user.lastName} {user.firstName}
+                    </span> đã chia sẻ
+                  </span>
+                </Link>
+              ))}
+          </div>
+        )}
       {showImageModal && (
         <ImageDetail
           images={post.images}
@@ -436,12 +469,12 @@ const PostCard = ({ post, user, deletePost, likePost, reportPost }) => {
         />
       )}
       <div
-        className={`${post?.sharedBy.length > 0 ? "mx-3 my-3 border border-[#66666645] pl-4 pr-2" : ""
+        className={`${post?.sharedBy.length > 0 && user?._id !== post?.user?._id ? "mx-3 my-3 border border-[#66666645] pl-4 pr-2" : ""
           }`}
       >
-        {post?.group._id && (
+        {post?.group?._id && (
           <div className="mb-4">
-            <Link to={`/groups/${post?.group._id}`} className="flex items-center">
+            <Link to={`/group/${post?.group?._id}`} className="flex items-center">
               <MdGroups size={30} className="text-ascent-1" />
               <span className="ml-2 text-ascent-1">{post?.group?.name}</span>
             </Link>
@@ -464,13 +497,12 @@ const PostCard = ({ post, user, deletePost, likePost, reportPost }) => {
                 </p>
               </Link>
               <span className="text-ascent-2">
-                {post?.user?.major ? (
+                {(post?.user?.privacy === 'public') ? (
                   <>
                     {post?.user?.faculty?.name} - {post?.user?.major?.majorName} {post?.user?.academicYear}
                   </>
                 ) : (
                   <>
-                    {post?.user?.faculty?.name || post?.user?.major?.majorName}
                   </>
                 )}
               </span>
@@ -484,17 +516,19 @@ const PostCard = ({ post, user, deletePost, likePost, reportPost }) => {
                 />
                 {showMenu && (
                   <div className="absolute top-0 z-50 border border-gray-300 rounded-md end-5 bg-primary">
-                    <ul className="px-2 py-1 cursor-pointer text-ascent-1 items-center">
+                    <ul className="items-center px-2 py-1 cursor-pointer text-ascent-1">
                       {user?._id === post?.user?._id && (
                         <li className="py-1" onClick={handleOpenEdit}>
                           <span>Chỉnh&nbsp;sửa</span>
                         </li>
                       )}
                       <li
-                        className={`${isSaved ? "text-red" : ""} py-1`}
+                        className={`${isSaved ? "text-red whitespace-nowrap" : "whitespace-nowrap"} py-1`}
                         onClick={handleSavePost}
                       >
-                        {isSaved ? "Bỏ lưu" : "Lưu"}
+                        <span>
+                          {isSaved ? "Bỏ lưu" : "Lưu"}
+                        </span>
                       </li>
                       {user?._id === post?.user?._id && (
                         <li
@@ -633,11 +667,13 @@ const PostCard = ({ post, user, deletePost, likePost, reportPost }) => {
         </p>
 
         <p className="flex items-center gap-2 text-base cursor-pointer">
-          {post?.sharedBy?.some((share) => share._id === user._id) ? (
-            <FaShare size={20} color="#065ad8" />
-          ) : (
-            <FaShare size={20} />
-          )}
+          <span onClick={() => handleSharePost(post._id)}>
+            {post?.sharedBy?.some((share) => share._id === user._id) ? (
+              <FaShare size={20} color="#065ad8" />
+            ) : (
+              <FaShare size={20} />
+            )}
+          </span>
           {post?.shares}
         </p>
 
@@ -822,7 +858,7 @@ const PostCard = ({ post, user, deletePost, likePost, reportPost }) => {
         className="modal-content max-w-[29rem] mx-auto"
         overlayClassName="modal-overlay"
       >
-        <div className="bg-primary p-2 w-full h-full">
+        <div className="w-full h-full p-2 bg-primary">
           <textarea
             name="content"
             value={editPostData.content}
@@ -830,9 +866,22 @@ const PostCard = ({ post, user, deletePost, likePost, reportPost }) => {
             className="w-full p-2 border rounded-md min-h-24"
           />
 
+          <label>
+            <select
+              id="privacy"
+              name="privacy"
+              value={editPostData.privacy}
+              onChange={handleEditChange}
+              className={`bg-secondary border-[#66666690] mb-2 outline-none text-sm text-ascent-2 placeholder:text-[#666] w-full border rounded-md py-2 px-3 mt-1`}
+            >
+              <option value="private">Cá nhân</option>
+              <option value="public">Công khai</option>
+            </select>
+          </label>
+
           <div className="mt-2">
             {editPostData.images.map((image, index) => (
-              <div key={index} className="relative inline-block mr-2 mb-2">
+              <div key={index} className="relative inline-block mb-2 mr-2">
                 <img
                   src={
                     typeof image === "string"
@@ -843,7 +892,7 @@ const PostCard = ({ post, user, deletePost, likePost, reportPost }) => {
                   className="object-cover w-20 h-20 rounded-md"
                 />
                 <button
-                  className="absolute top-0 right-0 p-1 bg-red text-white rounded-full"
+                  className="absolute top-0 right-0 p-1 text-white rounded-full bg-red"
                   onClick={() => {
                     setEditPostData({
                       ...editPostData,
@@ -865,32 +914,16 @@ const PostCard = ({ post, user, deletePost, likePost, reportPost }) => {
             className="mt-2"
           />
 
-          <div className="mt-2">
-            {post.files &&
-              post.files.map((file, index) => (
-                <div
-                  key={index}
-                  className="flex items-center p-2 bg-gray-100 rounded-lg mb-2"
-                >
-                  <FaFile className="mr-2 text-blue" />
-                  <span className="flex-1 overflow-hidden text-blue">
-                    {file.name}
-                  </span>
-                  {/* Thêm nút xóa file */}
-                </div>
-              ))}
-          </div>
-
           <div className="flex justify-between mt-2">
             <button
               onClick={handleCloseEdit}
-              className="bg-red hover:bg-primary text-white hover:text-red p-2 rounded-md"
+              className="p-2 text-white rounded-md bg-red hover:bg-primary hover:text-red"
             >
               Hủy
             </button>
             <button
               onClick={handleSaveEdit}
-              className="mr-2 bg-blue hover:bg-primary text-white hover:text-blue p-2 rounded-md"
+              className="p-2 mr-2 text-white rounded-md bg-blue hover:bg-primary hover:text-blue"
             >
               Lưu thay đổi
             </button>

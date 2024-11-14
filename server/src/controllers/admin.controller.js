@@ -10,7 +10,10 @@ const fs = require('fs');
 const util = require('util');
 const upload = require('../utils/upload');
 const { sendOTP } = require('../utils/sendMail');
-const userModel = require('../models/user.model');
+const Tag = require('../models/tag.model');
+const Comment = require('../models/comment.model');
+const Conversation = require('../models/conversation.model');
+const Message = require('../models/message.model');
 const unlinkFile = util.promisify(fs.unlink);
 
 
@@ -408,36 +411,9 @@ const deleteCourse = async (req, res) => {
 // Account management
 
 const getAllAccounts = async (req, res) => {
-    const { facultySlug, majorSlug } = req.query;
-
-    const { error } = getAllAccountsQuerySchema.validate({ facultySlug, majorSlug });
-
-    if (error) {
-        return res.status(400).json({ message: 'Tham số không hợp lệ', details: error.details });
-    }
-
     try {
-        let query = {};
 
-        if (facultySlug) {
-            const faculty = await Faculty.findOne({ slug: facultySlug });
-            if (faculty) {
-                query.faculty = faculty._id;
-            } else {
-                return res.status(404).json({ message: 'Faculty không tồn tại' });
-            }
-        }
-
-        if (majorSlug) {
-            const major = await Major.findOne({ slug: majorSlug });
-            if (major) {
-                query.major = major._id;
-            } else {
-                return res.status(404).json({ message: 'Major không tồn tại' });
-            }
-        }
-
-        const accounts = await User.find(query)
+        const accounts = await User.find().select('-password')
             .populate('faculty')
             .populate('major')
             .populate({
@@ -448,7 +424,6 @@ const getAllAccounts = async (req, res) => {
                 ]
             })
             .populate('friends')
-            .exec();
         res.json(accounts);
     } catch (error) {
         res.status(500).json({ message: 'Lỗi lấy danh sách tài khoản' });
@@ -497,25 +472,90 @@ const deleteAccount = async (req, res) => {
     const { id } = req.params;
 
     try {
-        const account = await User.findById(id);
-        if (!account) {
+        const user = await User.findById(id);
+        if (!user) {
             return res.status(404).json({ message: 'Tài khoản không tồn tại' });
         }
 
         const posts = await Post.find({ user: id });
-        let totalReports = 0;
-        for (const post of posts) {
-            totalReports += post.reports;
+        const totalReports = posts.reduce((sum, post) => sum + post.reports, 0);
+        const averageReports = posts.length ? totalReports / posts.length : 0;
+
+        if (averageReports < 5) {
+            return res.status(400).json({ message: 'Trung bình số lượng tố cáo trên mỗi bài đăng phải từ 5 trở lên để xóa tài khoản' });
         }
 
-        if (totalReports >= 5) {
-            await User.findByIdAndDelete(id);
-            return res.json({ message: 'Tài khoản đã bị xóa' });
-        } else {
-            return res.status(403).json({ message: 'Không đủ lượt reports để xóa tài khoản' });
-        }
+        await User.updateMany(
+            { friends: id },
+            { $pull: { friends: id } }
+        );
+
+        await User.updateMany(
+            { followers: id },
+            { $pull: { followers: id } }
+        );
+
+        await User.updateMany(
+            { following: id },
+            { $pull: { following: id } }
+        );
+
+        await Post.deleteMany({ user: id });
+
+        await Group.updateMany(
+            { members: id },
+            { $pull: { members: id } }
+        );
+
+        await Tag.deleteMany({ user: id });
+
+        await Comment.deleteMany({ user: id });
+
+        await Conversation.deleteMany({ recipients: id });
+
+        await Message.deleteMany({ $or: [{ sender: id }, { receiver: id }] });
+
+        await User.findByIdAndDelete(id);
+
+        res.status(200).json({ message: 'Tài khoản đã bị xóa' });
     } catch (error) {
-        res.status(500).json({ message: 'Lỗi xóa tài khoản' });
+        res.status(500).json({ message: 'Lỗi xóa tài khoản', error: error.message });
+    }
+};
+
+const deletePost = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const post = await Post.findById(id);
+
+        if (!post) {
+            return res.status(404).json({ message: 'Bài viết không tồn tại' });
+        }
+
+        if (post.reports < 3) {
+            return res.status(400).json({ message: 'Bài viết cần có từ 3 lượt tố cáo trở lên để xóa' });
+        }
+
+        await Post.deleteOne({ _id: id });
+
+        await User.updateOne(
+            { _id: post.user },
+            { $pull: { posts: id } }
+        );
+
+        await Comment.deleteMany({ post: id });
+
+        if (post.group) {
+            await Group.updateOne(
+                { _id: post.group },
+                { $pull: { posts: id } }
+            );
+        }
+
+        res.status(200).json({ message: 'Xóa bài viết thành công' });
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({ message: error.message });
     }
 };
 
@@ -695,6 +735,9 @@ const deleteGroup = async (req, res) => {
             { $pull: { groups: id } }
         );
 
+        await Post.deleteMany({ group: id });
+
+        group.members = [];
         res.status(200).json({ message: 'Nhóm đã bị xóa' });
 
     } catch (error) {
@@ -737,4 +780,5 @@ module.exports = {
     getGroupByUser,
     getGroupByOwner,
     deleteGroup,
+    deletePost
 };

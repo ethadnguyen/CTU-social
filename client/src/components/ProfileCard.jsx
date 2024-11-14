@@ -4,6 +4,8 @@ import { Link, useLocation } from "react-router-dom";
 import { LiaEditSolid } from "react-icons/lia";
 import {
   BsBriefcase,
+  BsCalendar,
+  BsCardList,
   BsFacebook,
   BsPersonCheck,
   BsPersonCircle,
@@ -20,6 +22,7 @@ import Swal from "sweetalert2";
 import { toast } from 'react-toastify';
 import socket from '../api/socket';
 import { formatDate } from './../utils/formatDate';
+import moment from 'moment';
 
 const ProfileCard = ({ user }) => {
   const { user: data, edit } = useSelector((state) => state.user);
@@ -147,13 +150,39 @@ const ProfileCard = ({ user }) => {
   }, [user, data]);
 
   const handleFollow = async (userId) => {
-    console.log("Theo dõi:", userId);
-    // Thêm logic xử lý theo dõi ở đây
+    try {
+      const res = await axiosInstance.post(`/users/follow`, { userToFollowId: userId });
+      if (res.status === 200) {
+        dispatch(UpdateUser(res.data.user));
+        setIsFollowing(true);
+        const notiRes = await axiosInstance.post("/users/create-notification", {
+          receiverIds: [userId],
+          sender: data._id,
+          type: "follow",
+          message: `${data?.firstName} ${data?.lastName} đã theo dõi bạn!`,
+          link: `/profile/${data?._id}`,
+        });
+        socket.emit('sendNotification', { notification: notiRes.data.notification, receiverId: userId });
+        toast.success('Đã theo dõi!');
+      }
+    } catch (error) {
+      console.error("Lỗi khi theo dõi:", error);
+      toast.error('Lỗi khi theo dõi!');
+    }
   };
 
   const handleUnfollow = async (userId) => {
     console.log("Bỏ theo dõi:", userId);
-    // Thêm logic xử lý bỏ theo dõi ở đây
+    try {
+      const res = await axiosInstance.post(`/users/unfollow`, { userToUnfollowId: userId });
+      if (res.status === 200) {
+        setIsFollowing(false);
+        dispatch(UpdateUser(res.data.user));
+        toast.success('Đã bỏ theo dõi!');
+      }
+    } catch (error) {
+      console.error("Lỗi khi bỏ theo dõi:", error);
+    }
   };
 
   return (
@@ -210,31 +239,56 @@ const ProfileCard = ({ user }) => {
           </div>
         </div>
 
-        <div className="w-fulflex flex-col gap-2 py-4 border-b border-[#66666645]">
-          <div className="flex items-center gap-2 text-ascent-2">
-            <FaRegBuilding className="text-xl text-ascent-1" />
-            <span>{user?.faculty?.name ?? ""}</span>
-          </div>
+        {user?._id === data?._id || user?.privacy === 'public' ? (
+          <>
+            <div className="w-full flex flex-col gap-2 py-4 border-b border-[#66666645]">
+              <div className="flex items-center gap-2 text-ascent-2">
+                <FaRegBuilding className="text-xl text-ascent-1" />
+                <span>{user?.faculty?.name ?? ""}</span>
+              </div>
 
-          <div className="flex items-center gap-2 text-ascent-2">
-            <BsBriefcase className="text-lg text-ascent-1" />
-            <span>
-              {user?.major?.majorName ?? ""} - {user?.academicYear ?? ""}
-            </span>
+              <div className="flex items-center gap-2 text-ascent-2">
+                <BsBriefcase className="text-lg text-ascent-1" />
+                <span>
+                  {user?.major?.majorName ?? ""} - {user?.academicYear ?? ""}
+                </span>
+              </div>
+              <div className="flex items-center gap-2 text-ascent-2">
+                <BsCardList className="text-lg text-ascent-1" />
+                <span>
+                  {user?.student_id}
+                </span>
+              </div>
+              <div className="flex items-center gap-2 text-ascent-2">
+                <BsCalendar className="text-lg text-ascent-1" />
+                <span>
+                  {moment(user?.dateOfBirth).format('DD/MM/YYYY')}
+                </span>
+              </div>
+            </div>
+          </>
+        ) : (
+          <div className='flex flex-col'>
+            <p className='text-ascent-2'>Thông tin cá nhân đã bị ẩn</p>
           </div>
-        </div>
+        )}
+
 
         <div className="w-full flex flex-col gap-2 py-4 border-b border-[#66666645]">
-          <p className="text-xl font-semibold text-ascent-1">
-            <span className="text-blue"> {user?.friends?.length}</span> Bạn bè
-            <span className="mx-4"></span>
-            <span className="text-blue">{user?.followers?.length}</span> Người
-            theo dõi
-          </p>
+          {user?._id === data?._id || user?.privacy === 'public' ? (
+            <p className="text-xl font-semibold text-ascent-1">
+              <span className="text-blue"> {user?.friends?.length}</span> Bạn bè
+              <span className="mx-4"></span>
+              <span className="text-blue">{user?.followers?.length}</span> Người theo dõi
+            </p>
+          ) : (
+            <div className='flex flex-col'>
+              <p className='text-ascent-2 items-center'>Bạn bè và theo dõi đã bị ẩn</p>
+            </div>
+          )}
 
           <div className="flex items-center justify-between">
             <span className="text-ascent-2">{user?.bio}</span>
-            {/* <span className='text-lg text-ascent-1'>{user?.views?.length}</span> */}
           </div>
 
           <div className="flex items-center justify-between">
@@ -260,44 +314,56 @@ const ProfileCard = ({ user }) => {
           )}
         </div>
 
-        <div className="flex flex-col w-full gap-4 py-4 pb-6">
-          <p className="text-lg font-semibold text-ascent-1">
-            Mạng xã hội khác
-          </p>
+        {user?._id === data?._id || user?.privacy === 'public' ? (
+          <div className="flex flex-col w-full gap-4 py-4 pb-6">
+            <p className="text-lg font-semibold text-ascent-1">
+              Mạng xã hội khác
+            </p>
 
-          <div className="flex items-center gap-2 text-ascent-2">
-            <BsFacebook className="text-xl text-ascent-1" />
-            <a
-              href={`${user?.facebook}`}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Facebook
-            </a>
-          </div>
+            {user?.facebook && (
+              <div className="flex items-center gap-2 text-ascent-2">
+                <BsFacebook className="text-xl text-ascent-1" />
+                <a
+                  href={`${user?.facebook}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Facebook
+                </a>
+              </div>
+            )}
 
-          <div className="flex items-center gap-2 text-ascent-2">
-            <FaLinkedin className="text-xl text-ascent-1" />
-            <a
-              href={`${user?.linkedin}`}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              LinkedIn
-            </a>
-          </div>
+            {user?.linkedin && (
+              <div className="flex items-center gap-2 text-ascent-2">
+                <FaLinkedin className="text-xl text-ascent-1" />
+                <a
+                  href={`${user?.linkedin}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  LinkedIn
+                </a>
+              </div>
+            )}
 
-          <div className="flex items-center gap-2 text-ascent-2">
-            <FaGithub className="text-xl text-ascent-1" />
-            <a
-              href={`${user?.github}`}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              GitHub
-            </a>
+            {user?.github && (
+              <div className="flex items-center gap-2 text-ascent-2">
+                <FaGithub className="text-xl text-ascent-1" />
+                <a
+                  href={`${user?.github}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  GitHub
+                </a>
+              </div>
+            )}
           </div>
-        </div>
+        ) : (
+          <div className='flex flex-col'>
+            <p className='text-ascent-2'>Mạng xã hội đã bị ẩn</p>
+          </div>
+        )}
       </div>
     </div>
   );

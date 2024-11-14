@@ -4,8 +4,8 @@ import { Home, Login, Register, ResetPassword, Messages, Notifications } from ".
 import useSocket from './hooks/useSocket';
 
 function Layout() {
-  const { user } = useSelector((state) => state.user);
-  const token = "dasdsad"//localStorage.getItem("token");
+  // const { user } = useSelector((state) => state.user);
+  const token = localStorage.getItem("token");
   const location = useLocation();
 
   return token ? (

@@ -8,7 +8,6 @@ const GroupRequest = require('../models/groupRequest.model');
 const Notification = require('../models/notification.model');
 const tagModel = require('../models/tag.model');
 const userModel = require('../models/user.model');
-// const Fuse = require('fuse.js');
 
 const verifyEmail = async (req, res) => {
     const { userId, token } = req.params;
@@ -263,12 +262,14 @@ const updateUser = async (req, res, next) => {
             student_id,
             faculty,
             major,
+            academicYear,
             gender,
             dateOfBirth,
             bio,
             facebook,
             linkedin,
             github,
+            privacy
         } = req.body;
 
         const updateFields = {
@@ -277,19 +278,20 @@ const updateUser = async (req, res, next) => {
             ...(student_id && { student_id }),
             ...(faculty && { faculty }),
             ...(major && { major }),
+            ...(academicYear && { academicYear }),
             ...(gender && { gender }),
             ...(dateOfBirth && { dateOfBirth }),
             ...(bio && { bio }),
             ...(facebook && { facebook }),
             ...(linkedin && { linkedin }),
             ...(github && { github }),
+            ...(privacy && { privacy }),
         };
 
         if (req.files && req.files.avatar) {
-            updateFields.avatar = req.files.avatar[0].path; // sử dụng path từ file đã upload
+            updateFields.avatar = req.files.avatar[0].path;
         }
 
-        // Update the user in the database
         const updatedUser = await User.findByIdAndUpdate(userId, { $set: updateFields }, { new: true })
             .populate({
                 path: 'faculty',
@@ -310,12 +312,10 @@ const updateUser = async (req, res, next) => {
                 path: 'groups',
             });
 
-        // Handle case where the user does not exist
         if (!updatedUser) {
             return res.status(404).json({ status: 'FAILED', message: 'Không tìm thấy người dùng' });
         }
 
-        // Respond with the updated user
         res.status(200).json({
             status: 'SUCCESS',
             user: updatedUser,
@@ -323,6 +323,36 @@ const updateUser = async (req, res, next) => {
     } catch (error) {
         console.error('Error updating user:', error);
         res.status(500).json({ status: 'FAILED', message: 'Lỗi máy chủ' });
+    }
+};
+
+const getSuggestedFriends = async (req, res) => {
+    try {
+        const { userId } = req.body.user;
+
+        const user = await User.findById(userId).populate('faculty').populate('major').populate('friends');
+        if (!user) {
+            return res.status(404).json({ status: 'FAILED', message: 'Người dùng không tồn tại' });
+        }
+
+        const suggestedFriends = await User.find({
+            $or: [
+                { faculty: user.faculty._id },
+                { major: user.major._id }
+            ],
+            _id: { $ne: userId, $nin: user.friends }
+        })
+            .limit(5)
+            .populate('faculty', 'name')
+            .populate('major', 'majorName academicYear')
+            .populate('friends', '-password')
+            .populate('notifications')
+            .populate('groups');
+
+        res.status(200).json({ status: 'SUCCESS', users: suggestedFriends });
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({ message: error.message });
     }
 };
 
@@ -646,30 +676,41 @@ const unFriend = async (req, res) => {
 };
 
 const followUser = async (req, res) => {
+    const { userToFollowId } = req.body;
+    const { userId } = req.body.user;
     try {
-        const { userId, userToFollowId } = req.body;
-
-        const user = await User.findById(userId);
-        const userToFollow = await User.findById(userToFollowId);
+        const user = await userModel.findById(userId);
+        const userToFollow = await userModel.findById(userToFollowId);
 
         if (!user || !userToFollow) {
             return res.status(404).json({ status: 'FAILED', message: 'Người dùng không tồn tại' });
         }
 
-
         if (user.following.includes(userToFollowId)) {
-            return res.status(400).json({ status: 'FAILED', message: 'User is already following this user' });
+            return res.status(400).json({ status: 'FAILED', message: 'Bạn đã theo dõi người dùng này' });
         }
-
 
         user.following.push(userToFollowId);
         await user.save();
 
-
         userToFollow.followers.push(userId);
         await userToFollow.save();
 
-        res.status(200).json({ status: 'SUCCESS', message: 'Theo dõi người dùng thành công' });
+        const updatedUser = await userModel.findById(userId)
+            .populate('faculty')
+            .populate('major')
+            .populate({
+                path: 'friends',
+                select: '-password',
+            })
+            .populate({
+                path: 'notifications'
+            })
+            .populate({
+                path: 'groups',
+            });
+
+        res.status(200).json({ status: 'SUCCESS', message: 'Theo dõi người dùng thành công', user: updatedUser });
     } catch (error) {
         console.log(error);
         res.status(500).json({ message: error.message });
@@ -677,10 +718,11 @@ const followUser = async (req, res) => {
 };
 
 const unfollowUser = async (req, res) => {
+    const { userId } = req.body.user;
+    const { userToUnfollowId } = req.body;
     try {
-        const { userId, userToUnfollowId } = req.body;
 
-        const user = await User.findById(userId);
+        const user = await userModel.findById(userId);
         const userToUnfollow = await User.findById(userToUnfollowId);
 
         if (!user || !userToUnfollow) {
@@ -699,7 +741,21 @@ const unfollowUser = async (req, res) => {
         userToUnfollow.followers.splice(followerIndex, 1);
         await userToUnfollow.save();
 
-        res.status(200).json({ status: 'SUCCESS', message: 'Bỏ theo dõi người dùng thành công' });
+        const updatedUser = await userModel.findById(userId)
+            .populate('faculty')
+            .populate('major')
+            .populate({
+                path: 'friends',
+                select: '-password',
+            })
+            .populate({
+                path: 'notifications'
+            })
+            .populate({
+                path: 'groups',
+            });
+
+        res.status(200).json({ status: 'SUCCESS', message: 'Bỏ theo dõi người dùng thành công', user: updatedUser });
     } catch (error) {
         console.log(error);
         res.status(500).json({ message: error.message });
@@ -999,6 +1055,7 @@ module.exports = {
     updateUser,
     friendRequest,
     createGroupRequest,
+    getSuggestedFriends,
     getFriendRequests,
     getUserFriendRequests,
     acceptRequest,

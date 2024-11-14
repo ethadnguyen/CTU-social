@@ -27,21 +27,6 @@ const createPostValidateSchema = Joi.object({
             'object.base': 'Mỗi mục phải là một đối tượng',
             'string.uri': 'Hình ảnh phải là một URL hợp lệ',
         }),
-    files: Joi.array()
-        .default([])
-        .optional()
-        .items(Joi.string().custom((value, helpers) => {
-            const fileExtension = value.split('.').pop().toLowerCase();
-            const validExtensions = ['pdf', 'doc', 'docx', 'ppt', 'pptx', 'xls', 'xlsx'];
-            if (!validExtensions.includes(fileExtension)) {
-                return helpers.error('any.invalid');
-            }
-            return value;
-        }))
-        .messages({
-            'array.base': 'Tệp phải là một mảng',
-            'any.invalid': 'Tệp phải ở định dạng PDF, DOC, DOCX, PPT, PPTX, XLS hoặc XLSX',
-        }),
     privacy: Joi.string()
         .valid('public', 'private')
         .required()
@@ -51,6 +36,17 @@ const createPostValidateSchema = Joi.object({
         }),
 });
 
+const updatePostValidateSchema = createPostValidateSchema.keys({
+    remainingImages: Joi.array()
+        .optional()
+        .items(Joi.string().uri())
+        .messages({
+            'array.base': 'remainingImages phải là một mảng',
+            'string.uri': 'Mỗi đường dẫn hình ảnh phải là một URL hợp lệ',
+        })
+});
+
 module.exports = {
     createPostValidateSchema,
+    updatePostValidateSchema,
 };

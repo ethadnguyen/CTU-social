@@ -6,7 +6,7 @@ const port = process.env.PORT || 5000;
 const server = http.createServer();
 const io = new Server(server, {
     cors: {
-        origin: ['http://localhost:5173', 'http://localhost:8443'],
+        origin: [process.env.USER_URL, process.env.ADMIN_URL],
         credentials: true,
     },
 });
@@ -88,15 +88,12 @@ io.on('connection', (socket) => {
         const friend = users.find((u) => u.id === friendId);
 
         if (user && friend) {
-            // Xóa friend khỏi danh sách bạn bè của user
             user.friends = user.friends.filter((f) => f !== friendId);
 
-            // Xóa user khỏi danh sách bạn bè của friend
             friend.friends = friend.friends.filter((f) => f !== userId);
 
             console.log(`Đã xóa bạn giữa ${userId} và ${friendId}`);
 
-            // Thông báo cho cả hai người dùng rằng họ không còn là bạn bè
             socket.to(user.socketId).emit('friendRemoved', friendId);
             socket.to(friend.socketId).emit('friendRemoved', userId);
         } else {

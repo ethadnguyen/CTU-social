@@ -21,6 +21,8 @@ import { UpdateUser, updateUser } from '../redux/userSlice';
 import socket from '../api/socket';
 import moment from 'moment';
 import { BiCheckCircle, BiGroup, BiLike, BiMessage, BiNews, BiSolidGroup } from 'react-icons/bi';
+import { formatDate } from '../utils/formatDate';
+import { FaPeopleArrows } from 'react-icons/fa';
 
 const NotificationsPage = () => {
     const { user, edit } = useSelector((state) => state.user);
@@ -175,7 +177,7 @@ const NotificationsPage = () => {
                         {notifications.map((notification) => (
                             <li key={notification._id} className="py-4">
                                 <Link
-                                    to={notification?.link ? `${import.meta.env.VITE_APP_URL ?? 'http://localhost:5173'}${notification.link}` : '#'}
+                                    to={notification.link ? `${notification.link}` : '#'}
                                     className={`flex items-center space-x-3 ${notification.link ? 'hover:bg-gray' : ''} px-2 py-2 rounded-lg`}
                                     onClick={() => handleMarkAsRead(notification._id)}
                                 >
@@ -209,10 +211,13 @@ const NotificationsPage = () => {
                                             {notification.message && notification.type === 'acceptGroupRequest' && (
                                                 <BiSolidGroup className='font-bold text-blue' size={30} />
                                             )}
+                                            {notification.message && notification.type === 'follow' && (
+                                                <FaPeopleArrows className='font-bold text-blue' size={30} />
+                                            )}
                                         </div>
 
                                         <p className="text-xs text-gray-500">
-                                            {moment(notification.createdAt).fromNow()} <span className="mx-3"></span>
+                                            {formatDate(notification?.createdAt)} <span className="mx-3"></span>
                                         </p>
                                     </div>
                                 </Link>
@@ -350,7 +355,7 @@ const NotificationsPage = () => {
                     </div>
                 </div>
             </div>
-        </div>
+        </div >
     );
 };
 

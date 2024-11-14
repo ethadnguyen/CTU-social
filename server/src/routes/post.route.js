@@ -22,7 +22,7 @@ const {
     getUserPosts
 } = require('../controllers/post.controller');
 const upload = require('../utils/upload');
-const { validateCreateComment, validateCreatePost } = require('../middlewares/validate.middleware');
+const { validateCreateComment, validateCreatePost, validateUpdatePost } = require('../middlewares/validate.middleware');
 const router = express.Router();
 
 
@@ -37,14 +37,12 @@ router.post('/get-user-post/:id', authMiddleware, getUserPost);
 //create post
 router.post('/create-post', authMiddleware, upload.fields([
     { name: 'images', maxCount: 5 },
-    { name: 'files', maxCount: 5 }
 ]), validateCreatePost, createPost);
 
 // update post
 router.put('/:id', authMiddleware, upload.fields([
     { name: 'images', maxCount: 5 },
-    { name: 'files', maxCount: 5 }
-]), validateCreatePost, updatePost);
+]), validateUpdatePost, updatePost);
 
 // get comments
 router.get('/comments/:postId', authMiddleware, getComments);

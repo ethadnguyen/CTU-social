@@ -32,6 +32,8 @@ router.post('/group-request', authMiddleware, validateCreateGroupRequest, UserCo
 
 router.get('/friend-requests', authMiddleware, UserController.getFriendRequests);
 
+router.get('/friend-suggestions', authMiddleware, UserController.getSuggestedFriends);
+
 router.get('/friend-requests/:userId', authMiddleware, UserController.getUserFriendRequests);
 
 router.post('/accept-request', authMiddleware, UserController.acceptRequest);

@@ -66,36 +66,6 @@ const TopBar = (friends) => {
           {theme ? <BsMoon /> : <BsSunFill />}
         </button>
 
-        <div className='flex relative'>
-          <Link to={`/messages/${user?._id}`}>
-            {user?.messages?.length > 0 && (
-              <div className='absolute inline-flex items-center justify-center w-4 h-4 text-xs font-bold text-white bg-red border-3 border-white rounded-full -top-2 -end-2'>
-                <span className='text-sm text-white'>{user?.messages}</span>
-              </div>
-            )}
-            {user?.messages > 0 ? (
-              <FaMessage color='#065ad8' />
-            ) : (
-              <FaRegMessage />
-            )}
-          </Link>
-        </div>
-
-        {/* <div className='flex relative'>
-          <Link to={`/notifications/${user?._id}`}>
-            {user?.messages?.length > 0 && (
-                <div className='absolute inline-flex items-center justify-center w-4 h-4 text-xs font-bold text-white bg-red border-3 border-white rounded-full -top-2 -end-2'>
-                  <span className='text-sm text-white'>{user?.notifications}</span>
-                </div>
-              )}
-              {user?.notifications > 0 ? (
-                <IoIosNotifications size={24} color='#065ad8' />
-              ) : (
-                <IoNotificationsOutline size={24} />
-              )}
-          </Link>
-        </div> */}
-
         <div>
           <CustomButton
             onClick={() => dispatch(Logout())}

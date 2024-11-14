@@ -14,7 +14,7 @@ import { suggest, requests } from "../assets/data";
 import { Link, useLocation, ScrollRestoration, useParams } from "react-router-dom";
 import { NoProfile } from "../assets";
 import { BsPersonFillAdd } from "react-icons/bs";
-import { SiVerizon } from "react-icons/si";
+import { SiVerizon, SiX } from "react-icons/si";
 import { FaDeleteLeft } from "react-icons/fa6";
 import { FaEdit } from "react-icons/fa";
 import { useForm } from "react-hook-form";
@@ -25,28 +25,21 @@ import {
   likePost,
   reportPost,
   updatePost,
-  updatePosts,
 } from "../redux/postSlice";
 import { toast } from "react-toastify";
-import { updateUser } from "../redux/userSlice";
-import { fetchFaculties } from "../redux/facultySlice";
 import Swal from "sweetalert2";
-import socket, { connectSocket, disconnectSocket } from "../api/socket";
+import socket from "../api/socket";
+import { join, set } from 'lodash';
 
 const Group = () => {
   const { user, edit } = useSelector((state) => state.user);
-  const { faculties } = useSelector((state) => state.faculty);
-  const [friendRequest, setFriendRequest] = useState([]);
-  const [suggestedFriends, setSuggestedFriends] = useState(suggest);
   const [errMsg, setErrMsg] = useState("");
-  const [files, setFiles] = useState([]);
-  const [images, setImages] = useState([]);
-  const [posting, setPosting] = useState(false);
   const [loading, setLoading] = useState(false);
   const [group, setGroup] = useState(null);
+  const [joinRequests, setJoinRequests] = useState([]);
   const { id: groupId } = useParams();
-
-  const groupPosts = useSelector((state) => state.posts.posts);
+  const [hasSentJoinRequest, setHasSentJoinRequest] = useState(false);
+  const { groupPosts } = useSelector((state) => state.posts);
   const dispatch = useDispatch();
 
   const {
@@ -68,32 +61,31 @@ const Group = () => {
     };
 
     getGroup();
-  }, [groupId]);
+  }, [groupId, dispatch]);
 
   useEffect(() => {
-    dispatch(getGroupPosts(groupId));
-  }, [dispatch, groupId]);
+    if (group) {
+      dispatch(getGroupPosts(group._id));
+    }
+  }, [dispatch, group]);
 
   useEffect(() => {
-    const getFriendRequests = async () => {
+    const getJoinRequests = async () => {
       try {
-        const res = await axiosInstance.get("/users/friend-requests");
-        console.log("Friend requests:", res.data.requests);
-        setFriendRequest(res.data.requests);
+        const res = await axiosInstance.get(`/group/${groupId}/join-requests`);
+        console.log("Join requests:", res.data.requests);
+        setJoinRequests(res.data.requests);
       } catch (error) {
-        console.error("Error getting friend requests:", error);
+        console.error("Error getting join requests:", error);
       }
     };
 
-    getFriendRequests();
-  }, []);
+    getJoinRequests();
+  }, [groupId]);
 
   console.log('group', group);
   console.log("Group posts:", groupPosts);
-
-  useEffect(() => {
-    dispatch(fetchFaculties());
-  }, [dispatch]);
+  console.log('joinRequests', joinRequests);
 
   const handleDeletePost = async (postId) => {
     try {
@@ -160,20 +152,6 @@ const Group = () => {
   const handleReportPost = async (post) => {
     try {
       await dispatch(reportPost(post._id));
-      // const updatedPosts = posts.map((p) => {
-      //   if (p._id === postId) {
-      //     const hasReported = p.reportedBy.includes(user._id);
-      //     return {
-      //       ...p,
-      //       reports: hasReported ? p.reports - 1 : p.reports + 1,
-      //       reportedBy: hasReported
-      //         ? p.reportedBy.filter(id => id !== user._id)
-      //         : [...p.reportedBy, user._id],
-      //     }
-      //   }
-      //   return p;
-      // });
-      // dispatch(updatePosts(updatedPosts));
       const updatedPost = {
         ...post, reports: post.reportedBy.includes(user._id)
           ? post.reports - 1
@@ -197,14 +175,21 @@ const Group = () => {
     }
   };
 
-  const submitBanner = (file) => {
+  const submitBanner = async (file) => {
     console.log("submit banner", file);
-    // Thực hiện các thao tác upload file ở đây
-    // ...
+    try {
+      const formData = new FormData();
+      formData.append("banner", file);
+      const res = await axiosInstance.put(`/group/${group._id}`, formData);
+      setGroup({ ...group, banner: res.data.group.banner });
+      toast.success("Đã cập nhật ảnh bìa nhóm");
+    } catch (error) {
+      console.error("Error updating banner:", error);
+    }
   };
 
   const [isEditingDescription, setIsEditingDescription] = useState(false);
-  const [editedDescription, setEditedDescription] = useState(group.description);
+  const [editedDescription, setEditedDescription] = useState(group?.description);
   const textAreaRef = useRef(null); // Create a ref for the textarea
 
   const handleEditDescriptionClick = () => {
@@ -223,11 +208,23 @@ const Group = () => {
   const handleSaveDescription = async () => {
     console.log("Nội dung mô tả đã sửa:", editedDescription);
     group.description = editedDescription;
+
+    try {
+      const response = await axiosInstance.put(`/group/${group._id}`, { description: editedDescription });
+
+      if (response.status === 200) {
+        toast.success('Đã lưu mô tả nhóm');
+        setGroup({ ...group, description: editedDescription });
+      }
+    } catch (error) {
+      console.error('Error saving description:', error);
+      toast.error('Có lỗi xảy ra, vui lòng thử lại');
+    }
     setIsEditingDescription(false);
   };
 
   const [isEditingName, setIsEditingName] = useState(false);
-  const [editedGroupName, setEditedGroupName] = useState(group.name);
+  const [editedGroupName, setEditedGroupName] = useState(group?.name);
   const groupNameInputRef = useRef(null);
 
   const handleEditGroupNameClick = () => {
@@ -246,9 +243,111 @@ const Group = () => {
   const handleSaveGroupName = () => {
     console.log("Tên nhóm đã đổi:", editedGroupName);
     // Thêm logic đổi tên nhóm ở đây
-
+    try {
+      axiosInstance.put(`/group/${group._id}`, { name: editedGroupName });
+      setGroup({ ...group, name: editedGroupName });
+      toast.success('Đã lưu tên nhóm');
+    } catch (error) {
+      console.error('Error saving group name:', error);
+      toast.error('Có lỗi xảy ra, vui lòng thử lại');
+    }
     // Reset the editing state
     setIsEditingName(false);
+  };
+
+  const handleJoinRequest = async () => {
+    try {
+      const response = await axiosInstance.post(`/group/join-request`, { userId: user._id, groupId: group._id });
+
+      if (response.status === 201) {
+        toast.success('Yêu cầu tham gia nhóm đã được gửi');
+        setJoinRequests([...joinRequests, { user: user }]);
+        setHasSentJoinRequest(true);
+      }
+    } catch (error) {
+      console.error('Error sending join request:', error);
+      toast.error('Có lỗi xảy ra, vui lòng thử lại');
+    }
+  };
+
+  const handleCancelJoinRequest = async () => {
+    try {
+      const response = await axiosInstance.post(`/group/cancel-request`, { userId: user._id, groupId: group._id });
+
+      if (response.status === 201) {
+        toast.success('Đã hủy yêu cầu tham gia nhóm');
+        setHasSentJoinRequest(false);
+      }
+    } catch (error) {
+      console.error('Error cancelling join request:', error);
+      toast.error('Có lỗi xảy ra, vui lòng thử lại');
+    }
+  };
+
+  const handleAcceptJoinRequest = async (requestId) => {
+    try {
+      const response = await axiosInstance.post(`/group/${group._id}/accept-request`, { requestId, status: 'APPROVED' });
+
+      if (response.status === 200) {
+        setJoinRequests(joinRequests.filter(request => request._id !== requestId));
+        const receiverId = response.data.request.user;
+        const notiRes = await axiosInstance.post('/users/create-notification', {
+          receiverIds: [receiverId],
+          sender: user._id,
+          message: `${user.firstName} ${user.lastName} đã chấp nhận yêu cầu tham gia nhóm`,
+          type: 'acceptGroupRequest',
+          link: `/group/${group._id}`,
+        });
+
+        socket.emit('sendNotification', { notification: notiRes.data.notification, receiverId });
+        toast.success('Đã chấp nhận yêu cầu tham gia nhóm');
+      }
+    } catch (error) {
+      console.error('Error accepting join request:', error);
+      toast.error('Có lỗi xảy ra, vui lòng thử lại');
+    }
+  };
+
+  const handleRejectJoinRequest = async (requestId) => {
+    try {
+      const response = await axiosInstance.post(`/group/reject-request`, { requestId });
+
+      if (response.status === 200) {
+        setJoinRequests(joinRequests.filter(request => request._id !== requestId));
+        setHasSentJoinRequest(false);
+        toast.success('Đã từ chối yêu cầu tham gia nhóm');
+      }
+    } catch (error) {
+      console.error('Error rejecting join request:', error);
+      toast.error('Có lỗi xảy ra, vui lòng thử lại');
+    }
+  };
+
+  const handleDeleteMember = async (memberId) => {
+    try {
+      const result = await Swal.fire({
+        title: 'Bạn có chắc muốn xóa thành viên này?',
+        text: 'Thành viên sẽ bị xóa khỏi nhóm',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'Xóa',
+        cancelButtonText: 'Hủy',
+      });
+
+      if (result.isConfirmed) {
+        const response = await axiosInstance.post(`/group/${group._id}/delete-member`, { userId: memberId });
+
+        if (response.status === 200) {
+          setGroup({ ...group, members: group.members.filter(member => member._id !== memberId) });
+          toast.success('Đã xóa thành viên khỏi nhóm');
+        }
+      }
+    } catch (error) {
+      console.error('Error deleting member:', error);
+      toast.error('Có lỗi xảy ra, vui lòng thử lại');
+    }
   };
 
   return (
@@ -262,7 +361,7 @@ const Group = () => {
             className="w-full h-48 object-cover rounded-t-lg"
           />
           <div className="absolute top-0 left-0 w-full h-48 flex items-center justify-between bg-black bg-opacity-50 rounded-t-lg opacity-0 hover:opacity-100 transition-opacity duration-300">
-            {user._id === group.adminId ? (
+            {user._id === group?.owner._id ? (
               <div className="rounded-xl bg-gray flex items-center">
                 {isEditingName ? (
                   <input
@@ -279,7 +378,7 @@ const Group = () => {
                   />
                 ) : (
                   <span className="text-white font-bold text-lg px-4">
-                    {group.name}
+                    {group?.name}
                   </span>
                 )}
                 {!isEditingName && (
@@ -294,12 +393,13 @@ const Group = () => {
             ) : (
               <div className="rounded-xl bg-gray flex items-center">
                 <span className="text-white font-bold text-lg px-4">
-                  {group.name}
+                  {group?.name}
                 </span>
               </div>
             )}
             <input
               type="file"
+              name='banner'
               accept="image/*"
               ref={fileInputRef}
               className="hidden"
@@ -331,20 +431,47 @@ const Group = () => {
           <div className="flex flex-col flex-1 h-[90%] gap-6 px-4 overflow-y-auto rounded-lg">
             {loading ? (
               <Loading />
-            ) : groupPosts?.length > 0 ? (
-              groupPosts?.map((post) => (
-                <PostCard
-                  key={post?._id}
-                  post={post}
-                  user={user}
-                  deletePost={handleDeletePost}
-                  likePost={handleLikePost}
-                  reportPost={handleReportPost}
-                />
-              ))
+            ) : group?.members.some(member => member._id === user._id) ? (
+              groupPosts?.length > 0 ? (
+                groupPosts.map((post) => (
+                  <PostCard
+                    key={post?._id}
+                    post={post}
+                    user={user}
+                    deletePost={handleDeletePost}
+                    likePost={handleLikePost}
+                    reportPost={handleReportPost}
+                  />
+                ))
+              ) : (
+                <div className="flex items-center justify-center w-full h-full">
+                  <p className="text-lg text-ascent-2">Nhóm chưa có bài viết nào</p>
+                </div>
+              )
             ) : (
-              <div className="flex items-center justify-center w-full h-full">
-                <p className="text-lg text-ascent-2">Nhóm chưa co bài viết nào</p>
+              <div className="flex items-center justify-center w-full h-full flex-col">
+                {hasSentJoinRequest ? (
+                  <>
+                    <p className="text-lg text-ascent-2">Đã gửi yêu cầu tham gia</p>
+                    <button
+                      onClick={handleCancelJoinRequest}
+                      className='mt-4 px-4 py-2 bg-primary text-ascent-1 rounded-lg hover:bg-blue'
+                    >
+                      Hủy yêu cầu tham gia
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-lg text-ascent-2">Bạn chưa là thành viên của nhóm</p>
+
+                    <button
+                      onClick={handleJoinRequest}
+                      className="mt-4 px-4 py-2 bg-primary text-ascent-1 rounded-lg hover:bg-blue"
+                    >
+                      Gửi yêu cầu tham gia
+                    </button>
+                  </>
+                )}
               </div>
             )}
           </div>
@@ -406,34 +533,41 @@ const Group = () => {
                   <span>Yêu cầu tham gia</span>
                 </div>
                 <div className="flex flex-col w-full gap-4 pt-4">
-                  {suggestedFriends?.map((friend) => (
+                  {joinRequests?.map((request) => (
                     <div
                       className="flex items-center justify-between"
-                      key={friend._id}
+                      key={request._id}
                     >
                       <Link
-                        to={"/profile/" + friend?._id}
-                        key={friend?._id}
+                        to={"/profile/" + request?.user?._id}
+                        key={request?._id}
                         className="flex items-center w-full gap-4 cursor-pointer"
                       >
                         <img
-                          src={friend?.profileUrl ?? NoProfile}
-                          alt={friend?.firstName}
+                          src={request?.user?.avatar ?? NoProfile}
+                          alt={request?.user?.firstName}
                           className="object-cover w-10 h-10 rounded-full"
                         />
                         <div className="flex-1 ">
                           <p className="text-base font-medium text-ascent-1">
-                            {friend?.firstName} {friend?.lastName}
+                            {request?.user?.firstName} {request?.user?.lastName}
                           </p>
                         </div>
                       </Link>
 
                       <div className="flex gap-1">
                         <button
-                          className="bg-[#0444a430] text-sm text-white p-1 rounded"
-                          onClick={() => { }}
+                          className="bg-[#0444a430] text-sm text-white p-1 rounded mr-2"
+                          onClick={() => handleAcceptJoinRequest(request?._id)}
                         >
                           <SiVerizon size={20} className="text-[#0f52b6]" />
+                        </button>
+
+                        <button
+                          className="bg-[#0444a430] text-sm text-white p-1 rounded"
+                          onClick={() => handleRejectJoinRequest(request?._id)}
+                        >
+                          <SiX size={20} className="text-red" />
                         </button>
                       </div>
                     </div>
@@ -448,24 +582,24 @@ const Group = () => {
                 <span>Thành viên</span>
               </div>
               <div className="flex flex-col w-full gap-4 pt-4">
-                {suggestedFriends?.map((friend) => (
+                {group?.members?.map((member) => (
                   <div
                     className="flex items-center justify-between"
-                    key={friend._id}
+                    key={member._id}
                   >
                     <Link
-                      to={"/profile/" + friend?._id}
-                      key={friend?._id}
+                      to={"/profile/" + member?._id}
+                      key={member?._id}
                       className="flex items-center w-full gap-4 cursor-pointer"
                     >
                       <img
-                        src={friend?.profileUrl ?? NoProfile}
-                        alt={friend?.firstName}
+                        src={member?.avatar ?? NoProfile}
+                        alt={member?.firstName}
                         className="object-cover w-10 h-10 rounded-full"
                       />
                       <div className="flex-1 ">
                         <p className="text-base font-medium text-ascent-1">
-                          {friend?.firstName} {friend?.lastName}
+                          {member?.firstName} {member?.lastName}
                         </p>
                       </div>
                     </Link>
@@ -474,7 +608,7 @@ const Group = () => {
                       <div className="flex gap-1">
                         <button
                           className="bg-[#0444a430] text-sm text-white p-1 rounded"
-                          onClick={() => { }}
+                          onClick={() => handleDeleteMember(member?._id)}
                         >
                           <FaDeleteLeft size={20} className="text-[#0f52b6]" />
                         </button>

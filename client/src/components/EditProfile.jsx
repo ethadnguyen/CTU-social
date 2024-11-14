@@ -8,20 +8,27 @@ import CustomButton from "./CustomButton";
 import { UpdateProfile, updateUser } from "../redux/userSlice";
 import { NoProfile } from "../assets";
 import axiosInstance from "../api/axiosConfig";
-import { faculties } from "../assets/register";
-
+import { fetchFaculties, fetchMajors } from '../redux/facultySlice';
+import moment from 'moment';
 const EditProfile = () => {
   const { theme } = useSelector((state) => state.theme);
   const { user } = useSelector((state) => state.user);
-  const dispatch = useDispatch();
   const [errMsg, setErrMsg] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [picture, setPicture] = useState(null);
   const [preview, setPreview] = useState(user?.avatar || NoProfile);
-  const [selectedMajor, setSelectedMajor] = useState(user?.major || "");
-  const [isProfileHidden, setIsProfileHidden] = useState(
-    user?.isProfileHidden || false
+  const [selectedGender, setSelectedGender] = useState(user?.gender || "");
+  const [isProfileHidden, setIsProfileHidden] = useState(user?.privacy === 'private' ? true : false);
+  const [selectedFacultyId, setSelectedFacultyId] = useState(
+    user?.faculty._id || ""
   );
+  const [selectedMajorId, setSelectedMajorId] = useState(user?.major._id || "");
+  const [selectedCourse, setSelectedCourse] = useState(
+    user?.academicYear || ""
+  );
+  const [availableCourses, setAvailableCourses] = useState([]);
+  const { faculties } = useSelector((state) => state.faculty);
+  const { majors } = useSelector((state) => state.faculty);
 
   const {
     register,
@@ -29,8 +36,21 @@ const EditProfile = () => {
     formState: { errors },
   } = useForm({
     mode: "onChange",
-    defaultValues: { ...user },
+    defaultValues: { ...user, dateOfBirth: moment(user.dateOfBirth).format('YYYY-MM-DD') },
   });
+
+  const dispatch = useDispatch();
+
+  useEffect(() => {
+    dispatch(fetchFaculties());
+  }, [dispatch]);
+
+
+  useEffect(() => {
+    if (selectedFacultyId) {
+      dispatch(fetchMajors(selectedFacultyId))
+    }
+  }, [dispatch, selectedFacultyId]);
 
   const onSubmit = async (data) => {
     console.log("Thông tin người dùng:", {
@@ -40,8 +60,9 @@ const EditProfile = () => {
       linkedin: data.linkedin,
       github: data.github,
       faculty: selectedFacultyId,
-      major: selectedMajor,
-      isProfileHidden: isProfileHidden,
+      major: selectedMajorId,
+      academicYear: selectedCourse,
+      privacy: isProfileHidden ? 'private' : 'public',
     });
     setIsSubmitting(true);
     setErrMsg("");
@@ -50,15 +71,19 @@ const EditProfile = () => {
       const formData = new FormData();
       formData.append("firstName", data.firstName);
       formData.append("lastName", data.lastName);
+      formData.append("student_id", data.student_id);
+      formData.append("dateOfBirth", data.dateOfBirth);
       formData.append("bio", data.bio);
       formData.append("gender", selectedGender);
-      formData.append("facebook", data.facebook); // Thêm URL Facebook
-      formData.append("linkedin", data.linkedin); // Thêm URL LinkedIn
-      formData.append("github", data.github); // Thêm URL Github
-      formData.append("faculty", selectedFaculty); // Thêm khoa
-      formData.append("major", selectedMajor); // Thêm ngành
-      formData.append("course", selectedCourse); // Thêm khóa học
-      formData.append("isProfileHidden", isProfileHidden); // Thêm trạng thái ẩn hồ sơ
+      formData.append("facebook", data.facebook);
+      formData.append("linkedin", data.linkedin);
+      formData.append("github", data.github);
+      formData.append("faculty", selectedFacultyId);
+      formData.append("major", selectedMajorId);
+      formData.append("academicYear", selectedCourse);
+
+      const privacy = isProfileHidden ? 'private' : 'public';
+      formData.append("privacy", privacy);
 
       if (picture) {
         formData.append("avatar", picture);
@@ -75,6 +100,7 @@ const EditProfile = () => {
         setIsSubmitting(false);
       }
     } catch (error) {
+      console.error(error);
       setErrMsg({
         message: "Đã xảy ra lỗi, vui lòng thử lại!",
         status: "failed",
@@ -101,7 +127,7 @@ const EditProfile = () => {
     }
   };
 
-  const [selectedGender, setSelectedGender] = useState(user?.gender || "");
+
   const handleGenderChange = (event) => {
     setSelectedGender(event.target.value);
   };
@@ -110,55 +136,30 @@ const EditProfile = () => {
     setIsProfileHidden(event.target.checked);
   };
 
-  const [selectedFacultyId, setSelectedFacultyId] = useState(
-    user?.facultyId || ""
-  );
-  const [selectedMajorId, setSelectedMajorId] = useState(user?.majorId || "");
-  const [availableMajors, setAvailableMajors] = useState([]);
-
-  useEffect(() => {
-    console.log("faculty: ", selectedFacultyId);
-    console.log("major: ", selectedMajorId);
-    const selectedFaculty = faculties.find(
-      (faculty) => faculty.id === selectedFacultyId
-    );
-
-    if (selectedFaculty) {
-      setAvailableMajors(selectedFaculty.majors);
-      console.log("Major", availableMajors);
-    } else {
-      setAvailableMajors([]);
-    }
-  }, [user, selectedFacultyId]);
-
-  const handleFacultyChange = (event) => {
-    setSelectedFacultyId(parseInt(event.target.value, 10));
+  const handleFacultyChange = (e) => {
+    setSelectedFacultyId(e.target.value);
     setSelectedMajorId("");
   };
 
-  const handleMajorChange = (event) => {
-    setSelectedMajorId(parseInt(event.target.value, 10));
+  const handleMajorChange = (e) => {
+    setSelectedMajorId(e.target.value);
   };
 
-  const [selectedCourseId, setSelectedCourseId] = useState(
-    user?.courseId || ""
-  );
-  const [availableCourses, setAvailableCourses] = useState([]);
 
-  const handleCourseChange = (event) => {
-    setSelectedCourseId(parseInt(event.target.value, 10));
+  const handleCourseChange = (e) => {
+    setSelectedCourse(e.target.value);
   };
 
   useEffect(() => {
-    const selectedMajor = availableMajors.find(
-      (major) => major.id === selectedMajorId
+    const selectedMajor = majors.find(
+      (major) => major._id === selectedMajorId
     );
     if (selectedMajor) {
-      setAvailableCourses(selectedMajor.courses);
+      setAvailableCourses(selectedMajor.academicYear);
     } else {
       setAvailableCourses([]);
     }
-  }, [selectedMajorId, availableMajors]);
+  }, [selectedMajorId, majors]);
 
   return (
     <>
@@ -216,28 +217,54 @@ const EditProfile = () => {
                 />
               </label>
 
+              <div className="flex justify-center gap-4">
+                <TextInput
+                  name="firstName"
+                  label={<span className="font-bold">Tên</span>}
+                  placeholder="Tên"
+                  type="text"
+                  styles="w-full"
+                  register={register("firstName", {
+                    required: "Tên là bắt buộc!",
+                  })}
+                  error={errors.firstName ? errors.firstName?.message : ""}
+                />
+
+                <TextInput
+                  label={<span className="font-bold">Họ</span>}
+                  name="lastName"
+                  placeholder="Họ"
+                  type="text"
+                  styles="w-full"
+                  register={register("lastName", {
+                    required: "Họ không khớp!",
+                  })}
+                  error={errors.lastName ? errors.lastName?.message : ""}
+                />
+              </div>
+
               <TextInput
-                name="firstName"
-                label={<span className="font-bold">Tên</span>}
-                placeholder="Tên"
+                name="student_id"
+                label={<span className="font-bold">Mã số sinh viên</span>}
+                placeholder="B1234567"
                 type="text"
                 styles="w-full"
-                register={register("firstName", {
-                  required: "Tên là bắt buộc!",
+                register={register("student_id", {
+                  required: "Mã số sinh viên là bắt buộc!"
                 })}
-                error={errors.firstName ? errors.firstName?.message : ""}
+                error={errors.student_id ? errors.student_id?.message : ""}
               />
 
               <TextInput
-                label={<span className="font-bold">Họ</span>}
-                name="lastName"
-                placeholder="Họ"
-                type="lastName"
+                name="dateOfBirth"
+                label={<span className="font-bold">Ngày sinh</span>}
+                placeholder="08/13/2003"
+                type="date"
                 styles="w-full"
-                register={register("lastName", {
-                  required: "Họ không khớp!",
+                register={register("dateOfBirth", {
+                  required: "Ngày sinh là bắt buộc!"
                 })}
-                error={errors.lastName ? errors.lastName?.message : ""}
+                error={errors.dateOfBirth ? errors.dateOfBirth?.message : ""}
               />
 
               <TextInput
@@ -253,9 +280,8 @@ const EditProfile = () => {
 
               <label>
                 <span
-                  className={`font-bold text-ascent-2 text-sm mb-2 ${
-                    theme === "dark" ? "text-gray" : "text-black"
-                  }`}
+                  className={`font-bold text-ascent-2 text-sm mb-2 ${theme === "dark" ? "text-gray" : "text-black"
+                    }`}
                 >
                   Giới tính
                 </span>
@@ -267,9 +293,8 @@ const EditProfile = () => {
                 >
                   <option
                     value=""
-                    className={`text-ascent-2 text-sm mb-2 ${
-                      theme === "dark" ? "text-white" : "text-black"
-                    }`}
+                    className={`text-ascent-2 text-sm mb-2 ${theme === "dark" ? "text-white" : "text-black"
+                      }`}
                   >
                     Chọn giới tính
                   </option>
@@ -311,9 +336,8 @@ const EditProfile = () => {
 
               <label>
                 <span
-                  className={`font-bold text-ascent-2 text-sm mb-2 ${
-                    theme === "dark" ? "text-gray" : "text-black"
-                  }`}
+                  className={`font-bold text-ascent-2 text-sm mb-2 ${theme === "dark" ? "text-gray" : "text-black"
+                    }`}
                 >
                   Khoa
                 </span>
@@ -325,7 +349,7 @@ const EditProfile = () => {
                 >
                   <option value="">Chọn khoa</option>
                   {faculties.map((faculty) => (
-                    <option key={faculty.id} value={faculty.id}>
+                    <option key={faculty._id} value={faculty._id}>
                       {faculty.name}
                     </option>
                   ))}
@@ -334,9 +358,8 @@ const EditProfile = () => {
 
               <label>
                 <span
-                  className={`font-bold text-ascent-2 text-sm mb-2 ${
-                    theme === "dark" ? "text-gray" : "text-black"
-                  }`}
+                  className={`font-bold text-ascent-2 text-sm mb-2 ${theme === "dark" ? "text-gray" : "text-black"
+                    }`}
                 >
                   Ngành
                 </span>
@@ -348,9 +371,9 @@ const EditProfile = () => {
                   disabled={!selectedFacultyId}
                 >
                   <option value="">Chọn ngành</option>
-                  {availableMajors.map((major) => (
-                    <option key={major.id} value={major.id}>
-                      {major.name}
+                  {majors.map((major) => (
+                    <option key={major._id} value={major._id}>
+                      {major.majorName}
                     </option>
                   ))}
                 </select>
@@ -358,23 +381,22 @@ const EditProfile = () => {
 
               <label>
                 <span
-                  className={`font-bold text-ascent-2 text-sm mb-2 ${
-                    theme === "dark" ? "text-gray" : "text-black"
-                  }`}
+                  className={`font-bold text-ascent-2 text-sm mb-2 ${theme === "dark" ? "text-gray" : "text-black"
+                    }`}
                 >
                   Khóa học
                 </span>
                 <select
                   id="course"
-                  value={selectedCourseId}
+                  value={selectedCourse}
                   onChange={handleCourseChange}
                   className={`bg-secondary border-[#66666690] mb-2 outline-none text-sm text-ascent-2 placeholder:text-[#666] w-full border rounded-md py-2 px-3 mt-1`}
                   disabled={!selectedMajorId}
                 >
                   <option value="">Chọn khóa học</option>
                   {availableCourses.map((course) => (
-                    <option key={course.id} value={course.id}>
-                      {course.name}
+                    <option key={course} value={course}>
+                      {course}
                     </option>
                   ))}
                 </select>
@@ -390,9 +412,8 @@ const EditProfile = () => {
                 />
                 <label
                   htmlFor="hideProfile"
-                  className={`ml-2 text-sm font-medium text-gray-900 dark:text-gray-300 ${
-                    theme === "dark" ? "text-gray" : "text-black"
-                  }`}
+                  className={`ml-2 text-sm font-medium text-gray-900 dark:text-gray-300 ${theme === "dark" ? "text-gray" : "text-black"
+                    }`}
                 >
                   Ẩn hồ sơ
                 </label>
@@ -401,11 +422,10 @@ const EditProfile = () => {
               {errMsg?.message && (
                 <span
                   role="alert"
-                  className={`text-sm ${
-                    errMsg?.status === "failed"
-                      ? "text-[#f64949fe]"
-                      : "text-[#2ba150fe]"
-                  } mt-0.5`}
+                  className={`text-sm ${errMsg?.status === "failed"
+                    ? "text-[#f64949fe]"
+                    : "text-[#2ba150fe]"
+                    } mt-0.5`}
                 >
                   {errMsg?.message}
                 </span>

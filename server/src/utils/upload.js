@@ -26,6 +26,9 @@ const storage = new CloudinaryStorage({
         } else if (file.fieldname === 'tags') {
             folder += 'tags';
             allowedFormats = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'];
+        } else if (file.fieldname === 'banner') {
+            folder += 'banners';
+            allowedFormats = ['jpg', 'png', 'jpeg'];
         }
 
         return {

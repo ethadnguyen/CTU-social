@@ -6,6 +6,8 @@ import { FaSearch, FaBan } from "react-icons/fa";
 import { AiOutlineLike } from "react-icons/ai";
 import { MdOutlineReportProblem } from "react-icons/md";
 import axiosInstance from '../api/axiosConfig';
+import Swal from 'sweetalert2';
+import { toast } from 'react-toastify';
 
 const UserManagement = () => {
   const [users, setUsers] = useState([]);
@@ -65,24 +67,48 @@ const UserManagement = () => {
     }
   };
 
-  const handleBanUser = (UserId) => {
-    console.log("Cấm người dùng:", UserId);
-    // ... (logic ban user)
+  const handleBanUser = async (UserId) => {
+    Swal.fire({
+      title: 'Bạn có chắc chắn muốn xóa tài khoản người dùng này?',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Xóa',
+      cancelButtonText: 'Hủy bỏ'
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        try {
+          const res = await axiosInstance.delete(`/admin/delete-account/${UserId}`);
+          if (res.status === 200) {
+            toast.success('Xóa tài khoản người dùng thành công');
+          }
+        } catch (error) {
+          console.log(error);
+          toast.error(error.response.data.message);
+        }
+      }
+    });
   };
 
-  const handleDeletePost = (PostId) => {
-    console.log("Xóa bài đăng:", PostId);
-    // ... (logic xóa post)
-  };
-
-  const handleDeleteLike = (LikeId) => {
-    console.log("Xóa like:", LikeId);
-    // ... (logic xóa like)
-  };
-
-  const handleDeleteReport = (LikeId) => {
-    console.log("Xóa report:", LikeId);
-    // ... (logic xóa report)
+  const handleDeletePost = async (PostId) => {
+    Swal.fire({
+      title: 'Bạn có chắc chắn muốn xóa bài đăng này?',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Xóa',
+      cancelButtonText: 'Hủy bỏ'
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        try {
+          const res = await axiosInstance.delete(`/admin/delete-post/${PostId}`);
+          if (res.status === 200) {
+            toast.success('Xóa bài đăng thành công');
+          }
+        } catch (error) {
+          toast.error(error.response.data.message);
+          console.log(error);
+        }
+      }
+    });
   };
 
   const [searchUser, setSearchUser] = useState('');
@@ -164,7 +190,7 @@ const UserManagement = () => {
                 ${selectedUser?._id === User._id ? 'bg-sky text-white' : ''}`}
             >
               <>
-                <a href={`http://localhost:5173/profile/${User._id}`} target="_blank" className="hover:underline">{User.firstName} {User.lastName}</a>
+                <a href={`${import.meta.env.VITE_CLIENT_URL}/profile/${User._id}`} target="_blank" className="hover:underline">{User.firstName} {User.lastName}</a>
                 <div className={`absolute right-2 top-1/2 transform -translate-y-1/2 
                   ${selectedUser?._id === User._id ? '' : 'hidden'}`}>
                   <button className="mr-3" onClick={(event) => {
@@ -267,12 +293,6 @@ const UserManagement = () => {
                     <a href={`http://localhost:5173/profile/${Like._id}`} target="_blank" className="hover:underline">{Like.firstName} {Like.lastName}</a>
                     <div className={`absolute right-2 top-1/2 transform -translate-y-1/2 
                             ${selectedLike?._id === Like._id ? '' : 'hidden'}`}>
-                      <button onClick={(event) => {
-                        event.stopPropagation();
-                        handleDeleteLike(Like._id);
-                      }}>
-                        <AiFillDelete className="" />
-                      </button>
                     </div>
                   </>
                 </li>
@@ -314,12 +334,6 @@ const UserManagement = () => {
                     {Report.firstName} {Report.lastName}
                     <div className={`absolute right-2 top-1/2 transform -translate-y-1/2 
                                 ${selectedReport?._id === Report._id ? '' : 'hidden'}`}>
-                      <button onClick={(event) => {
-                        event.stopPropagation();
-                        handleDeleteReport(Report._id);
-                      }}>
-                        <AiFillDelete className="" />
-                      </button>
                     </div>
                   </>
                 </li>

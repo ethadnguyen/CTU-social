@@ -10,7 +10,7 @@ import {
   TextInput,
   TopBar,
 } from "../components";
-import { suggest, requests } from "../assets/data";
+import { suggest } from "../assets/data";
 import { Posts } from "../assets/home";
 import { groups } from "../assets/groups";
 import { Link, useLocation, ScrollRestoration } from "react-router-dom";
@@ -20,7 +20,7 @@ import { BiImages } from "react-icons/bi";
 import { useForm } from "react-hook-form";
 import { CiFileOn } from "react-icons/ci";
 import axiosInstance from '../api/axiosConfig';
-import { getPosts, likePost, reportPost, updatePost, updatePosts } from '../redux/postSlice';
+import { getPosts, likePost, reportPost, updatePost } from '../redux/postSlice';
 import { FaFile } from 'react-icons/fa6';
 import { toast } from 'react-toastify';
 import { updateUser } from '../redux/userSlice';
@@ -34,8 +34,8 @@ const Home = () => {
   const [friendRequest, setFriendRequest] = useState([]);
   const [suggestedFriends, setSuggestedFriends] = useState(suggest);
   const [errMsg, setErrMsg] = useState("");
-  const [files, setFiles] = useState([]);
   const [images, setImages] = useState([]);
+  const [groups, setGroups] = useState([]);
   const [posting, setPosting] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -54,7 +54,17 @@ const Home = () => {
     dispatch(getPosts());
   }, [dispatch]);
 
-  console.log("Posts:", posts);
+  useEffect(() => {
+    const fetchGroups = async () => {
+      try {
+        const res = await axiosInstance.get('/group');
+        setGroups(res.data.groups);
+      } catch (error) {
+        console.error("Error fetching groups:", error);
+      }
+    };
+    fetchGroups();
+  }, []);
 
   useEffect(() => {
     const getFriendRequests = async () => {
@@ -68,6 +78,20 @@ const Home = () => {
     };
 
     getFriendRequests();
+  }, []);
+
+  useEffect(() => {
+    const getFriendSuggestions = async () => {
+      try {
+        const res = await axiosInstance.get("/users/friend-suggestions");
+        console.log("Friend suggestions:", res.data.suggestions);
+        setSuggestedFriends(res.data.users);
+      } catch (error) {
+        console.error("Error getting friend suggestions:", error);
+      }
+    };
+
+    getFriendSuggestions();
   }, []);
 
   useEffect(() => {
@@ -88,7 +112,33 @@ const Home = () => {
     if (selectedScope === "Groups") {
       console.log("đã chọn nhóm: ", selectedGroup);
       //logic đăng bài vào nhóm
-    } else if (selectedScope === "Public") {
+      const formData = new FormData();
+      formData.append("userId", user._id);
+      formData.append("content", data.content);
+      formData.append("groupId", selectedGroup._id);
+      images.forEach((image) => {
+        formData.append("images", image);
+      });
+
+      try {
+        setPosting(true);
+        const post = await axiosInstance.post("/group/create-post", formData, {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        });
+
+        reset();
+        setImages([]);
+        setPosting(false);
+        toast.success(`Đăng bài vào nhóm ${selectedGroup?.name} thành công!`);
+      } catch (error) {
+        console.error("Error creating post:", error);
+        setPosting(false);
+        setImages([]);
+        toast.error(`Không thể đăng bài vào nhóm ${selectedGroup?.name}!`);
+      }
+    } else {
       const formData = new FormData();
 
       formData.append("userId", user._id);
@@ -97,10 +147,6 @@ const Home = () => {
 
       images.forEach((image) => {
         formData.append("images", image);
-      });
-
-      files.forEach((file) => {
-        formData.append("files", file);
       });
 
       try {
@@ -112,19 +158,18 @@ const Home = () => {
         });
         reset();
         setImages([]);
-        setFiles([]);
         setPosting(false);
         dispatch(getPosts());
 
-        const res = await axiosInstance.post("/users/create-notification", {
-          receiverIds: user.friends.map((friend) => friend._id),
-          sender: user._id,
-          message: `${user.firstName} ${user.lastName} đã tạo bài viết mới`,
-          type: "post",
-          link: `/posts/${post.data.post._id}`,
-        });
+        if (post.status === 201 && selectedScope === "Public") {
+          const res = await axiosInstance.post("/users/create-notification", {
+            receiverIds: user.friends.map((friend) => friend._id),
+            sender: user._id,
+            message: `${user.firstName} ${user.lastName} đã tạo bài viết mới`,
+            type: "post",
+            link: `/posts/${post.data.post._id}`,
+          });
 
-        if (res.status === 201) {
           socket.emit("sendFriendsNotification", {
             userId: user._id,
             notification: res.data.notification,
@@ -133,7 +178,6 @@ const Home = () => {
       } catch (error) {
         reset();
         setImages([]);
-        setFiles([]);
         setPosting(false);
         console.error("Error creating post:", error);
       }
@@ -364,32 +408,6 @@ const Home = () => {
                 </div>
               )}
 
-              {files.length > 0 && (
-                <div className="flex gap-2 py-4">
-                  {files.map((file, index) => (
-                    <div
-                      key={index}
-                      className="relative flex items-center p-2 bg-gray-100 rounded-lg"
-                    >
-                      <FaFile className="mr-2 text-white" />
-                      <span className="flex-1 overflow-hidden text-blue">
-                        {file.name}
-                      </span>
-                      <button
-                        className="absolute top-0 right-0 p-1 font-bold text-white bg-red-500 rounded-full"
-                        onClick={() => {
-                          setFiles((prevFiles) =>
-                            prevFiles.filter((_, i) => i !== index)
-                          );
-                        }}
-                      >
-                        X
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-
               {errMsg?.message && (
                 <span
                   role="alert"
@@ -424,30 +442,9 @@ const Home = () => {
                   <span>Hình ảnh</span>
                 </label>
 
-                <label
-                  className="flex items-center gap-1 text-base cursor-pointer text-ascent-2 hover:text-ascent-1"
-                  htmlFor="videoUpload"
-                >
-                  <input
-                    type="file"
-                    multiple
-                    name="files"
-                    data-max-size="5120"
-                    onChange={(e) => {
-                      const files = Array.from(e.target.files);
-                      setFiles((prevFiles) => [...prevFiles, ...files]);
-                    }}
-                    className="hidden"
-                    id="videoUpload"
-                    accept="*"
-                  />
-                  <CiFileOn />
-                  <span>Tệp</span>
-                </label>
-
                 <label>
                   <select
-                    id="gender"
+                    id="privacy"
                     value={selectedScope}
                     onChange={handleScopeChange}
                     className={`bg-secondary border-[#66666690] mb-2 outline-none text-sm text-ascent-2 placeholder:text-[#666] w-full border rounded-md py-2 px-3 mt-1`}
@@ -470,31 +467,31 @@ const Home = () => {
                   )}
                 </div>
               </div>
-              <div className="flex w-full mb-2 items-center">
+              <div className="flex items-center w-full mb-2">
                 {/* Container for button and group name */}
                 {selectedScope === "Groups" && (
                   <button
                     onClick={() => setChoosingGroup(true)}
-                    className="bg-gray text-white hover:text-gray hover:bg-primary rounded-md px-1"
+                    className="px-1 text-white rounded-md bg-gray hover:text-gray hover:bg-primary"
                     type="button"
                   >
                     Chọn nhóm
                   </button>
                 )}
                 {selectedScope === "Groups" && (
-                  <div className="rounded-md flex flex-col w-full bg-primary py-3 px-3 mb-2 hover:bg-gray-100">
+                  <div className="flex flex-col w-full px-3 py-3 mb-2 rounded-md bg-primary hover:bg-gray-100">
                     {selectedGroup ? ( // Display selected group if available
-                      <div className="rounded-md flex flex-col bg-primary py-3 px-3">
+                      <div className="flex flex-col px-3 py-3 rounded-md bg-primary">
                         <div className="relative">
                           <img
                             src={
-                              selectedGroup?.banner ?? "../src/assets/empty.jpg"
+                              selectedGroup?.banner === '' ? "../src/assets/empty.jpg" : selectedGroup?.banner
                             }
                             alt={selectedGroup?.name}
-                            className="object-cover rounded-md w-full h-20"
+                            className="object-cover w-full h-20 rounded-md"
                           />
-                          <div className="flex absolute h-20 w-full top-0">
-                            <div className="flex-grow flex flex-col justify-center bg-secondary bg-opacity-70 hover:opacity-0 transition-opacity duration-300">
+                          <div className="absolute top-0 flex w-full h-20">
+                            <div className="flex flex-col justify-center flex-grow transition-opacity duration-300 bg-secondary bg-opacity-70 hover:opacity-0">
                               <p className="ml-1 text-lg font-medium text-ascent-1">
                                 {selectedGroup?.name}
                               </p>
@@ -522,8 +519,8 @@ const Home = () => {
 
             {loading ? (
               <Loading />
-            ) : Posts?.length > 0 ? (
-              Posts?.map((post) => (
+            ) : posts?.length > 0 ? (
+              posts?.map((post) => (
                 <PostCard
                   key={post?._id}
                   post={post}
@@ -683,8 +680,8 @@ const Home = () => {
       {edit && <EditProfile />}
 
       {choosingGroup && (
-        <div className="fixed z-50 inset-0 overflow-y-auto">
-          <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
             <div
               className="fixed inset-0 transition-opacity"
               aria-hidden="true"
@@ -701,7 +698,7 @@ const Home = () => {
             </span>
 
             <div
-              className="inline-block align-bottom bg-primary rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full"
+              className="inline-block overflow-hidden text-left align-bottom transition-all transform rounded-lg shadow-xl bg-primary sm:my-8 sm:align-middle sm:max-w-lg sm:w-full"
               role="dialog"
               aria-modal="true"
               aria-labelledby="modal-headline"
@@ -709,7 +706,7 @@ const Home = () => {
               <div className="px-4 pt-5 pb-4 sm:p-6 sm:pb-4 h-[35rem] overflow-y-auto">
                 <div className="border-b border-[#66666645]">
                   <h3
-                    className="text-lg leading-6 font-medium text-ascent-1 mb-3"
+                    className="mb-3 text-lg font-medium leading-6 text-ascent-1"
                     id="modal-headline"
                   >
                     Chọn Nhóm
@@ -720,28 +717,28 @@ const Home = () => {
                   <div className="mt-4">
                     {groups?.map((group) => (
                       <div
-                        key={group.id}
-                        className="rounded-md flex flex-col bg-primary py-3 px-3 mb-2 cursor-pointer hover:bg-gray-100"
+                        key={group._id}
+                        className="flex flex-col px-3 py-3 mb-2 rounded-md cursor-pointer bg-primary hover:bg-gray-100"
                         onClick={() => {
                           setSelectedGroup(group);
                           setChoosingGroup(false);
                         }}
                       >
                         <div
-                          className="rounded-md flex flex-col bg-primary py-3 px-3"
-                          key={group.id}
+                          className="flex flex-col px-3 py-3 rounded-md bg-primary"
+                          key={group._id}
                         >
                           <div className="relative">
                             <img
-                              src={group?.banner ?? "../src/assets/empty.jpg"}
+                              src={group?.banner === '' ? "../src/assets/empty.jpg" : group?.banner}
                               alt={group?.name}
-                              className="object-cover rounded-md w-full h-20"
+                              className="object-cover w-full h-20 rounded-md"
                             />
                             <div
-                              className="flex absolute h-20 w-full top-0"
+                              className="absolute top-0 flex w-full h-20"
                               onClick={() => setSelectedGroup(group)}
                             >
-                              <div className="flex-grow flex flex-col justify-center bg-secondary bg-opacity-70 hover:opacity-0 transition-opacity duration-300">
+                              <div className="flex flex-col justify-center flex-grow transition-opacity duration-300 bg-secondary bg-opacity-70 hover:opacity-0">
                                 <p className="ml-1 text-lg font-medium text-ascent-1">
                                   {group?.name}
                                 </p>
@@ -768,10 +765,10 @@ const Home = () => {
                 )}
               </div>
 
-              <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+              <div className="px-4 py-3 bg-gray-50 sm:px-6 sm:flex sm:flex-row-reverse">
                 <button
                   type="button"
-                  className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
+                  className="inline-flex justify-center w-full px-4 py-2 mt-3 text-base font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
                   onClick={() => setChoosingGroup(false)}
                 >
                   Hủy

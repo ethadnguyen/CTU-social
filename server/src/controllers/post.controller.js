@@ -74,14 +74,19 @@ const getPosts = async (req, res) => {
         const { search } = req.query;
         console.log('search:', search);
         const searchPostQuery = {
-            $or: [
+            $and: [
+                { privacy: 'public' },
                 {
-                    content: { $regex: search, $options: 'i' },
+                    $or: [
+                        {
+                            content: { $regex: search, $options: 'i' },
+                        },
+                    ],
                 },
             ],
         };
 
-        const posts = await Post.find(search ? searchPostQuery : {})
+        const posts = await Post.find(search ? searchPostQuery : { privacy: 'public' })
             .populate({
                 path: 'user',
                 select: 'firstName lastName avatar -password',
@@ -103,9 +108,12 @@ const getPosts = async (req, res) => {
             .populate({
                 path: 'comments',
             })
+            .populate({
+                path: 'sharedBy',
+                select: 'firstName lastName avatar',
+            })
             .sort({ _id: -1 });
 
-        // Render tất cả các bài viết
         res.status(200).json({
             message: 'Lấy bài viết thành công',
             posts: posts,
@@ -138,8 +146,16 @@ const getUserPosts = async (req, res) => {
             .populate({
                 path: 'user',
                 populate: {
-                    path: 'saved'
+                    path: 'saved',
+                    select: '-password',
                 }
+            })
+            .populate({
+                path: 'group',
+            })
+            .populate({
+                path: 'sharedBy',
+                select: 'firstName lastName avatar'
             })
             .sort({ _id: -1 });
 
@@ -176,6 +192,20 @@ const getPost = async (req, res) => {
                     path: 'major',
                     select: 'majorName academicYear'
                 }
+            })
+            .populate({
+                path: 'user',
+                populate: {
+                    path: 'saved',
+                    select: '-password',
+                }
+            })
+            .populate({
+                path: 'group',
+            })
+            .populate({
+                path: 'sharedBy',
+                select: 'firstName lastName avatar'
             });
 
         res.status(200).json({
@@ -207,6 +237,20 @@ const getUserPost = async (req, res) => {
                     path: 'major',
                     select: 'majorName academicYear'
                 }
+            })
+            .populate({
+                path: 'user',
+                populate: {
+                    path: 'saved',
+                    select: '-password',
+                }
+            })
+            .populate({
+                path: 'group',
+            })
+            .populate({
+                path: 'sharedBy',
+                select: 'firstName lastName avatar'
             })
             .sort({ _id: -1 });
 
@@ -533,9 +577,33 @@ const savePost = async (req, res) => {
         await user.save();
         await post.save();
 
+        const updatedPost = await Post.findById(id)
+            .populate({
+                path: 'user',
+                select: 'firstName lastName avatar -password',
+                populate: {
+                    path: 'faculty',
+                    select: 'name'
+                }
+            })
+            .populate({
+                path: 'user',
+                populate: {
+                    path: 'major',
+                    select: 'majorName academicYear'
+                }
+            })
+            .populate({
+                path: 'group',
+            })
+            .populate({
+                path: 'sharedBy',
+                select: 'firstName lastName avatar'
+            });
+
         res.status(200).json({
             message: isSaved ? 'Bỏ lưu bài viết thành công' : 'Lưu bài viết thành công',
-            savedPosts: user.saved,
+            post: updatedPost,
         });
     } catch (error) {
         console.log(error);
@@ -556,17 +624,32 @@ const getSavedPosts = async (req, res) => {
         const savedPosts = await Post.find({ _id: { $in: user.saved } })
             .populate({
                 path: 'user',
-                select: 'firstName lastName avatar',
-                populate: [
-                    {
-                        path: 'faculty',
-                        select: 'name'
-                    },
-                    {
-                        path: 'major',
-                        select: 'majorName academicYear'
-                    }
-                ]
+                select: 'firstName lastName avatar -password',
+                populate: {
+                    path: 'faculty',
+                    select: 'name'
+                }
+            })
+            .populate({
+                path: 'user',
+                populate: {
+                    path: 'major',
+                    select: 'majorName academicYear'
+                }
+            })
+            .populate({
+                path: 'user',
+                populate: {
+                    path: 'saved',
+                    select: '-password',
+                }
+            })
+            .populate({
+                path: 'group',
+            })
+            .populate({
+                path: 'sharedBy',
+                select: 'firstName lastName avatar'
             })
             .sort({ _id: -1 });
 
@@ -583,28 +666,60 @@ const getSavedPosts = async (req, res) => {
 const sharePost = async (req, res) => {
     const { userId } = req.body.user;
     const { id } = req.params;
-    const { visibility } = req.body;
+
     try {
         const post = await Post.findById(id);
         if (!post) {
             return res.status(404).json({ message: 'Bài viết không tồn tại' });
         }
 
-        if (post.sharedBy.includes(userId)) {
-            return res.status(400).json({ message: 'Bài viết đã được chia sẻ' });
-        }
+        const userShared = post.sharedBy.includes(userId);
 
-        post.sharedBy.push(userId);
-        post.shares += 1;
+        if (userShared) {
+            post.sharedBy = post.sharedBy.filter((user) => user.toString() !== userId);
+            post.shares -= 1;
+        } else {
+            post.sharedBy.push(userId);
+            post.shares += 1;
+        }
 
         await post.save();
 
-        res.status(201).json({ message: 'Chia sẻ bài viết thành công', post });
+        const updatedPost = await Post.findById(id)
+            .populate({
+                path: 'user',
+                select: 'firstName lastName avatar -password',
+                populate: {
+                    path: 'faculty',
+                    select: 'name',
+                },
+            })
+            .populate({
+                path: 'user',
+                populate: {
+                    path: 'major',
+                    select: 'majorName academicYear',
+                },
+            })
+            .populate({
+                path: 'group',
+            })
+            .populate({
+                path: 'comments',
+            })
+            .populate({
+                path: 'sharedBy',
+                select: 'firstName lastName avatar',
+            });
+
+        res.status(201).json({
+            message: userShared ? 'Bỏ chia sẻ bài viết thành công' : 'Chia sẻ bài viết thành công',
+            post: updatedPost,
+        });
     } catch (error) {
         console.log(error);
         res.status(500).json({ message: error.message });
     }
-
 };
 
 const getSharedPosts = async (req, res) => {
@@ -642,7 +757,7 @@ const commentPost = async (req, res) => {
         const updatedPost = await Post.findByIdAndUpdate(id, post, { new: true })
             .populate({
                 path: 'user',
-                select: 'firstName lastName avatar',
+                select: 'firstName lastName avatar -password',
                 populate: {
                     path: 'faculty',
                     select: 'name'
@@ -654,6 +769,20 @@ const commentPost = async (req, res) => {
                     path: 'major',
                     select: 'majorName academicYear'
                 }
+            })
+            .populate({
+                path: 'user',
+                populate: {
+                    path: 'saved',
+                    select: '-password',
+                }
+            })
+            .populate({
+                path: 'group',
+            })
+            .populate({
+                path: 'sharedBy',
+                select: 'firstName lastName avatar'
             });
 
         res.status(201).json({
@@ -714,13 +843,12 @@ const createPost = async (req, res) => {
         }
 
         const images = req.files && req.files['images'] ? req.files['images'].map(file => file.path) : [];
-        const files = req.files && req.files['files'] ? req.files['files'].map(file => file.path) : [];
+        // const files = req.files && req.files['files'] ? req.files['files'].map(file => file.path) : [];
 
         const newPost = new Post({
             user: userId,
             content,
             images,
-            files,
             privacy
         });
 
@@ -739,10 +867,10 @@ const createPost = async (req, res) => {
 };
 
 const updatePost = async (req, res) => {
-    try {
-        const id = req.params.id;
-        const { userId, content, privacy, removeImages, removeFiles } = req.body;
+    const { userId, content, privacy, remainingImages } = req.body;
+    const id = req.params.id;
 
+    try {
         const post = await Post.findById(id);
 
         if (!post) {
@@ -753,22 +881,13 @@ const updatePost = async (req, res) => {
             return res.status(403).json({ message: 'Bạn không có quyền chỉnh sửa bài viết này' });
         }
 
-        if (removeImages && Array.isArray(removeImages)) {
-            post.images = post.images.filter(image => !removeImages.includes(image));
-        }
-
-        if (removeFiles && Array.isArray(removeFiles)) {
-            post.files = post.files.filter(file => !removeFiles.includes(file));
+        if (remainingImages && Array.isArray(remainingImages)) {
+            post.images = post.images.filter(image => remainingImages.includes(image));
         }
 
         if (req.files && req.files['images']) {
             const newImagePaths = req.files['images'].map(file => file.path);
             post.images = [...post.images, ...newImagePaths];
-        }
-
-        if (req.files && req.files['files']) {
-            const newFilePaths = req.files['files'].map(file => file.path);
-            post.files = [...post.files, ...newFilePaths];
         }
 
         if (content !== undefined) {
@@ -779,7 +898,38 @@ const updatePost = async (req, res) => {
         }
 
         await post.save();
-        res.status(200).json({ message: 'Cập nhật bài viết thành công', post });
+
+        const updatedPost = await Post.findById(id)
+            .populate({
+                path: 'user',
+                select: 'firstName lastName avatar -password',
+                populate: {
+                    path: 'faculty',
+                    select: 'name'
+                }
+            })
+            .populate({
+                path: 'user',
+                populate: {
+                    path: 'major',
+                    select: 'majorName academicYear'
+                }
+            })
+            .populate({
+                path: 'user',
+                populate: {
+                    path: 'saved',
+                    select: '-password',
+                }
+            })
+            .populate({
+                path: 'group',
+            })
+            .populate({
+                path: 'sharedBy',
+                select: 'firstName lastName avatar'
+            });
+        res.status(200).json({ message: 'Cập nhật bài viết thành công', post: updatedPost });
     } catch (error) {
         console.log(error);
         res.status(500).json({ message: error.message });
@@ -802,12 +952,22 @@ const deletePost = async (req, res) => {
             { $pull: { posts: id } }
         );
 
+        await Comment.deleteMany({ post: id });
+
+        if (post.group) {
+            await Group.updateOne(
+                { _id: post.group },
+                { $pull: { posts: id } }
+            );
+        }
+
         res.status(200).json({ message: 'Xóa bài viết thành công' });
     } catch (error) {
         console.log(error);
         res.status(500).json({ message: error.message });
     }
 };
+
 
 const deletePostComment = async (req, res) => {
     try {

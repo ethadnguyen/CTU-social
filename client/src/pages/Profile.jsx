@@ -145,20 +145,6 @@ const Profile = () => {
   const handleReportPost = async (post) => {
     try {
       await dispatch(reportPost(post._id));
-      // const updatedPosts = posts.map((p) => {
-      //   if (p._id === postId) {
-      //     const hasReported = p.reportedBy.includes(user._id);
-      //     return {
-      //       ...p,
-      //       reports: hasReported ? p.reports - 1 : p.reports + 1,
-      //       reportedBy: hasReported
-      //         ? p.reportedBy.filter(id => id !== user._id)
-      //         : [...p.reportedBy, user._id],
-      //     }
-      //   }
-      //   return p;
-      // });
-      // dispatch(updatePosts(updatedPosts));
       const updatedPost = {
         ...post, reports: post.reportedBy.includes(user._id)
           ? post.reports - 1
@@ -315,7 +301,7 @@ const Profile = () => {
       }
     });
   };
-
+  console.log('savedPosts', savedPosts);
   return (
     <>
       <div className="w-full h-[89vh] px-0 pb-1 overflow-hidden lg:px-10 2xl:px-40 bg-bgColor lg:rounded-lg">
@@ -324,11 +310,13 @@ const Profile = () => {
           {/* LEFT */}
           <div className="flex-col h-full hidden w-1/3 gap-4 overflow-y-auto lg:w-1/4 md:flex">
             <ProfileCard user={userInfo} />
-            <FriendsCard friends={userInfo?.friends} />
-
-            <div className="block lg:hidden">
+            {(user?._id === id || userInfo?.privacy === 'public') && (
               <FriendsCard friends={userInfo?.friends} />
-            </div>
+            )}
+
+            {/* <div className="block lg:hidden">
+              <FriendsCard friends={userInfo?.friends} />
+            </div> */}
           </div>
 
           {/* CENTER */}
@@ -361,16 +349,20 @@ const Profile = () => {
                   )}
 
                   {userPosts?.length > 0 && !showSavedPosts ? (
-                    userPosts?.map((post) => (
-                      <PostCard
-                        post={post}
-                        key={post?._id}
-                        user={user}
-                        deletePost={handleDeletePost}
-                        likePost={handleLikePost}
-                        reportPost={handleReportPost}
-                      />
-                    ))
+                    userPosts
+                      .filter((post) =>
+                        post.privacy === 'public' || (post.privacy === 'private' && user?._id === id)
+                      )
+                      .map((post) => (
+                        <PostCard
+                          post={post}
+                          key={post?._id}
+                          user={user}
+                          deletePost={handleDeletePost}
+                          likePost={handleLikePost}
+                          reportPost={handleReportPost}
+                        />
+                      ))
                   ) : showSavedPosts && savedPosts?.length > 0 ? (
                     savedPosts.map((savedPost) => (
                       <PostCard
@@ -379,6 +371,7 @@ const Profile = () => {
                         user={user}
                         deletePost={handleDeletePost}
                         likePost={handleLikePost}
+                        reportPost={handleReportPost}
                       />
                     ))
                   ) : showSavedPosts ? (
@@ -458,53 +451,64 @@ const Profile = () => {
                 )}
               </div>
 
-              {tags.map((tag) => (
-                <div key={tag._id}>
-                  <div className="flex items-center justify-between cursor-pointer">
-                    <div
-                      onClick={() => toggleTag(tag._id)}
-                      className="flex items-center cursor-pointer text-ascent-1"
-                    >
-                      <h4>{tag.name}</h4>
-                      {expandedTags[tag._id] ? (
-                        <ChevronUpIcon className="w-5 h-5" />
-                      ) : (
-                        <ChevronDownIcon className="w-5 h-5" />
+              {(user?._id === id || userInfo?.privacy === 'public') ? (
+                tags.length > 0 ? (
+                  tags.map((tag) => (
+                    <div key={tag._id}>
+                      <div className="flex items-center justify-between cursor-pointer">
+                        <div
+                          onClick={() => toggleTag(tag._id)}
+                          className="flex items-center cursor-pointer text-ascent-1"
+                        >
+                          <h4>{tag.name}</h4>
+                          {expandedTags[tag._id] ? (
+                            <ChevronUpIcon className="w-5 h-5" />
+                          ) : (
+                            <ChevronDownIcon className="w-5 h-5" />
+                          )}
+                        </div>
+                        {user._id === id && (
+                          <div className="flex items-center">
+                            <MdDeleteForever className="ml-2 size-5 text-ascent-1" onClick={handleDeleteTag} />
+                            <MdOutlineFileUpload className="ml-2 size-5 text-ascent-1" onClick={handleUploadClick} />
+                            <input type='file' id='file-input' className='hidden' ref={fileInputRef} onChange={() => handleUploadFile(tag._id)} />
+                          </div>
+                        )}
+                      </div>
+                      {expandedTags[tag._id] && (
+                        <ul>
+                          {tag.files.map((file, idx) => (
+                            <li
+                              key={file.id}
+                              className="flex items-center hover:bg-gray"
+                            >
+                              <div className="w-[90%]">
+                                <a
+                                  href={file.url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-sky hover:underline break-all"
+                                >
+                                  {file?.name}
+                                </a>
+                              </div>
+                              <MdDeleteOutline className="ml-2 size-5 text-ascent-1" onClick={() => handleDeleteFile(file.id)} />
+                            </li>
+                          ))}
+                        </ul>
                       )}
                     </div>
-                    {user._id === id && (
-                      <div className="flex items-center">
-                        <MdDeleteForever className="ml-2 size-5 text-ascent-1" onClick={handleDeleteTag} />
-                        <MdOutlineFileUpload className="ml-2 size-5 text-ascent-1" onClick={handleUploadClick} />
-                        <input type='file' id='file-input' className='hidden' ref={fileInputRef} onChange={() => handleUploadFile(tag._id)} />
-                      </div>
-                    )}
+                  ))
+                ) : (
+                  <div className="flex items-center justify-center w-full h-full">
+                    <p className="text-lg text-ascent-2">Người dùng chưa đăng tải tài liệu nào</p>
                   </div>
-                  {expandedTags[tag._id] && (
-                    <ul>
-                      {tag.files.map((file, idx) => (
-                        <li
-                          key={file.id}
-                          className="flex items-center hover:bg-gray"
-                        >
-                          <div className="w-[90%]">
-                            <a
-                              href={file.url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-sky hover:underline break-all"
-                            >
-                              {/* {file.url.split("/").pop()} */}
-                              {file?.name}
-                            </a>
-                          </div>
-                          <MdDeleteOutline className="ml-2 size-5 text-ascent-1" onClick={() => handleDeleteFile(file.id)} />
-                        </li>
-                      ))}
-                    </ul>
-                  )}
+                )
+              ) : (
+                <div className="flex items-center justify-center w-full h-full">
+                  <p className="text-lg text-ascent-2">Tài liệu đã bị ẩn</p>
                 </div>
-              ))}
+              )}
             </div>
 
             <div className="flex-1 px-5 py-5 overflow-y-auto rounded-lg shadow-sm bg-primary">
@@ -567,45 +571,51 @@ const Profile = () => {
                 </div>
               )}
 
-              {user.groups?.length > 0
-                ? user.groups?.map((group) => (
-                  <div
-                    className="rounded-md flex flex-col bg-primary py-3 px-3"
-                    key={group._id}
-                  >
-                    <div className="relative">
-                      <img
-                        src={group?.banner === '' ? "../src/assets/empty.jpg" : group?.banner}
-                        alt={group?.name}
-                        className="object-cover rounded-md w-full h-20"
-                      />
-                      <Link
-                        to={"/group/" + group?._id}
-                        className="flex absolute h-20 w-full top-0"
-                      >
-                        <div className="flex-grow flex flex-col justify-center bg-secondary bg-opacity-70 hover:opacity-0 transition-opacity duration-300">
-                          <p className="ml-1 text-lg font-medium text-ascent-1">
-                            {group?.name}
-                          </p>
-                          <p className="ml-1 text-base text-ascent-2">
-                            {group?.description
-                              ?.split(" ")
-                              .slice(0, 30)
-                              .join(" ") +
-                              (group?.description?.split(" ").length > 30
-                                ? "..."
-                                : "")}
-                          </p>
-                        </div>
-                      </Link>
+              {(user?._id === id || userInfo?.privacy === 'public') ? (
+                userInfo?.groups?.length > 0 ? (
+                  userInfo.groups.map((group) => (
+                    <div
+                      className="rounded-md flex flex-col bg-primary py-3 px-3"
+                      key={group._id}
+                    >
+                      <div className="relative">
+                        <img
+                          src={group?.banner === '' ? "../src/assets/empty.jpg" : group?.banner}
+                          alt={group?.name}
+                          className="object-cover rounded-md w-full h-20"
+                        />
+                        <Link
+                          to={"/group/" + group?._id}
+                          className="flex absolute h-20 w-full top-0"
+                        >
+                          <div className="flex-grow flex flex-col justify-center bg-secondary bg-opacity-70 hover:opacity-0 transition-opacity duration-300">
+                            <p className="ml-1 text-lg font-medium text-ascent-1">
+                              {group?.name}
+                            </p>
+                            <p className="ml-1 text-base text-ascent-2">
+                              {group?.description
+                                ?.split(" ")
+                                .slice(0, 30)
+                                .join(" ") +
+                                (group?.description?.split(" ").length > 30
+                                  ? "..."
+                                  : "")}
+                            </p>
+                          </div>
+                        </Link>
+                      </div>
                     </div>
-                  </div>
-                ))
-                : (
+                  ))
+                ) : (
                   <div className="flex items-center justify-center w-full h-full">
-                    <p className="text-lg text-ascent-2">Không có nhóm nào</p>
+                    <p className="text-lg text-ascent-2">Chưa tham gia nhóm nào</p>
                   </div>
-                )}
+                )
+              ) : (
+                <div className="flex items-center justify-center w-full h-full">
+                  <p className="text-lg text-ascent-2">Thông tin nhóm đã bị ẩn</p>
+                </div>
+              )}
             </div>
           </div>
         </div>

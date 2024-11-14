@@ -4,12 +4,13 @@ import userSlice from "./userSlice";
 import themeSlice from "./theme";
 import postSlice from "./postSlice";
 import facultySlice from './facultySlice';
-
+import groupSlice from './groupSlice';
 const rootReducer = combineReducers({
   user: userSlice,
   theme: themeSlice,
   posts: postSlice,
   faculty: facultySlice,
+  group: groupSlice,
 });
 
 export { rootReducer };

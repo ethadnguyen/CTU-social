@@ -33,6 +33,7 @@ const {
     updateCourse,
     deleteCourse,
     getMajorsByFaculty,
+    deletePost,
 } = require('../controllers/admin.controller');
 const { isAdmin } = require('../utils');
 const authMiddleware = require('../middlewares/auth.middleware');
@@ -99,6 +100,8 @@ router.get('/accounts-by-major', authMiddleware, isAdmin, getAccountsByMajor);
 router.get('/accounts/:id', authMiddleware, isAdmin, getAccount);
 
 router.delete('/delete-account/:id', authMiddleware, isAdmin, deleteAccount);
+
+router.delete('/delete-post/:id', authMiddleware, isAdmin, deletePost);
 
 // manage request
 

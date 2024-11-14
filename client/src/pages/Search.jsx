@@ -10,8 +10,7 @@ import {
   TextInput,
   TopBar,
 } from "../components";
-import { suggest, requests } from "../assets/data";
-import { groups } from "../assets/groups";
+import { suggest } from "../assets/data";
 import {
   Link,
   useParams,
@@ -20,9 +19,8 @@ import {
 } from "react-router-dom";
 import { NoProfile } from "../assets";
 import { BsPersonFillAdd } from "react-icons/bs";
-import { BiImages } from "react-icons/bi";
 import { useForm } from "react-hook-form";
-import { CiFileOn } from "react-icons/ci";
+import { EmptyImage } from '../assets';
 import axiosInstance from "../api/axiosConfig";
 import {
   getPosts,
@@ -35,18 +33,15 @@ import { getUsersByQuery, updateUser } from "../redux/userSlice";
 import { fetchFaculties } from "../redux/facultySlice";
 import Swal from "sweetalert2";
 import socket from '../api/socket';
+import { getGroupsByQuery } from '../redux/groupSlice';
 
 const Search = () => {
   const { user, users, edit } = useSelector((state) => state.user);
   const { faculties } = useSelector((state) => state.faculty);
+  const { groups } = useSelector((state) => state.group);
   const posts = useSelector((state) => state.posts.posts);
   const [friendRequest, setFriendRequest] = useState([]);
   const [suggestedFriends, setSuggestedFriends] = useState(suggest);
-  const [errMsg, setErrMsg] = useState("");
-  const [files, setFiles] = useState([]);
-  const [images, setImages] = useState([]);
-  const [posting, setPosting] = useState(false);
-  const [loading, setLoading] = useState(false);
 
 
   const dispatch = useDispatch();
@@ -69,6 +64,7 @@ const Search = () => {
   useEffect(() => {
     dispatch(getPosts(searchQuery));
     dispatch(getUsersByQuery(searchQuery));
+    dispatch(getGroupsByQuery(searchQuery));
   }, [dispatch, searchQuery]);
 
   useEffect(() => {
@@ -325,16 +321,16 @@ const Search = () => {
               ? groups?.map((group) => (
                 <div
                   className="rounded-md flex flex-col bg-primary py-3 px-3"
-                  key={group.id}
+                  key={group._id}
                 >
                   <div className="relative">
                     <img
-                      src={group?.banner ?? '../src/assets/empty.jpg'}
+                      src={group?.banner === '' ? EmptyImage : group?.banner}
                       alt={group?.name}
                       className="object-cover rounded-md w-full h-20"
                     />
                     <Link
-                      to={"/group/" + group?.id}
+                      to={"/group/" + group?._id}
                       className="flex absolute h-20 w-full top-0"
                     >
                       <div className="flex-grow flex flex-col justify-center bg-secondary bg-opacity-70 hover:opacity-0 transition-opacity duration-300">
