@@ -8,7 +8,7 @@ const PasswordReset = require('../models/PasswordReset.model.js');
 dotenv.config();
 
 const { AUTH_EMAIL, AUTH_PASSWORD, APP_URL } = process.env;
-
+const BASE_URL = APP_URL || 'http://localhost:3000/';
 let transporter = nodemailer.createTransport({
     service: "gmail",
     auth: {
@@ -31,7 +31,7 @@ const sendVerificationEmail = async (user, res, next) => {
 
     const token = _id + uuidv4();
 
-    const link = APP_URL + 'users/verify/' + _id + '/' + token;
+    const link = BASE_URL + 'users/verify/' + _id + '/' + token;
 
     const mailOptions = {
         from: AUTH_EMAIL,
@@ -147,7 +147,7 @@ const resetPasswordLink = async (user, res) => {
     const { _id, email } = user;
 
     const token = _id + uuidv4();
-    const link = APP_URL + 'users/reset-password/' + _id + '/' + token;
+    const link = BASE_URL + 'users/reset-password/' + _id + '/' + token;
 
     const mailOptions = {
         from: AUTH_EMAIL,

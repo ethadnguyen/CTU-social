@@ -21,7 +21,6 @@ const createJWT = (id, role = 'user') => {
 
 const isAdmin = (req, res, next) => {
     const user = req.body.user;
-    console.log(user);
     if (user && user.role === 'admin') {
         next();
     } else {
