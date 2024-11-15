@@ -335,12 +335,23 @@ const getSuggestedFriends = async (req, res) => {
             return res.status(404).json({ status: 'FAILED', message: 'Người dùng không tồn tại' });
         }
 
+        const friendRequests = await FriendRequest.find({
+            $or: [
+                { requestFrom: userId },
+                { requestTo: userId }
+            ]
+        });
+
+        const requestedUserIds = friendRequests.map(request =>
+            request.requestFrom.toString() === userId ? request.requestTo.toString() : request.requestFrom.toString()
+        );
+
         const suggestedFriends = await User.find({
             $or: [
                 { faculty: user.faculty._id },
                 { major: user.major._id }
             ],
-            _id: { $ne: userId, $nin: user.friends }
+            _id: { $ne: userId, $nin: [...user.friends, ...requestedUserIds] }
         })
             .limit(5)
             .populate('faculty', 'name')

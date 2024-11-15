@@ -1,13 +1,5 @@
-import { React, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import {
-  CustomButton,
-  FriendsCard,
-  Loading,
-  PostCard,
-  ProfileCard,
-  TopBar,
-} from "../components";
 import { useForm } from "react-hook-form";
 import { BsArrowDownCircleFill } from 'react-icons/bs';
 import { IoMdArrowRoundBack } from "react-icons/io";
@@ -17,6 +9,7 @@ import { NoProfile } from '../assets';
 import { FaPaperclip } from 'react-icons/fa6';
 import moment from 'moment';
 import 'moment/locale/vi';
+import { formatDate } from '../utils/formatDate';
 moment.locale('vi');
 
 const MessagePage = () => {
@@ -125,12 +118,6 @@ const MessagePage = () => {
     }
   }, [selectedConversationId, messages]);
 
-  // useEffect(() => {
-  //     if (selectedConversationId) {
-  //         scrollToBottom();
-  //     }
-  // }, [selectedConversationId, messages]);
-
   useEffect(() => {
     setShowScrollButton(false);
   }, [selectedConversationId]);
@@ -179,7 +166,6 @@ const MessagePage = () => {
       markMessagesAsSeen(existingConversation._id, friendId);
 
     } else {
-      // No existing conversation: create a new one
       try {
         const response = await axiosInstance.post('/chat/conversation', {
           senderId: id,
@@ -269,12 +255,9 @@ const MessagePage = () => {
                   onClick={() => handleConversationClick(conversation?._id)}
                   className="flex flex-col mb-7 cursor-pointer hover:sky text-ascent-1"
                 >
-                  {/* Avatar có thể được bỏ vào nếu muốn */}
                   {/* <img src={conversation?.avatar} alt={conversation?.name} className="w-8 h-8 rounded-full mr-2" /> */}
 
                   <span className="font-semibold">{conversation?.name}</span>
-
-                  {/* Last message xuống hàng và làm mờ */}
                   <span className="text-sm text-ascent-2 truncate">{conversation?.lastMessage}</span>
                   <span className='text-sm text-red'>
                     {unreadCounts[conversation._id] > 0 && <span className="badge">{unreadCounts[conversation._id]}</span>}
@@ -309,11 +292,13 @@ const MessagePage = () => {
                         </div>
                       ))}
                       <span className={`block text-xs ${message.sender._id === id ? 'text-ascent-2' : 'text-base'} mt-1`}>
-                        {moment(message.createdAt).fromNow()}
+                        {formatDate(message.createdAt)}
                       </span>
-                      <span className={`block text-xs ${message.sender._id === id ? 'text-ascent-2' : 'text-base'}`}>
-                        {(message?.seen) ? 'Đã xem' : 'Đã gửi'}
-                      </span>
+                      {message.sender._id === id && (
+                        <span className="block text-xs text-ascent-2">
+                          {message?.seen ? 'Đã xem' : 'Đã gửi'}
+                        </span>
+                      )}
                     </p>
                   </div>
                 ))}

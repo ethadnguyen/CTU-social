@@ -71,8 +71,17 @@ const User = require('../models/user.model');
 
 const getPosts = async (req, res) => {
     try {
+        const { userId } = req.body.user;
         const { search } = req.query;
-        console.log('search:', search);
+
+        const user = await User.findById(userId)
+            .populate('faculty', 'name')
+            .populate('major', 'majorName academicYear');
+
+        const friends = user?.friends?.toString().split(',') ?? [];
+        const followers = user?.followers?.toString().split(',') ?? [];
+        friends.push(userId);
+
         const searchPostQuery = {
             $and: [
                 { privacy: 'public' },
@@ -114,9 +123,27 @@ const getPosts = async (req, res) => {
             })
             .sort({ _id: -1 });
 
+        const friendsAndFollowers = [...new Set([...friends, ...followers])];
+
+        const friendsPosts = posts?.filter((post) => {
+            return friendsAndFollowers.includes(post?.user?._id.toString()) && !post.group;
+        });
+
+        const otherPosts = posts.filter((post) => {
+            return !friendsAndFollowers.includes(post?.user?._id.toString()) && !post.group;
+        });
+
+        let postsRes = null;
+
+        if (friendsPosts.length > 0) {
+            postsRes = search ? friendsPosts : [...friendsPosts, ...otherPosts];
+        } else {
+            postsRes = posts;
+        }
+
         res.status(200).json({
             message: 'Lấy bài viết thành công',
-            posts: posts,
+            posts: postsRes,
         });
     } catch (error) {
         console.log(error);

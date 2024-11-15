@@ -666,16 +666,18 @@ const PostCard = ({ post, user, deletePost, likePost, reportPost }) => {
           {post?.comments?.length}
         </p>
 
-        <p className="flex items-center gap-2 text-base cursor-pointer">
-          <span onClick={() => handleSharePost(post._id)}>
-            {post?.sharedBy?.some((share) => share._id === user._id) ? (
-              <FaShare size={20} color="#065ad8" />
-            ) : (
-              <FaShare size={20} />
-            )}
-          </span>
-          {post?.shares}
-        </p>
+        {!location.pathname.startsWith('/group') && (
+          <p className="flex items-center gap-2 text-base cursor-pointer">
+            <span onClick={() => handleSharePost(post._id)}>
+              {post?.sharedBy?.some((share) => share._id === user._id) ? (
+                <FaShare size={20} color="#065ad8" />
+              ) : (
+                <FaShare size={20} />
+              )}
+            </span>
+            {post?.shares}
+          </p>
+        )}
 
         <p
           className="flex items-center gap-2 text-base cursor-pointer"

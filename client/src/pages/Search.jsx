@@ -10,7 +10,6 @@ import {
   TextInput,
   TopBar,
 } from "../components";
-import { suggest } from "../assets/data";
 import {
   Link,
   useParams,
@@ -29,7 +28,7 @@ import {
   updatePost,
 } from "../redux/postSlice";
 import { toast } from "react-toastify";
-import { getUsersByQuery, updateUser } from "../redux/userSlice";
+import { getUsersByQuery, UpdateUser, updateUser } from "../redux/userSlice";
 import { fetchFaculties } from "../redux/facultySlice";
 import Swal from "sweetalert2";
 import socket from '../api/socket';
@@ -41,7 +40,7 @@ const Search = () => {
   const { groups } = useSelector((state) => state.group);
   const posts = useSelector((state) => state.posts.posts);
   const [friendRequest, setFriendRequest] = useState([]);
-  const [suggestedFriends, setSuggestedFriends] = useState(suggest);
+  const [suggestedFriends, setSuggestedFriends] = useState([]);
 
 
   const dispatch = useDispatch();
@@ -60,6 +59,20 @@ const Search = () => {
     reset,
     formState: { errors },
   } = useForm();
+
+  useEffect(() => {
+    const getFriendSuggestions = async () => {
+      try {
+        const res = await axiosInstance.get("/users/friend-suggestions");
+        console.log("Friend suggestions:", res.data.suggestions);
+        setSuggestedFriends(res.data.users);
+      } catch (error) {
+        console.error("Error getting friend suggestions:", error);
+      }
+    };
+
+    getFriendSuggestions();
+  }, []);
 
   useEffect(() => {
     dispatch(getPosts(searchQuery));
@@ -171,6 +184,39 @@ const Search = () => {
       toast.success(`Đã ${post.reportedBy.includes(user._id) ? 'bỏ' : ''} báo cáo bài viết thành công!`);
     } catch (error) {
       console.error('Error reporting post:', error);
+    }
+  };
+
+  const handleAddFriend = async (userId) => {
+    try {
+      const res = await axiosInstance.post("/users/friend-request", {
+        requestTo: userId,
+      });
+      if (res.status === 201) {
+        toast.success('Đã gửi yêu cầu kết bạn!');
+        dispatch(UpdateUser(res.data.user));
+        setSuggestedFriends((prevFriends) => prevFriends.filter((friend) => friend._id !== userId));
+        const notiRes = await axiosInstance.post("/users/create-notification", {
+          receiverIds: [userId],
+          sender: user._id,
+          type: "friendRequest",
+          message: `${user?.firstName} ${user?.lastName} đã gửi yêu cầu kết bạn!`,
+          link: `/profile/${user?._id}`,
+        });
+
+        if (notiRes.status === 201) {
+          socket.emit('sendNotification', {
+            notification: notiRes.data.notification,
+            receiverId: userId,
+          });
+          socket.emit('friendRequest', {
+            userId,
+            request: res.data.request,
+          });
+        }
+      }
+    } catch (error) {
+      console.error("Lỗi khi gửi yêu cầu kết bạn:", error);
     }
   };
 
@@ -471,7 +517,7 @@ const Search = () => {
                       className="flex items-center w-full gap-4 cursor-pointer"
                     >
                       <img
-                        src={friend?.profileUrl ?? NoProfile}
+                        src={friend?.avatar ?? NoProfile}
                         alt={friend?.firstName}
                         className="object-cover w-10 h-10 rounded-full"
                       />
@@ -485,7 +531,7 @@ const Search = () => {
                     <div className="flex gap-1">
                       <button
                         className="bg-[#0444a430] text-sm text-white p-1 rounded"
-                        onClick={() => { }}
+                        onClick={() => handleAddFriend(friend._id)}
                       >
                         <BsPersonFillAdd size={20} className="text-[#0f52b6]" />
                       </button>

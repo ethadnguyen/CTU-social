@@ -11,7 +11,6 @@ import {
     TopBar,
 } from "../components";
 import { useDispatch, useSelector } from "react-redux";
-import { suggest, requests } from "../assets/data";
 import { NoProfile } from "../assets";
 import { BsPersonFillAdd } from "react-icons/bs";
 import { GoDotFill } from "react-icons/go";
@@ -19,15 +18,15 @@ import { fetchFaculties } from '../redux/facultySlice';
 import axiosInstance from '../api/axiosConfig';
 import { UpdateUser, updateUser } from '../redux/userSlice';
 import socket from '../api/socket';
-import moment from 'moment';
 import { BiCheckCircle, BiGroup, BiLike, BiMessage, BiNews, BiSolidGroup } from 'react-icons/bi';
 import { formatDate } from '../utils/formatDate';
 import { FaPeopleArrows } from 'react-icons/fa';
+import { toast } from 'react-toastify';
 
 const NotificationsPage = () => {
     const { user, edit } = useSelector((state) => state.user);
-    const [friendRequest, setFriendRequest] = useState(requests);
-    const [suggestedFriends, setSuggestedFriends] = useState(suggest);
+    const [friendRequest, setFriendRequest] = useState([]);
+    const [suggestedFriends, setSuggestedFriends] = useState([]);
     const [selectedFaculty, setSelectedFaculty] = useState('');
     const { faculties } = useSelector((state) => state.faculty);
     const [notifications, setNotifications] = useState([]);
@@ -36,6 +35,20 @@ const NotificationsPage = () => {
     useEffect(() => {
         dispatch(fetchFaculties());
     }, [dispatch]);
+
+    useEffect(() => {
+        const getFriendSuggestions = async () => {
+            try {
+                const res = await axiosInstance.get("/users/friend-suggestions");
+                console.log("Friend suggestions:", res.data.suggestions);
+                setSuggestedFriends(res.data.users);
+            } catch (error) {
+                console.error("Error getting friend suggestions:", error);
+            }
+        };
+
+        getFriendSuggestions();
+    }, []);
 
     useEffect(() => {
         if (user && user.faculty._id) {
@@ -147,6 +160,39 @@ const NotificationsPage = () => {
             localStorage.setItem('notificationCount', parseInt(localStorage.getItem('notificationCount')) - 1);
         } catch (error) {
             console.error('Error marking as read:', error);
+        }
+    };
+
+    const handleAddFriend = async (userId) => {
+        try {
+            const res = await axiosInstance.post("/users/friend-request", {
+                requestTo: userId,
+            });
+            if (res.status === 201) {
+                toast.success('Đã gửi yêu cầu kết bạn!');
+                dispatch(UpdateUser(res.data.user));
+                setSuggestedFriends((prevFriends) => prevFriends.filter((friend) => friend._id !== userId));
+                const notiRes = await axiosInstance.post("/users/create-notification", {
+                    receiverIds: [userId],
+                    sender: user._id,
+                    type: "friendRequest",
+                    message: `${user?.firstName} ${user?.lastName} đã gửi yêu cầu kết bạn!`,
+                    link: `/profile/${user?._id}`,
+                });
+
+                if (notiRes.status === 201) {
+                    socket.emit('sendNotification', {
+                        notification: notiRes.data.notification,
+                        receiverId: userId,
+                    });
+                    socket.emit('friendRequest', {
+                        userId,
+                        request: res.data.request,
+                    });
+                }
+            }
+        } catch (error) {
+            console.error("Lỗi khi gửi yêu cầu kết bạn:", error);
         }
     };
 
@@ -330,7 +376,7 @@ const NotificationsPage = () => {
                                         className='flex items-center w-full gap-4 cursor-pointer'
                                     >
                                         <img
-                                            src={friend?.profileUrl ?? NoProfile}
+                                            src={friend?.avatar ?? NoProfile}
                                             alt={friend?.firstName}
                                             className='object-cover w-10 h-10 rounded-full'
                                         />
@@ -344,7 +390,7 @@ const NotificationsPage = () => {
                                     <div className='flex gap-1'>
                                         <button
                                             className='bg-[#0444a430] text-sm text-white p-1 rounded'
-                                            onClick={() => { }}
+                                            onClick={() => handleAddFriend(friend._id)}
                                         >
                                             <BsPersonFillAdd size={20} className='text-[#0f52b6]' />
                                         </button>

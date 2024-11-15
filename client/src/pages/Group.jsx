@@ -604,7 +604,7 @@ const Group = () => {
                       </div>
                     </Link>
 
-                    {user._id === group?.owner._id && (
+                    {user._id === group?.owner._id && member._id !== group?.owner._id && (
                       <div className="flex gap-1">
                         <button
                           className="bg-[#0444a430] text-sm text-white p-1 rounded"

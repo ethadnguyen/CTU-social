@@ -23,7 +23,7 @@ import axiosInstance from '../api/axiosConfig';
 import { getPosts, likePost, reportPost, updatePost } from '../redux/postSlice';
 import { FaFile } from 'react-icons/fa6';
 import { toast } from 'react-toastify';
-import { updateUser } from '../redux/userSlice';
+import { UpdateUser, updateUser } from '../redux/userSlice';
 import { fetchFaculties } from '../redux/facultySlice';
 import Swal from 'sweetalert2';
 import socket from '../api/socket';
@@ -277,20 +277,6 @@ const Home = () => {
   const handleReportPost = async (post) => {
     try {
       await dispatch(reportPost(post._id));
-      // const updatedPosts = posts.map((p) => {
-      //   if (p._id === postId) {
-      //     const hasReported = p.reportedBy.includes(user._id);
-      //     return {
-      //       ...p,
-      //       reports: hasReported ? p.reports - 1 : p.reports + 1,
-      //       reportedBy: hasReported
-      //         ? p.reportedBy.filter(id => id !== user._id)
-      //         : [...p.reportedBy, user._id],
-      //     }
-      //   }
-      //   return p;
-      // });
-      // dispatch(updatePosts(updatedPosts));
       const updatedPost = {
         ...post, reports: post.reportedBy.includes(user._id)
           ? post.reports - 1
@@ -304,6 +290,40 @@ const Home = () => {
       console.error("Error reporting post:", error);
     }
   };
+
+  const handleAddFriend = async (userId) => {
+    try {
+      const res = await axiosInstance.post("/users/friend-request", {
+        requestTo: userId,
+      });
+      if (res.status === 201) {
+        toast.success('Đã gửi yêu cầu kết bạn!');
+        dispatch(UpdateUser(res.data.user));
+        setSuggestedFriends((prevFriends) => prevFriends.filter((friend) => friend._id !== userId));
+        const notiRes = await axiosInstance.post("/users/create-notification", {
+          receiverIds: [userId],
+          sender: user._id,
+          type: "friendRequest",
+          message: `${user?.firstName} ${user?.lastName} đã gửi yêu cầu kết bạn!`,
+          link: `/profile/${user?._id}`,
+        });
+
+        if (notiRes.status === 201) {
+          socket.emit('sendNotification', {
+            notification: notiRes.data.notification,
+            receiverId: userId,
+          });
+          socket.emit('friendRequest', {
+            userId,
+            request: res.data.request,
+          });
+        }
+      }
+    } catch (error) {
+      console.error("Lỗi khi gửi yêu cầu kết bạn:", error);
+    }
+  };
+
 
   const handleAcceptFriendRequest = async (requestId) => {
     const request = friendRequest.find((req) => req._id === requestId);
@@ -664,7 +684,7 @@ const Home = () => {
                     <div className="flex gap-1">
                       <button
                         className="bg-[#0444a430] text-sm text-white p-1 rounded"
-                        onClick={() => { }}
+                        onClick={() => handleAddFriend(friend._id)}
                       >
                         <BsPersonFillAdd size={20} className="text-[#0f52b6]" />
                       </button>

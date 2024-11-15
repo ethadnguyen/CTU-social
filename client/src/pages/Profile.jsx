@@ -301,7 +301,8 @@ const Profile = () => {
       }
     });
   };
-  console.log('savedPosts', savedPosts);
+
+
   return (
     <>
       <div className="w-full h-[89vh] px-0 pb-1 overflow-hidden lg:px-10 2xl:px-40 bg-bgColor lg:rounded-lg">
