@@ -28,7 +28,23 @@ const PORT = process.env.PORT || 3000;
 
 connectDB();
 app.use(helmet());
-app.use(cors({ origin: true, credentials: true }));
+
+const allowedOrigins = [
+    'https://ctu-social-client.vercel.app',
+    'https://ctu-social-admin.vercel.app',
+    'http://localhost:5173',
+    'http://localhost:8443',
+];
+app.use(cors({
+    origin: function (origin, callback) {
+        if (!origin || allowedOrigins.includes(origin)) {
+            callback(null, origin);
+        } else {
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
+    credentials: true
+}));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.json({ limit: '50mb' }));
