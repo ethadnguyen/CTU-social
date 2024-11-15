@@ -7,4 +7,10 @@ export default defineConfig({
   server: {
     open: true
   },
-})
+  build: {
+    minify: 'terser',
+    rollupOptions: {
+      treeshake: true,
+    },
+  },
+});
