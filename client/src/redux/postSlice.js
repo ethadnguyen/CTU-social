@@ -34,7 +34,7 @@ export const savePost = createAsyncThunk('post/savePost', async (postId) => {
 
 export const sharePost = createAsyncThunk('post/sharePost', async (postId) => {
   const response = await axiosInstance.post(`/posts/share/${postId}`);
-  console.log('sharePost response', response.data.post);
+  // console.log('sharePost response', response.data.post);
   return { postId, data: response.data.post };
 });
 

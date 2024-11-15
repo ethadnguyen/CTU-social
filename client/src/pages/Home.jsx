@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {
   CustomButton,
@@ -8,20 +8,14 @@ import {
   PostCard,
   ProfileCard,
   TextInput,
-  TopBar,
 } from "../components";
-import { suggest } from "../assets/data";
-import { Posts } from "../assets/home";
-import { groups } from "../assets/groups";
-import { Link, useLocation, ScrollRestoration } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { NoProfile } from "../assets";
 import { BsPersonFillAdd } from "react-icons/bs";
 import { BiImages } from "react-icons/bi";
 import { useForm } from "react-hook-form";
-import { CiFileOn } from "react-icons/ci";
 import axiosInstance from '../api/axiosConfig';
 import { getPosts, likePost, reportPost, updatePost } from '../redux/postSlice';
-import { FaFile } from 'react-icons/fa6';
 import { toast } from 'react-toastify';
 import { UpdateUser, updateUser } from '../redux/userSlice';
 import { fetchFaculties } from '../redux/facultySlice';
@@ -32,7 +26,7 @@ const Home = () => {
   const { user, edit } = useSelector((state) => state.user);
   const { faculties } = useSelector((state) => state.faculty);
   const [friendRequest, setFriendRequest] = useState([]);
-  const [suggestedFriends, setSuggestedFriends] = useState(suggest);
+  const [suggestedFriends, setSuggestedFriends] = useState([]);
   const [errMsg, setErrMsg] = useState("");
   const [images, setImages] = useState([]);
   const [groups, setGroups] = useState([]);

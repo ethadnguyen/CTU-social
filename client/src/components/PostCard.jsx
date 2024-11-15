@@ -123,7 +123,6 @@ const CommentForm = ({ user, id, replyAt, getComments }) => {
           });
 
           if (notiRes.status === 201) {
-            console.log('send notification to:', post.user._id);
             socket.emit('sendNotification', { receiverId: post.user._id, notification: notiRes.data.notification });
           }
         }

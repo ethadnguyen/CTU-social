@@ -34,7 +34,6 @@ const ProfileCard = ({ user }) => {
 
   useEffect(() => {
     const handleFriendRemoved = (removedUserId) => {
-      console.log('removedUserId:', removedUserId);
       if (removedUserId === data._id || removedUserId === user._id) {
         setRequestStatus("");
       }
@@ -102,7 +101,6 @@ const ProfileCard = ({ user }) => {
 
   const handleCancelRequest = async () => {
     const res = await axiosInstance.post("/users/cancel-request");
-    console.log("Cancel request response:", res.data);
 
     if (res.status === 200) {
       setRequestStatus("");
@@ -172,7 +170,6 @@ const ProfileCard = ({ user }) => {
   };
 
   const handleUnfollow = async (userId) => {
-    console.log("Bỏ theo dõi:", userId);
     try {
       const res = await axiosInstance.post(`/users/unfollow`, { userToUnfollowId: userId });
       if (res.status === 200) {

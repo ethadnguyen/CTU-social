@@ -209,7 +209,7 @@ const MessagePage = () => {
           'Content-Type': 'multipart/form-data'
         }
       });
-      console.log('Message sent.', response.data.message);
+      // console.log('Message sent.', response.data.message);
 
       setMessages(prev => [...prev, response.data.message]);
       socket.emit('sendMessage', response.data.message);

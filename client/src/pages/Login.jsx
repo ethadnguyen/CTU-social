@@ -24,7 +24,6 @@ const Login = () => {
   const navigate = useNavigate();
 
   const onSubmit = async (data) => {
-    console.log(data)
     try {
       setIsSubmitting(true);
       await dispatch(UserLogin(data));

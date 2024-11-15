@@ -64,7 +64,6 @@ const Search = () => {
     const getFriendSuggestions = async () => {
       try {
         const res = await axiosInstance.get("/users/friend-suggestions");
-        console.log("Friend suggestions:", res.data.suggestions);
         setSuggestedFriends(res.data.users);
       } catch (error) {
         console.error("Error getting friend suggestions:", error);
@@ -84,7 +83,6 @@ const Search = () => {
     const getFriendRequests = async () => {
       try {
         const res = await axiosInstance.get("/users/friend-requests");
-        console.log("Friend requests:", res.data.requests);
         setFriendRequest(res.data.requests);
       } catch (error) {
         console.error("Error getting friend requests:", error);
@@ -165,7 +163,6 @@ const Search = () => {
         }
       }
     } catch (error) {
-      console.log(error);
       console.error('Error liking post:', error);
     }
   };
@@ -226,7 +223,6 @@ const Search = () => {
         requestId,
         status: "ACCEPTED",
       });
-      console.log("Accept friend request:", res.data);
       setFriendRequest((prevRequests) =>
         prevRequests.filter((req) => req._id !== requestId)
       );
@@ -242,7 +238,6 @@ const Search = () => {
         requestId,
         status: "REJECTED",
       });
-      console.log("Reject friend request:", res.data);
       setFriendRequest((prevRequests) =>
         prevRequests.filter((req) => req._id !== requestId)
       );

@@ -9,9 +9,7 @@ import {
   Loading,
   PostCard,
   ProfileCard,
-  TopBar,
 } from "../components";
-import { profile } from "../assets/profile";
 import { ChevronDownIcon, ChevronUpIcon } from "@heroicons/react/24/outline";
 import {
   MdOutlineFileUpload,
@@ -26,11 +24,9 @@ import {
   reportPost,
   updatePost,
 } from "./../redux/postSlice";
-import io from "socket.io-client";
 import axiosInstance from "../api/axiosConfig";
 import { toast } from "react-toastify";
 import Swal from "sweetalert2";
-import { UpdateUser } from '../redux/userSlice';
 import slugify from 'slugify';
 import socket from '../api/socket';
 
@@ -177,8 +173,6 @@ const Profile = () => {
   };
 
   const handleCreateGroup = async (data) => {
-    console.log("Tên nhóm:", data.name);
-    console.log("Mục đích:", data.description);
     try {
       const res = await axiosInstance.post("/users/group-request", {
         name: data.name,
@@ -210,7 +204,6 @@ const Profile = () => {
 
   const handleAddTag = async (data) => {
     if (data.tagName !== null) {
-      console.log("Tên thẻ:", data.tagName);
       const res = await axiosInstance.post("/users/tags", {
         name: data.tagName,
       });

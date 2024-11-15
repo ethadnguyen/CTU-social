@@ -48,7 +48,6 @@ const Post = () => {
     const getFriendRequests = async () => {
       try {
         const res = await axiosInstance.get('/users/friend-requests');
-        console.log('Friend requests:', res.data.requests);
         setFriendRequest(res.data.requests);
       } catch (error) {
         console.error('Error getting friend requests:', error);
@@ -123,7 +122,6 @@ const Post = () => {
         }
       }
     } catch (error) {
-      console.log(error);
       console.error('Error liking post:', error);
     }
   };
@@ -157,7 +155,6 @@ const Post = () => {
   const handleAcceptFriendRequest = async (requestId) => {
     try {
       const res = await axiosInstance.post('/users/accept-request', { requestId, status: "ACCEPTED" });
-      console.log('Accept friend request:', res.data);
       setFriendRequest((prevRequests) => prevRequests.filter((req) => req._id !== requestId));
       dispatch(updateUser(res.data.user));
     } catch (error) {
@@ -168,7 +165,6 @@ const Post = () => {
   const handleRejectFriendRequest = async (requestId) => {
     try {
       const res = await axiosInstance.post('/users/reject-request', { requestId, status: "REJECTED" });
-      console.log('Reject friend request:', res.data);
       setFriendRequest((prevRequests) => prevRequests.filter((req) => req._id !== requestId));
     } catch (error) {
       console.error('Error rejecting friend request:', error);
