@@ -9,7 +9,7 @@ const createMajorSchema = Joi.object({
             'string.min': 'Tên ngành phải ít nhất 3 ký tự',
             'string.base': 'Tên ngành phải là chuỗi',
         }),
-    facultyId: Joi.string()
+    faculty: Joi.string()
         .regex(/^[0-9a-fA-F]{24}$/)
         .required()
         .messages({

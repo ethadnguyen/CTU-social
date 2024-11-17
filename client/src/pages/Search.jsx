@@ -477,12 +477,12 @@ const Search = () => {
 
                     <div className="flex gap-1">
                       <CustomButton
-                        title="Accept"
+                        title="Chấp nhận"
                         containerStyles="bg-[#0444a4] text-xs text-white px-1.5 py-1 rounded-full"
                         onClick={() => handleAcceptFriendRequest(_id)}
                       />
                       <CustomButton
-                        title="Deny"
+                        title="Từ chối"
                         containerStyles="border border-[#666] text-xs text-ascent-1 px-1.5 py-1 rounded-full"
                         onClick={() => handleRejectFriendRequest(_id)}
                       />
