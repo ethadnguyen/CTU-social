@@ -158,6 +158,8 @@ const UserManagement = () => {
   }
   );
 
+  console.log('environment: ', import.meta.env.VITE_CLIENT_URL);
+
   return (
     <div className="grid grid-cols-3 gap-4 h-full">
       {/* Cột 1: Danh sách người dùng */}
@@ -237,7 +239,7 @@ const UserManagement = () => {
                             ${selectedPost?._id === Post._id ? 'bg-sky text-white' : ''}`}
               >
                 <>
-                  <a href={`http://localhost:5173/posts/${Post._id}`} target="_blank" className="hover:underline">"{Post.content.split(' ').length > 7 ? Post.content.split(' ').slice(0, 7).join(' ') + '...' : Post.content}"</a>
+                  <a href={`${import.meta.env.VITE_CLIENT_URL}/posts/${Post._id}`} target="_blank" className="hover:underline">"{Post.content.split(' ').length > 7 ? Post.content.split(' ').slice(0, 7).join(' ') + '...' : Post.content}"</a>
                   <div className={`absolute right-2 top-1/2 transform -translate-y-1/2 
                                     ${selectedPost?._id === Post._id ? '' : 'hidden'}`}>
                     <button onClick={(event) => {
@@ -290,7 +292,7 @@ const UserManagement = () => {
                         ${selectedLike?._id === Like._id ? 'bg-sky text-white' : ''}`}
                 >
                   <>
-                    <a href={`http://localhost:5173/profile/${Like._id}`} target="_blank" className="hover:underline">{Like.firstName} {Like.lastName}</a>
+                    <a href={`${import.meta.env.VITE_CLIENT_URL}/profile/${Like._id}`} target="_blank" className="hover:underline">{Like.firstName} {Like.lastName}</a>
                     <div className={`absolute right-2 top-1/2 transform -translate-y-1/2 
                             ${selectedLike?._id === Like._id ? '' : 'hidden'}`}>
                     </div>
