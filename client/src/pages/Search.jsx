@@ -180,7 +180,7 @@ const Search = () => {
       dispatch(updatePost(updatedPost));
       toast.success(`Đã ${post.reportedBy.includes(user._id) ? 'bỏ' : ''} báo cáo bài viết thành công!`);
     } catch (error) {
-      console.error('Error reporting post:', error);
+      console.error("Error reporting post:", error);
     }
   };
 

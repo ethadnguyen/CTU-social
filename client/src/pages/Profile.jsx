@@ -151,7 +151,7 @@ const Profile = () => {
       dispatch(updatePost(updatedPost));
       toast.success(`Đã ${post.reportedBy.includes(user._id) ? 'bỏ' : ''} báo cáo bài viết thành công!`);
     } catch (error) {
-      console.error('Error reporting post:', error);
+      console.error("Error reporting post:", error);
     }
   };
 
@@ -486,7 +486,7 @@ const Profile = () => {
                                   {file?.name}
                                 </a>
                               </div>
-                              <MdDeleteOutline className="ml-2 size-5 text-ascent-1" onClick={() => handleDeleteFile(file.id)} />
+                              {user._id === id && (<MdDeleteOutline className="ml-2 size-5 text-ascent-1" onClick={() => handleDeleteFile(file.id)} />)}
                             </li>
                           ))}
                         </ul>

@@ -142,7 +142,9 @@ const MessagePage = () => {
 
   const handleFriendClick = async (friendId) => {
     let existingConversation = conversations.find(conv =>
-      conv.recipients.includes(friendId)
+      conv.recipients.length === 2 &&
+      conv.recipients.includes(friendId) &&
+      conv.recipients.includes(id)
     );
 
     if (existingConversation) {
