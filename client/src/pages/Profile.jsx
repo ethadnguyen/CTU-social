@@ -486,7 +486,7 @@ const Profile = () => {
                                   {file?.name}
                                 </a>
                               </div>
-                              {user._id === id && (<MdDeleteOutline className="ml-2 size-5 text-ascent-1" onClick={() => handleDeleteFile(file.id)} />)}
+                              {user._id === id && (<MdDeleteOutline className="ml-2 size-5 text-ascent-1 cursor-pointer hover:bg-red" onClick={() => handleDeleteFile(tag._id, file.id)} />)}
                             </li>
                           ))}
                         </ul>

@@ -14,10 +14,9 @@ const storage = new CloudinaryStorage({
         console.log('File:', file);
         let folder = 'CTU-social/';
         let allowedFormats = ['jpg', 'png', 'jpeg', 'pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'];
+        let resourceType = 'auto';
         if (file.fieldname === 'images') {
             folder += 'images';
-        } else if (file.fieldname === 'files') {
-            folder += 'files';
         } else if (file.fieldname === 'avatar') {
             folder += 'avatars';
         } else if (file.fieldname === 'media') {
@@ -26,6 +25,7 @@ const storage = new CloudinaryStorage({
         } else if (file.fieldname === 'tags') {
             folder += 'tags';
             allowedFormats = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'];
+            resourceType = 'raw';
         } else if (file.fieldname === 'banner') {
             folder += 'banners';
             allowedFormats = ['jpg', 'png', 'jpeg'];
@@ -34,6 +34,7 @@ const storage = new CloudinaryStorage({
         return {
             folder: folder,
             allowed_formats: allowedFormats,
+            resource_type: resourceType
         };
     }
 });

@@ -1040,7 +1040,8 @@ const deleteFileFromTag = async (req, res) => {
             return res.status(404).json({ status: 'FAILED', message: 'Thẻ không tồn tại' });
         }
 
-        const fileIndex = tag.files.findIndex((file) => file.id === fileId);
+        const fileIndex = tag.files.findIndex((file) => file.id.toString() === fileId);
+        console.log('fileIndex', fileIndex);
         if (fileIndex === -1) {
             return res.status(404).json({ status: 'FAILED', message: 'Tệp không tồn tại' });
         }
