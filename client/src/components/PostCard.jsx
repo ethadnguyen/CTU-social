@@ -14,7 +14,6 @@ import { savePost, sharePost, updatePost } from "../redux/postSlice";
 import TextInput from "./TextInput";
 import Loading from "./Loading";
 import Modal from "react-modal";
-import moment from "moment";
 import Swal from "sweetalert2";
 import socket from '../api/socket';
 import { formatDate } from './../utils/formatDate';
@@ -42,7 +41,7 @@ const ReplyCard = ({ reply, user, handleLike, handleDelete }) => {
             </p>
           </Link>
           <span className="text-sm text-ascent-2">
-            {moment(reply?.created_At).fromNow()}
+            {formatDate(reply?.created_At)}
           </span>
         </div>
         {user._id === reply.user._id && (
@@ -763,7 +762,7 @@ const PostCard = ({ post, user, deletePost, likePost, reportPost }) => {
                       </p>
                     </Link>
                     <span className="text-sm text-ascent-2">
-                      {moment(comment?.createdAt ?? "2024-08-13").fromNow()}
+                      formatDate(comment?.createdAt)
                     </span>
                   </div>
                   {user._id === comment.user._id && (
