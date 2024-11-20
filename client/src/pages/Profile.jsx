@@ -29,6 +29,7 @@ import { toast } from "react-toastify";
 import Swal from "sweetalert2";
 import slugify from 'slugify';
 import socket from '../api/socket';
+import { EmptyImage } from '../assets';
 
 const Profile = () => {
   const { id } = useParams();
@@ -574,7 +575,7 @@ const Profile = () => {
                     >
                       <div className="relative">
                         <img
-                          src={group?.banner === '' ? "../src/assets/empty.jpg" : group?.banner}
+                          src={group?.banner === '' ? EmptyImage : group?.banner}
                           alt={group?.name}
                           className="object-cover rounded-md w-full h-20"
                         />
