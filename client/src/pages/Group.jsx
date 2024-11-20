@@ -1,4 +1,4 @@
-import { React, useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {
   CustomButton,
@@ -7,13 +7,9 @@ import {
   Loading,
   PostCard,
   ProfileCard,
-  TextInput,
-  TopBar,
 } from "../components";
-import { suggest, requests } from "../assets/data";
 import { Link, useLocation, ScrollRestoration, useParams } from "react-router-dom";
-import { NoProfile } from "../assets";
-import { BsPersonFillAdd } from "react-icons/bs";
+import { NoProfile, EmptyImage } from "../assets";
 import { SiVerizon, SiX } from "react-icons/si";
 import { FaDeleteLeft } from "react-icons/fa6";
 import { FaEdit } from "react-icons/fa";
@@ -29,7 +25,6 @@ import {
 import { toast } from "react-toastify";
 import Swal from "sweetalert2";
 import socket from "../api/socket";
-import { join, set } from 'lodash';
 
 const Group = () => {
   const { user, edit } = useSelector((state) => state.user);
@@ -356,7 +351,7 @@ const Group = () => {
         {/* <TopBar friends={user?.friends} /> */}
         <div className="relative">
           <img
-            src={group?.banner === '' ? "../src/assets/empty.jpg" : group?.banner}
+            src={group?.banner === '' ? EmptyImage : group?.banner}
             alt="Banner"
             className="w-full h-48 object-cover rounded-t-lg"
           />
