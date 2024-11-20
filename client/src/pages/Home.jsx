@@ -664,7 +664,7 @@ const Home = () => {
                       className="flex items-center w-full gap-4 cursor-pointer"
                     >
                       <img
-                        src={friend?.profileUrl ?? NoProfile}
+                        src={friend?.avatar ?? NoProfile}
                         alt={friend?.firstName}
                         className="object-cover w-10 h-10 rounded-full"
                       />
