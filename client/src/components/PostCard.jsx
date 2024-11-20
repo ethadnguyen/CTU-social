@@ -762,7 +762,7 @@ const PostCard = ({ post, user, deletePost, likePost, reportPost }) => {
                       </p>
                     </Link>
                     <span className="text-sm text-ascent-2">
-                      formatDate(comment?.createdAt)
+                      {formatDate(comment?.createdAt)}
                     </span>
                   </div>
                   {user._id === comment.user._id && (
