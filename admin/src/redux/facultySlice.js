@@ -53,6 +53,7 @@ export const addMajor = createAsyncThunk('faculty/addMajor', async (data, { reje
         const response = await axiosInstance.post(`/admin/create-major`, { ...data });
         return response.data;
     } catch (error) {
+        console.log(error);
         return rejectWithValue(error.response.data.message);
     }
 });

@@ -622,6 +622,7 @@ const acceptGroupRequest = async (req, res) => {
             name: groupRequest.name,
             owner: groupRequest.user._id,
             members: [groupRequest.user._id],
+            description: groupRequest.description,
         });
 
         await newGroup.save();

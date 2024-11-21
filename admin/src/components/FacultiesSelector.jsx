@@ -63,6 +63,10 @@ const FacultySelector = () => {
     }
   };
 
+  useEffect(() => {
+    console.log('Updated selectedFaculty:', selectedFaculty);
+  }, [selectedFaculty]);
+
   const handleMajorClick = (major) => {
     if (selectedMajor === major) {
       setSelectedMajor(null);
@@ -85,6 +89,7 @@ const FacultySelector = () => {
   const handleAddFaculty = async (data) => {
     console.log("Thêm khoa:", data.facultyName);
     const response = await dispatch(addFaculty({ name: data.facultyName }));
+    console.log('response faculty:', response);
     if (response?.payload.faculty) {
       toast.success(`Thêm khoa thành công!`);
     }
@@ -98,7 +103,7 @@ const FacultySelector = () => {
   const handleAddMajor = async (data) => {
     console.log("Thêm ngành:", data.majorName, "cho khoa", selectedFaculty.name);
     const response = await dispatch(addMajor({ majorName: data.majorName, facultyId: selectedFaculty._id }));
-    console.log('response:', response);
+    console.log('response major: ', response);
     if (response?.payload.major) {
       toast.success(`Thêm ngành thành công!`);
     } else {
@@ -287,7 +292,7 @@ const FacultySelector = () => {
   };
 
   const filteredMajors = majors.filter((major) =>
-    major.majorName.toLowerCase().includes(searchMajor.toLowerCase())
+    major?.majorName.toLowerCase().includes(searchMajor.toLowerCase())
   );
 
   const handleSearchCourseChange = (event) => {
