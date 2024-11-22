@@ -24,13 +24,13 @@ const Login = () => {
   const navigate = useNavigate();
 
   const onSubmit = async (data) => {
+    console.log("Data trước khi submit:", data);
     try {
       setIsSubmitting(true);
       await dispatch(UserLogin(data));
       setIsSubmitting(false);
       navigate("/");
     } catch (error) {
-      // setErrMsg({ status: "failed", message: error.message });
       console.log(error)
     }
   };
@@ -88,7 +88,12 @@ const Login = () => {
                 register={register("password", {
                   required: "Mật khẩu là bắt buộc!",
                 })}
-                error={errors.password ? errors.password?.message : ""}
+                error={errors.password ? errors.password.message : ""}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    handleSubmit(onSubmit)();
+                  }
+                }}
               />
 
               <Link

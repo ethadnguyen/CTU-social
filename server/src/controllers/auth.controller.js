@@ -34,6 +34,23 @@ const register = async (req, res) => {
             return res.status(400).json({ message: 'Mật khẩu phải có ít nhất 6 ký tự' });
         }
 
+        if (dateOfBirth) {
+            const date = new Date(dateOfBirth);
+            const currentDate = new Date();
+            const age = currentDate.getFullYear() - date.getFullYear();
+            if (age < 18) {
+                return res.status(400).json({ message: 'Tuổi phải lớn hơn hoặc bằng 18' });
+            }
+        }
+
+        if (student_id) {
+            const existingStudentId = await User.findOne({ student_id });
+
+            if (existingStudentId) {
+                return res.status(400).json({ message: 'Mã số sinh viên đã tồn tại' });
+            }
+        }
+
         const newUser = new User({
             firstName,
             lastName,
@@ -45,7 +62,6 @@ const register = async (req, res) => {
             academicYear,
             gender,
             dateOfBirth,
-            phone,
             avatar,
             bio,
             facebook,
