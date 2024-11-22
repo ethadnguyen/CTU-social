@@ -8,7 +8,7 @@ const createConversation = async (req, res) => {
 
     try {
         let conversation = await conversationModel.findOne({
-            recipients: { $all: [senderId] },
+            recipients: { $all: [senderId, friendId] },
         });
 
         const friend = await userModel.findById(friendId);
@@ -16,7 +16,7 @@ const createConversation = async (req, res) => {
 
         if (!conversation) {
             conversation = new conversationModel({
-                recipients: [senderId],
+                recipients: [senderId, friendId],
                 name: `${sender.firstName} - ${friend.firstName}`,
             });
         }
@@ -85,6 +85,7 @@ const addRecipient = async (req, res) => {
 
 const createMessage = async (req, res) => {
     const { conversationId, senderId, recipientId, text } = req.body;
+    console.log(req.body);
     const media = req.files ? req.files.map((file) => file.path) : [];
 
     try {
@@ -111,8 +112,22 @@ const createMessage = async (req, res) => {
 
         const newMessage = await messageModel.findById(message._id).populate('sender').populate('recipient');
 
+        const updatedConversation = await conversationModel.findById(conversationId).populate({
+            path: 'messages',
+            populate: [
+                {
+                    path: 'sender',
+                    select: '-password'
+                },
+                {
+                    path: 'recipient',
+                    select: '-password'
+                }
+            ]
+        });
         res.status(200).json({
-            message: newMessage
+            message: newMessage,
+            conversation: updatedConversation
         });
     } catch (error) {
         console.error(error);
@@ -123,8 +138,11 @@ const createMessage = async (req, res) => {
 };
 
 const getAllConversations = async (req, res) => {
+    const { userId } = req.params;
     try {
-        const conversations = await conversationModel.find().populate({
+        const conversations = await conversationModel.find({
+            recipients: userId
+        }).populate({
             path: 'messages',
             populate: [
                 {
@@ -132,7 +150,7 @@ const getAllConversations = async (req, res) => {
                     select: '-password'
                 },
                 {
-                    'path': 'recipient',
+                    path: 'recipient',
                     select: '-password'
                 }
             ]
