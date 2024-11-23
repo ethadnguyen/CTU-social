@@ -6,7 +6,7 @@ export function formatDate(createdAt) {
     const duration = moment.duration(now.diff(momentCreatedAt));
 
     if (duration.asSeconds() < 60) {
-        return `${duration.seconds()} giây trước`;
+        return `vài giây trước`;
     } else if (duration.asMinutes() < 60) {
         return `${duration.minutes()} phút trước`;
     } else if (duration.asHours() < 24) {

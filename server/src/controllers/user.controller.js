@@ -281,14 +281,6 @@ const updateUser = async (req, res, next) => {
             }
         }
 
-        if (student_id) {
-            const existingStudentId = await User.findOne({ student_id });
-
-            if (existingStudentId) {
-                return res.status(400).json({ message: 'Mã số sinh viên đã tồn tại' });
-            }
-        }
-
         const updateFields = {
             ...(firstName && { firstName }),
             ...(lastName && { lastName }),
